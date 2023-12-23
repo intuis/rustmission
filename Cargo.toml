@@ -1,0 +1,23 @@
+[package]
+name = "ratatui-counter-app"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.76"
+ratatui = "0.25.0"
+color-eyre = "0.6.2"
+tokio = { version = "1.32.0", features = ["full"] }
+tokio-util = "0.7.9"
+crossterm = { version = "0.27.0", features = ["event-stream"] }
+futures = "0.3.28"
+serde = { version = "1.0", features = ["derive"] }
+signal-hook = "0.3.17"
+tracing-error = "0.2.0"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+directories = "5.0.1"
+lazy_static = "1.4.0"
+transmission-rpc = "0.4.2"
