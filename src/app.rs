@@ -1,3 +1,4 @@
+use ratatui::prelude::*;
 use std::time::Duration;
 
 use crate::{
@@ -9,14 +10,16 @@ use anyhow::Result;
 use crossterm::event::KeyCode;
 use ratatui::{widgets::Paragraph, Frame};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
-use transmission_rpc::{types::BasicAuth, TransClient};
+use transmission_rpc::{
+    types::{BasicAuth, Torrent, TorrentGetField},
+    TransClient,
+};
 
 pub struct App {
     pub counter: u64,
     pub should_quit: bool,
     pub action_tx: UnboundedSender<Action>,
     pub action_rx: UnboundedReceiver<Action>,
-    pub torrent_info: Option<Vec<String>>,
     pub components: Components,
     pub current_tab: Tab,
 }
@@ -34,7 +37,7 @@ pub enum Action {
     Decrement,
     Quit,
     Render,
-    TorrentListUpdate(Vec<String>),
+    TorrentListUpdate(Vec<Torrent>),
 }
 
 fn get_action(_app: &App, event: Event) -> Option<Action> {
@@ -64,14 +67,19 @@ impl App {
                 auth,
             );
             loop {
-                let res = client.torrent_get(None, None).await.unwrap();
-                let names: Vec<String> = res
-                    .arguments
-                    .torrents
-                    .into_iter()
-                    .map(|it| it.name.unwrap())
-                    .collect();
-                action_tx.send(Action::TorrentListUpdate(names)).unwrap();
+                let fields = vec![
+                    TorrentGetField::Id,
+                    TorrentGetField::Name,
+                    TorrentGetField::IsFinished,
+                    TorrentGetField::IsStalled,
+                    TorrentGetField::PercentDone,
+                    TorrentGetField::UploadRatio,
+                    TorrentGetField::SizeWhenDone,
+                    TorrentGetField::Eta,
+                ];
+                let res = client.torrent_get(Some(fields), None).await.unwrap();
+                let torrents = res.arguments.torrents;
+                action_tx.send(Action::TorrentListUpdate(torrents)).unwrap();
 
                 tokio::time::sleep(Duration::from_secs(5)).await;
             }
@@ -81,7 +89,6 @@ impl App {
             should_quit: false,
             action_tx,
             action_rx,
-            torrent_info: None,
             components: Components::new(),
             current_tab: Tab::Torrents,
         }
@@ -126,15 +133,12 @@ impl App {
     }
 
     fn ui(&mut self, f: &mut Frame) {
-        self.components.tabs.render(f, f.size());
-        // tabs.render(self, f, f.size());
-        // self.components.tabs.render(f, f.size());
-        // if let Some(torrent) = &self.torrent_info {
-        //     f.render_widget(
-        //         Paragraph::new(format!("Got first torrent: {}", torrent[0])),
-        //         f.size(),
-        //     );
-        // };
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(1), Constraint::Percentage(100)])
+            .split(f.size());
+        self.components.tabs.render(f, layout[0]);
+        self.components.torrents_tab.render(f, layout[1]);
     }
 
     fn update(&mut self, action: Action) -> Option<Action> {
@@ -142,7 +146,7 @@ impl App {
             Action::Quit => self.should_quit = true,
             Action::Increment => self.counter += 1,
             Action::Decrement if self.counter > 0 => self.counter -= 1,
-            Action::TorrentListUpdate(names) => self.torrent_info = Some(names),
+            Action::TorrentListUpdate(torrents) => self.components.torrents_tab.torrents = torrents,
             Action::Tick => {}
             _ => {}
         };
