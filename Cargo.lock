@@ -787,27 +787,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ratatui-counter-app"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "color-eyre",
- "crossterm",
- "directories",
- "futures",
- "lazy_static",
- "ratatui",
- "serde",
- "signal-hook",
- "tokio",
- "tokio-util",
- "tracing",
- "tracing-error",
- "tracing-subscriber",
- "transmission-rpc",
-]
-
-[[package]]
 name = "redox_syscall"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -960,6 +939,27 @@ checksum = "8b6275d1ee7a1cd780b64aca7726599a1dbc893b1e64144529e55c3c2f745765"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "rustmission"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "color-eyre",
+ "crossterm",
+ "directories",
+ "futures",
+ "lazy_static",
+ "ratatui",
+ "serde",
+ "signal-hook",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-error",
+ "tracing-subscriber",
+ "transmission-rpc",
 ]
 
 [[package]]
