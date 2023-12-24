@@ -43,7 +43,7 @@ impl Component for TabComponent {
         let layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Length(rect.width / 2 - 26),
+                Constraint::Length(rect.width / 2 - 25),
                 Constraint::Percentage(100),
             ])
             .split(rect);

@@ -76,6 +76,8 @@ impl App {
                     TorrentGetField::UploadRatio,
                     TorrentGetField::SizeWhenDone,
                     TorrentGetField::Eta,
+                    TorrentGetField::RateUpload,
+                    TorrentGetField::RateDownload,
                 ];
                 let res = client.torrent_get(Some(fields), None).await.unwrap();
                 let torrents = res.arguments.torrents;

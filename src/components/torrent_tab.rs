@@ -20,12 +20,16 @@ impl TorrentsTab {
 
 impl Component for TorrentsTab {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let header = Row::new(vec!["Name", "Size", "Progress", "ETA"]);
+        let header = Row::new(vec![
+            "Name", "Size", "Progress", "ETA", "Download", "Upload",
+        ]);
         let widths = [
-            Constraint::Length(60),
-            Constraint::Length(15),
-            Constraint::Length(10),
-            Constraint::Length(10),
+            Constraint::Length(60), // Name
+            Constraint::Length(15), // Size
+            Constraint::Length(10), // Progress
+            Constraint::Length(10), // ETA
+            Constraint::Length(10), // Download
+            Constraint::Length(10), // Upload
         ];
 
         let rows: Vec<_> = self
@@ -39,11 +43,24 @@ impl Component for TorrentsTab {
                     (percent * 100f32).to_string()
                 };
 
+                let eta = t.eta.unwrap();
+                let eta = if eta == -1 {
+                    "∞".to_string()
+                } else {
+                    eta.to_string()
+                };
+
+                let download = bytes_to_human(t.rate_download.unwrap());
+
+                let upload = bytes_to_human(t.rate_upload.unwrap());
+
                 Row::new(vec![
                     t.name.clone().unwrap(),
                     bytes_to_human(t.size_when_done.clone().unwrap()),
                     status,
-                    t.eta.unwrap().to_string(),
+                    eta,
+                    download,
+                    upload,
                 ])
             })
             .collect();
