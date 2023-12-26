@@ -39,7 +39,7 @@ pub struct Tui {
 impl Tui {
     pub fn new() -> Result<Self> {
         let tick_rate = 4.0;
-        let frame_rate = 60.0;
+        let frame_rate = 30.0;
         let terminal = ratatui::Terminal::new(Backend::new(std::io::stderr()))?;
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         let cancellation_token = CancellationToken::new();
@@ -71,7 +71,7 @@ impl Tui {
         self.cancel();
         self.cancellation_token = CancellationToken::new();
         let _cancellation_token = self.cancellation_token.clone();
-        let _event_tx = self.event_tx.clone();
+        let event_tx = self.event_tx.clone();
 
         // Tokio task
         self.task = tokio::spawn(async move {
@@ -83,36 +83,31 @@ impl Tui {
                 let render_delay = render_interval.tick();
                 let crossterm_event = reader.next().fuse();
                 tokio::select! {
-                  _ = _cancellation_token.cancelled() => {
-                    break;
-                  }
-                  maybe_event = crossterm_event => {
-                    match maybe_event {
-                      Some(Ok(evt)) => {
-                        match evt {
-                          CrosstermEvent::Key(key) => {
-                            if key.kind == KeyEventKind::Press {
-                              _event_tx.send(Event::Key(key)).unwrap();
-                            }
-                          },
-                          _ => (),
-                        }
-                      }
-                      Some(Err(_)) => {
-                        _event_tx.send(Event::Error).unwrap();
-                      }
-                      None => {},
-                    }
-                  },
-                  _ = tick_delay => {
-                      _event_tx.send(Event::Tick).unwrap();
-                  },
-                  _ = render_delay => {
-                      _event_tx.send(Event::Render).unwrap();
-                  },
+                  _ = _cancellation_token.cancelled() => break,
+                  event = crossterm_event => Self::handle_crossterm_event(event, &event_tx),
+                  _ = tick_delay => event_tx.send(Event::Tick).unwrap(),
+                  _ = render_delay => event_tx.send(Event::Render).unwrap(),
                 }
             }
         });
+    }
+
+    fn handle_crossterm_event<T>(
+        event: Option<Result<CrosstermEvent, T>>,
+        event_tx: &UnboundedSender<Event>,
+    ) {
+        match event {
+            Some(Ok(evt)) => match evt {
+                CrosstermEvent::Key(key) => {
+                    if key.kind == KeyEventKind::Press {
+                        event_tx.send(Event::Key(key)).unwrap();
+                    }
+                }
+                _ => (),
+            },
+            Some(Err(_)) => event_tx.send(Event::Error).unwrap(),
+            None => (),
+        }
     }
 
     pub fn stop(&self) -> Result<()> {

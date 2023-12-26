@@ -1,30 +1,33 @@
 use ratatui::prelude::*;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use crate::{
-    components::{Component, Components},
+    components::{tabcomponent::TabComponent, torrent_tab::TorrentsTab, Component},
     tui::{self, Event},
 };
 
 use anyhow::Result;
 use crossterm::event::KeyCode;
-use ratatui::{widgets::Paragraph, Frame};
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use ratatui::Frame;
+use tokio::sync::{
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    Mutex,
+};
 use transmission_rpc::{
-    types::{BasicAuth, Torrent, TorrentGetField},
+    types::{BasicAuth, SessionStats, Torrent, TorrentGetField},
     TransClient,
 };
 
 pub struct App {
-    pub counter: u64,
     pub should_quit: bool,
-    pub action_tx: UnboundedSender<Action>,
+    action_tx: UnboundedSender<Action>,
     pub action_rx: UnboundedReceiver<Action>,
     pub components: Components,
     pub current_tab: Tab,
 }
 
-enum Tab {
+#[derive(Clone, Copy)]
+pub enum Tab {
     Torrents,
     Search,
     Settings,
@@ -33,18 +36,19 @@ enum Tab {
 #[derive(Debug, Clone)]
 pub enum Action {
     Tick,
-    Increment,
-    Decrement,
     Quit,
     Render,
+    Up,
+    Down,
     TorrentListUpdate(Vec<Torrent>),
+    StatsUpdate(SessionStats),
 }
 
-fn get_action(_app: &App, event: Event) -> Option<Action> {
+const fn get_action(_app: &App, event: Event) -> Option<Action> {
     if let Event::Key(key) = event {
         return match key.code {
-            KeyCode::Char('j') => Some(Action::Increment),
-            KeyCode::Char('k') => Some(Action::Decrement),
+            KeyCode::Char('j') => Some(Action::Down),
+            KeyCode::Char('k') => Some(Action::Up),
             KeyCode::Char('q') => Some(Action::Quit),
             _ => None,
         };
@@ -52,42 +56,61 @@ fn get_action(_app: &App, event: Event) -> Option<Action> {
     None
 }
 
+async fn transmission_stats_fetch(
+    client: Arc<Mutex<TransClient>>,
+    sender: UnboundedSender<Action>,
+) {
+    loop {
+        let stats = client.lock().await.session_stats().await.unwrap().arguments;
+        sender.send(Action::StatsUpdate(stats)).unwrap();
+        tokio::time::sleep(Duration::from_secs(3)).await;
+    }
+}
+
+async fn transmission_torrent_fetch(
+    client: Arc<Mutex<TransClient>>,
+    sender: UnboundedSender<Action>,
+) {
+    loop {
+        let fields = vec![
+            TorrentGetField::Id,
+            TorrentGetField::Name,
+            TorrentGetField::IsFinished,
+            TorrentGetField::IsStalled,
+            TorrentGetField::PercentDone,
+            TorrentGetField::UploadRatio,
+            TorrentGetField::SizeWhenDone,
+            TorrentGetField::Eta,
+            TorrentGetField::RateUpload,
+            TorrentGetField::RateDownload,
+        ];
+        let res = client
+            .lock()
+            .await
+            .torrent_get(Some(fields), None)
+            .await
+            .unwrap();
+        let torrents = res.arguments.torrents;
+        sender.send(Action::TorrentListUpdate(torrents)).unwrap();
+
+        tokio::time::sleep(Duration::from_secs(3)).await;
+    }
+}
+
 impl App {
     pub fn new() -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
-        let action_tx2 = action_tx.clone();
-        let transmission_task = tokio::task::spawn(async move {
-            let action_tx = action_tx2;
-            let auth = BasicAuth {
-                user: "erth".into(),
-                password: "password".into(),
-            };
-            let mut client = TransClient::with_auth(
-                "http://192.168.1.2:9091/transmission/rpc".parse().unwrap(),
-                auth,
-            );
-            loop {
-                let fields = vec![
-                    TorrentGetField::Id,
-                    TorrentGetField::Name,
-                    TorrentGetField::IsFinished,
-                    TorrentGetField::IsStalled,
-                    TorrentGetField::PercentDone,
-                    TorrentGetField::UploadRatio,
-                    TorrentGetField::SizeWhenDone,
-                    TorrentGetField::Eta,
-                    TorrentGetField::RateUpload,
-                    TorrentGetField::RateDownload,
-                ];
-                let res = client.torrent_get(Some(fields), None).await.unwrap();
-                let torrents = res.arguments.torrents;
-                action_tx.send(Action::TorrentListUpdate(torrents)).unwrap();
-
-                tokio::time::sleep(Duration::from_secs(5)).await;
-            }
-        });
-        App {
-            counter: 0,
+        let user = "whatever".to_string();
+        let password = "password".to_string();
+        let url = "http://192.168.1.2:9091/transmission/rpc".parse().unwrap();
+        let auth = BasicAuth { user, password };
+        let client = Arc::new(Mutex::new(TransClient::with_auth(url, auth)));
+        tokio::spawn(transmission_torrent_fetch(
+            Arc::clone(&client),
+            action_tx.clone(),
+        ));
+        tokio::spawn(transmission_stats_fetch(client, action_tx.clone()));
+        Self {
             should_quit: false,
             action_tx,
             action_rx,
@@ -109,7 +132,7 @@ impl App {
                 Event::Tick => self.action_tx.send(Action::Tick)?,
                 Event::Render => self.action_tx.send(Action::Render)?,
                 Event::Key(_) => {
-                    let action = get_action(&self, e);
+                    let action = get_action(self, e);
                     if let Some(action) = action {
                         self.action_tx.send(action.clone()).unwrap();
                     }
@@ -118,7 +141,7 @@ impl App {
 
             while let Ok(action) = self.action_rx.try_recv() {
                 self.update(action.clone());
-                if let Action::Render = action {
+                if matches!(action, Action::Render) {
                     tui.draw(|f| {
                         self.ui(f);
                     })?;
@@ -144,14 +167,25 @@ impl App {
     }
 
     fn update(&mut self, action: Action) -> Option<Action> {
-        match action {
-            Action::Quit => self.should_quit = true,
-            Action::Increment => self.counter += 1,
-            Action::Decrement if self.counter > 0 => self.counter -= 1,
-            Action::TorrentListUpdate(torrents) => self.components.torrents_tab.torrents = torrents,
-            Action::Tick => {}
+        match (self.current_tab, &action) {
+            (_, Action::Quit) => self.should_quit = true,
+            (Tab::Torrents, _) => return self.components.torrents_tab.handle_events(action),
             _ => {}
         };
         None
+    }
+}
+
+pub struct Components {
+    pub tabs: TabComponent,
+    pub torrents_tab: TorrentsTab,
+}
+
+impl Components {
+    pub fn new() -> Self {
+        Self {
+            tabs: TabComponent::new(),
+            torrents_tab: TorrentsTab::new(),
+        }
     }
 }
