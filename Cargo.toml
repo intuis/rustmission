@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.76"
-ratatui = "0.25.0"
+ratatui = "0.26.0"
 color-eyre = "0.6.2"
 tokio = { version = "1.32.0", features = ["full"] }
 tokio-util = "0.7.9"
@@ -21,6 +21,3 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 directories = "5.0.1"
 lazy_static = "1.4.0"
 transmission-rpc = "0.4.2"
-
-[profile.release]
-lto = true

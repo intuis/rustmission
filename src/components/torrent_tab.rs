@@ -23,15 +23,13 @@ impl TorrentsTab {
 
 impl Component for TorrentsTab {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(10), Constraint::Length(1)])
-            .split(rect);
+        let [torrents_list_rect, stats_rect] =
+            Layout::vertical([Constraint::Min(10), Constraint::Length(1)]).areas(rect);
 
         let header = Row::new(vec![
             "Name", "Size", "Progress", "ETA", "Download", "Upload",
         ]);
-        let widths = [
+        let header_widths = [
             Constraint::Length(60), // Name
             Constraint::Length(10), // Size
             Constraint::Length(10), // Progress
@@ -40,46 +38,52 @@ impl Component for TorrentsTab {
             Constraint::Length(10), // Upload
         ];
 
-        let rows: Vec<_> = self
+        let torrent_rows: Vec<_> = self
             .table
             .items
             .iter()
             .map(|t| {
+                let torrent_name = t.name.clone().unwrap();
+
+                let size_when_done = bytes_to_human(t.size_when_done.expect("field requested"));
+
                 let progress = match t.percent_done.expect("field requested") {
-                    perc if perc == 1f32 => String::default(),
-                    perc => format!("{:.2}%", perc * 100f32),
+                    done if done == 1f32 => String::default(),
+                    percent => format!("{:.2}%", percent * 100f32),
                 };
 
-                let eta = match t.eta.expect("field requested") {
+                let eta_secs = match t.eta.expect("field requested") {
                     -2 => "∞".to_string(),
                     -1 => String::default(),
-                    eta => eta.to_string(),
+                    eta_secs => eta_secs.to_string(),
                 };
 
-                let download = match t.rate_download.expect("field requested") {
+                let download_speed = match t.rate_download.expect("field requested") {
                     0 => String::default(),
                     down => bytes_to_human(down),
                 };
 
-                let upload = match t.rate_upload.expect("field requested") {
+                let upload_speed = match t.rate_upload.expect("field requested") {
                     0 => String::default(),
                     upload => bytes_to_human(upload),
                 };
 
                 Row::new(vec![
-                    t.name.clone().unwrap(),
-                    bytes_to_human(t.size_when_done.unwrap()),
+                    torrent_name,
+                    size_when_done,
                     progress,
-                    eta,
-                    download,
-                    upload,
+                    eta_secs,
+                    download_speed,
+                    upload_speed,
                 ])
             })
             .collect();
 
-        let table = Table::new(rows, widths)
+        let torrents_table = Table::new(torrent_rows, header_widths)
             .header(header)
-            .highlight_style(Style::default().on_black());
+            .highlight_style(Style::default().on_black().bold());
+
+        f.render_stateful_widget(torrents_table, torrents_list_rect, &mut self.table.state);
 
         if let Some(stats) = &self.stats {
             let upload = bytes_to_human(stats.upload_speed);
@@ -87,9 +91,8 @@ impl Component for TorrentsTab {
             let all = stats.torrent_count;
             let text = format!("All: {all} | ▲ {download} | ⯆ {upload}");
             let paragraph = Paragraph::new(text).alignment(Alignment::Right);
-            f.render_widget(paragraph, layout[1]);
+            f.render_widget(paragraph, stats_rect);
         }
-        f.render_stateful_widget(table, layout[0], &mut self.table.state);
     }
 
     fn handle_events(&mut self, action: Action) -> Option<Action> {
