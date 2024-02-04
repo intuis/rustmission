@@ -1,0 +1,6 @@
+[connection]
+url = "CHANGE_ME" # REQUIRED!
+
+# If you need username and password to authenticate:
+# username = "CHANGE_ME"
+# password = "CHANGE_ME"

@@ -1,4 +1,5 @@
 use ratatui::prelude::*;
+use rm_config::Config;
 use std::{sync::Arc, time::Duration};
 
 use crate::{
@@ -98,12 +99,15 @@ async fn transmission_torrent_fetch(
 }
 
 impl App {
-    pub fn new() -> Self {
-        let (action_tx, action_rx) = mpsc::unbounded_channel();
-        let user = "whatever".to_string();
-        let password = "password".to_string();
-        let url = "http://192.168.1.2:9091/transmission/rpc".parse().unwrap();
+    pub fn new(config: &Config) -> Self {
+        // Get some values from config
+        let user = config.connection.username.clone();
+        let password = config.connection.password.clone();
+        let url = config.connection.url.clone().parse().unwrap();
+
         let auth = BasicAuth { user, password };
+
+        let (action_tx, action_rx) = mpsc::unbounded_channel();
         let client = Arc::new(Mutex::new(TransClient::with_auth(url, auth)));
         tokio::spawn(transmission_torrent_fetch(
             Arc::clone(&client),

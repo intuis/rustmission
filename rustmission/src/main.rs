@@ -4,10 +4,13 @@ pub mod tui;
 
 use anyhow::Result;
 use app::App;
+use rm_config::Config;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    let mut app = App::new();
+    let config = Config::init()?;
+
+    let mut app = App::new(&config);
     app.run().await?;
 
     Ok(())
