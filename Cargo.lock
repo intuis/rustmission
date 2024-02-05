@@ -990,6 +990,7 @@ dependencies = [
  "rm-config",
  "serde",
  "signal-hook",
+ "static_assertions",
  "tokio",
  "tokio-util",
  "tracing",

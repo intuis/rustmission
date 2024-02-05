@@ -1,15 +1,16 @@
 use ratatui::prelude::*;
 use rm_config::Config;
-use std::{sync::Arc, time::Duration};
+use std::{pin::Pin, sync::Arc, time::Duration};
 
 use crate::{
     components::{tabcomponent::TabComponent, torrent_tab::TorrentsTab, Component},
-    tui::{self, Event},
+    tui::{Event, Tui},
 };
 
 use anyhow::Result;
 use crossterm::event::KeyCode;
 use ratatui::Frame;
+use static_assertions::const_assert;
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     Mutex,
@@ -41,11 +42,23 @@ pub enum Action {
     Render,
     Up,
     Down,
-    TorrentListUpdate(Vec<Torrent>),
-    StatsUpdate(SessionStats),
+    TorrentListUpdate(Box<Vec<Torrent>>),
+    StatsUpdate(Pin<Box<SessionStats>>),
 }
 
-const fn get_action(_app: &App, event: Event) -> Option<Action> {
+const_assert!(std::mem::size_of::<Action>() <= 16);
+
+const fn event_to_action(event: Event) -> Option<Action> {
+    match event {
+        Event::Quit => Some(Action::Quit),
+        Event::Error => todo!(),
+        Event::Tick => Some(Action::Tick),
+        Event::Render => Some(Action::Render),
+        Event::Key(_) => keycode_to_action(event),
+    }
+}
+
+const fn keycode_to_action(event: Event) -> Option<Action> {
     if let Event::Key(key) = event {
         return match key.code {
             KeyCode::Char('j') => Some(Action::Down),
@@ -62,9 +75,9 @@ async fn transmission_stats_fetch(
     sender: UnboundedSender<Action>,
 ) {
     loop {
-        let stats = client.lock().await.session_stats().await.unwrap().arguments;
+        let stats = Box::pin(client.lock().await.session_stats().await.unwrap().arguments);
         sender.send(Action::StatsUpdate(stats)).unwrap();
-        tokio::time::sleep(Duration::from_secs(3)).await;
+        tokio::time::sleep(Duration::from_secs(4)).await;
     }
 }
 
@@ -73,6 +86,9 @@ async fn transmission_torrent_fetch(
     sender: UnboundedSender<Action>,
 ) {
     loop {
+        // TODO: talk to rustmission-rpc's authors to tell them that torrent_get shouldnt
+        // take an ownership of this vec, or check the documentation (maybe there's a function that
+        // takes a reference who knows)
         let fields = vec![
             TorrentGetField::Id,
             TorrentGetField::Name,
@@ -85,22 +101,23 @@ async fn transmission_torrent_fetch(
             TorrentGetField::RateUpload,
             TorrentGetField::RateDownload,
         ];
-        let res = client
+        let rpc_response = client
             .lock()
             .await
             .torrent_get(Some(fields), None)
             .await
             .unwrap();
-        let torrents = res.arguments.torrents;
-        sender.send(Action::TorrentListUpdate(torrents)).unwrap();
+        let torrents = rpc_response.arguments.torrents;
+        sender
+            .send(Action::TorrentListUpdate(Box::new(torrents)))
+            .unwrap();
 
-        tokio::time::sleep(Duration::from_secs(3)).await;
+        tokio::time::sleep(Duration::from_secs(4)).await;
     }
 }
 
 impl App {
     pub fn new(config: &Config) -> Self {
-        // Get some values from config
         let user = config.connection.username.clone();
         let password = config.connection.password.clone();
         let url = config.connection.url.clone().parse().unwrap();
@@ -124,32 +141,24 @@ impl App {
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        let mut tui = tui::Tui::new()?;
+        let mut tui = Tui::new()?;
 
         tui.enter()?;
 
         loop {
-            let e = tui.next().await.unwrap();
-            match e {
-                Event::Quit => self.action_tx.send(Action::Quit)?,
-                Event::Error => todo!(),
-                Event::Tick => self.action_tx.send(Action::Tick)?,
-                Event::Render => self.action_tx.send(Action::Render)?,
-                Event::Key(_) => {
-                    let action = get_action(self, e);
-                    if let Some(action) = action {
-                        self.action_tx.send(action.clone()).unwrap();
-                    }
+            let event = tui.next().await.unwrap();
+
+            if let Some(action) = event_to_action(event) {
+                if matches!(action, Action::Render) {
+                    self.render(&mut tui)?;
+                } else {
+                    self.update(action);
                 }
             }
 
+            // For actions that come from somewhere else
             while let Ok(action) = self.action_rx.try_recv() {
-                self.update(action.clone());
-                if matches!(action, Action::Render) {
-                    tui.draw(|f| {
-                        self.ui(f);
-                    })?;
-                }
+                self.update(action);
             }
 
             if self.should_quit {
@@ -161,22 +170,34 @@ impl App {
         Ok(())
     }
 
-    fn ui(&mut self, f: &mut Frame) {
-        let layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(1), Constraint::Percentage(100)])
-            .split(f.size());
-        self.components.tabs.render(f, layout[0]);
-        self.components.torrents_tab.render(f, layout[1]);
+    fn render(&mut self, tui: &mut Tui) -> Result<()> {
+        tui.draw(|f| {
+            self.draw_main_ui(f);
+        })?;
+        Ok(())
+    }
+
+    fn draw_main_ui(&mut self, f: &mut Frame) {
+        let [top_bar, main_window] =
+            Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)]).areas(f.size());
+
+        self.components.tabs.render(f, top_bar);
+        self.components.torrents_tab.render(f, main_window);
     }
 
     fn update(&mut self, action: Action) -> Option<Action> {
-        match (self.current_tab, &action) {
-            (_, Action::Quit) => self.should_quit = true,
-            (Tab::Torrents, _) => return self.components.torrents_tab.handle_events(action),
-            _ => {}
-        };
-        None
+        match &action {
+            Action::Quit => {
+                self.should_quit = true;
+                None
+            }
+
+            _ if matches!(self.current_tab, Tab::Torrents) => {
+                return self.components.torrents_tab.handle_events(action)
+            }
+
+            _ => None,
+        }
     }
 }
 

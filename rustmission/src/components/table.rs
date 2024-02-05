@@ -13,7 +13,7 @@ impl<T> GenericTable<T> {
         }
     }
 
-    pub fn update_items(&mut self, items: Vec<T>) {
+    pub fn set_items(&mut self, items: Vec<T>) {
         self.items = items;
     }
 

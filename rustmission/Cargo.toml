@@ -22,4 +22,5 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 directories = "5.0.1"
 lazy_static = "1.4.0"
+static_assertions = "1.1"
 transmission-rpc = "0.4.2"

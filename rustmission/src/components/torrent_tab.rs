@@ -1,3 +1,5 @@
+use std::pin::Pin;
+
 use ratatui::prelude::*;
 use ratatui::widgets::{Paragraph, Row, Table};
 use transmission_rpc::types::{SessionStats, Torrent};
@@ -9,7 +11,7 @@ use super::Component;
 
 pub struct TorrentsTab {
     table: GenericTable<Torrent>,
-    stats: Option<SessionStats>,
+    stats: Option<Pin<Box<SessionStats>>>,
 }
 
 impl TorrentsTab {
@@ -45,7 +47,8 @@ impl Component for TorrentsTab {
             .map(|t| {
                 let torrent_name = t.name.clone().unwrap();
 
-                let size_when_done = bytes_to_human(t.size_when_done.expect("field requested"));
+                let size_when_done =
+                    bytes_to_human_format(t.size_when_done.expect("field requested"));
 
                 let progress = match t.percent_done.expect("field requested") {
                     done if done == 1f32 => String::default(),
@@ -60,12 +63,12 @@ impl Component for TorrentsTab {
 
                 let download_speed = match t.rate_download.expect("field requested") {
                     0 => String::default(),
-                    down => bytes_to_human(down),
+                    down => bytes_to_human_format(down),
                 };
 
                 let upload_speed = match t.rate_upload.expect("field requested") {
                     0 => String::default(),
-                    upload => bytes_to_human(upload),
+                    upload => bytes_to_human_format(upload),
                 };
 
                 Row::new(vec![
@@ -86,8 +89,8 @@ impl Component for TorrentsTab {
         f.render_stateful_widget(torrents_table, torrents_list_rect, &mut self.table.state);
 
         if let Some(stats) = &self.stats {
-            let upload = bytes_to_human(stats.upload_speed);
-            let download = bytes_to_human(stats.download_speed);
+            let upload = bytes_to_human_format(stats.upload_speed);
+            let download = bytes_to_human_format(stats.download_speed);
             let all = stats.torrent_count;
             let text = format!("All: {all} | ▲ {download} | ⯆ {upload}");
             let paragraph = Paragraph::new(text).alignment(Alignment::Right);
@@ -99,7 +102,7 @@ impl Component for TorrentsTab {
         match action {
             Action::Up => self.table.previous(),
             Action::Down => self.table.next(),
-            Action::TorrentListUpdate(torrents) => self.table.update_items(torrents),
+            Action::TorrentListUpdate(torrents) => self.table.set_items(*torrents),
             Action::StatsUpdate(stats) => self.stats = Some(stats),
             _ => (),
         };
@@ -107,7 +110,7 @@ impl Component for TorrentsTab {
     }
 }
 
-fn bytes_to_human(bytes: i64) -> String {
+fn bytes_to_human_format(bytes: i64) -> String {
     const KB: f64 = 1024.0;
     const MB: f64 = KB * 1024.0;
     const GB: f64 = MB * 1024.0;
