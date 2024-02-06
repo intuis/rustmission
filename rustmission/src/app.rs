@@ -1,9 +1,10 @@
 use ratatui::prelude::*;
 use rm_config::Config;
-use std::{pin::Pin, sync::Arc, time::Duration};
+use std::{pin::Pin, sync::Arc};
 
 use crate::{
     components::{tabcomponent::TabComponent, torrent_tab::TorrentsTab, Component},
+    transmission,
     tui::{Event, Tui},
 };
 
@@ -16,7 +17,7 @@ use tokio::sync::{
     Mutex,
 };
 use transmission_rpc::{
-    types::{BasicAuth, SessionStats, Torrent, TorrentGetField},
+    types::{BasicAuth, SessionStats, Torrent},
     TransClient,
 };
 
@@ -48,76 +49,8 @@ pub enum Action {
 
 const_assert!(std::mem::size_of::<Action>() <= 16);
 
-const fn event_to_action(event: Event) -> Option<Action> {
-    match event {
-        Event::Quit => Some(Action::Quit),
-        Event::Error => todo!(),
-        Event::Tick => Some(Action::Tick),
-        Event::Render => Some(Action::Render),
-        Event::Key(_) => keycode_to_action(event),
-    }
-}
-
-const fn keycode_to_action(event: Event) -> Option<Action> {
-    if let Event::Key(key) = event {
-        return match key.code {
-            KeyCode::Char('j') => Some(Action::Down),
-            KeyCode::Char('k') => Some(Action::Up),
-            KeyCode::Char('q') => Some(Action::Quit),
-            _ => None,
-        };
-    }
-    None
-}
-
-async fn transmission_stats_fetch(
-    client: Arc<Mutex<TransClient>>,
-    sender: UnboundedSender<Action>,
-) {
-    loop {
-        let stats = Box::pin(client.lock().await.session_stats().await.unwrap().arguments);
-        sender.send(Action::StatsUpdate(stats)).unwrap();
-        tokio::time::sleep(Duration::from_secs(4)).await;
-    }
-}
-
-async fn transmission_torrent_fetch(
-    client: Arc<Mutex<TransClient>>,
-    sender: UnboundedSender<Action>,
-) {
-    loop {
-        // TODO: talk to rustmission-rpc's authors to tell them that torrent_get shouldnt
-        // take an ownership of this vec, or check the documentation (maybe there's a function that
-        // takes a reference who knows)
-        let fields = vec![
-            TorrentGetField::Id,
-            TorrentGetField::Name,
-            TorrentGetField::IsFinished,
-            TorrentGetField::IsStalled,
-            TorrentGetField::PercentDone,
-            TorrentGetField::UploadRatio,
-            TorrentGetField::SizeWhenDone,
-            TorrentGetField::Eta,
-            TorrentGetField::RateUpload,
-            TorrentGetField::RateDownload,
-        ];
-        let rpc_response = client
-            .lock()
-            .await
-            .torrent_get(Some(fields), None)
-            .await
-            .unwrap();
-        let torrents = rpc_response.arguments.torrents;
-        sender
-            .send(Action::TorrentListUpdate(Box::new(torrents)))
-            .unwrap();
-
-        tokio::time::sleep(Duration::from_secs(4)).await;
-    }
-}
-
 impl App {
-    pub fn new(config: &Config) -> Self {
+    pub async fn new(config: &Config) -> Self {
         let user = config.connection.username.clone();
         let password = config.connection.password.clone();
         let url = config.connection.url.clone().parse().unwrap();
@@ -125,12 +58,10 @@ impl App {
         let auth = BasicAuth { user, password };
 
         let (action_tx, action_rx) = mpsc::unbounded_channel();
+
         let client = Arc::new(Mutex::new(TransClient::with_auth(url, auth)));
-        tokio::spawn(transmission_torrent_fetch(
-            Arc::clone(&client),
-            action_tx.clone(),
-        ));
-        tokio::spawn(transmission_stats_fetch(client, action_tx.clone()));
+        transmission::spawn_tasks(client, action_tx.clone()).await;
+
         Self {
             should_quit: false,
             action_tx,
@@ -148,7 +79,7 @@ impl App {
         loop {
             let event = tui.next().await.unwrap();
 
-            if let Some(action) = event_to_action(event) {
+            if let Some(action) = Self::event_to_action(event) {
                 if matches!(action, Action::Render) {
                     self.render(&mut tui)?;
                 } else {
@@ -198,6 +129,28 @@ impl App {
 
             _ => None,
         }
+    }
+
+    const fn event_to_action(event: Event) -> Option<Action> {
+        match event {
+            Event::Quit => Some(Action::Quit),
+            Event::Error => todo!(),
+            Event::Tick => Some(Action::Tick),
+            Event::Render => Some(Action::Render),
+            Event::Key(_) => Self::keycode_to_action(event),
+        }
+    }
+
+    const fn keycode_to_action(event: Event) -> Option<Action> {
+        if let Event::Key(key) = event {
+            return match key.code {
+                KeyCode::Char('j') => Some(Action::Down),
+                KeyCode::Char('k') => Some(Action::Up),
+                KeyCode::Char('q') => Some(Action::Quit),
+                _ => None,
+            };
+        }
+        None
     }
 }
 
