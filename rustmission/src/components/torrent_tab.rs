@@ -166,24 +166,38 @@ impl Component for TorrentsTab {
     }
 
     fn handle_events(&mut self, action: Action) -> Option<Action> {
-        match action {
-            Action::Up => self.table.previous(),
-            Action::Down => self.table.next(),
-            Action::AddMagnet => {
+        use Action as A;
+        match (&mut self.add_magnet_bar, action) {
+            (None, A::Up) => {
+                self.table.previous();
+                None
+            }
+            (None, A::Down) => {
+                self.table.next();
+                None
+            }
+            (None, A::TorrentListUpdate(torrents)) => {
+                self.table.set_items(*torrents);
+                None
+            }
+            (None, A::StatsUpdate(stats)) => {
+                self.stats = Some(stats);
+                None
+            }
+            (None, A::AddMagnet) => {
                 self.add_magnet_bar = Some(AddMagnetBar::new());
-                return Some(Action::SwitchToInputMode);
+                Some(Action::SwitchToInputMode)
             }
-            Action::TorrentListUpdate(torrents) => self.table.set_items(*torrents),
-            Action::StatsUpdate(stats) => self.stats = Some(stats),
-            action => {
-                if let Some(add_magnet_bar) = &mut self.add_magnet_bar {
-                    return add_magnet_bar.handle_events(action);
-                } else {
-                    return None;
+            (Some(magnet_bar), action) => match magnet_bar.handle_events(action.clone()) {
+                Some(Action::TorrentAdd(url)) => {
+                    self.trans_tx.send(Action::TorrentAdd(url)).unwrap();
+                    self.add_magnet_bar = None;
+                    return Some(Action::SwitchToNormalMode);
                 }
-            }
-        };
-        None
+                action => return action,
+            },
+            _ => return None,
+        }
     }
 }
 
