@@ -1,8 +1,11 @@
 use std::pin::Pin;
 
+use crossterm::event::KeyCode;
 use ratatui::prelude::*;
-use ratatui::widgets::{Paragraph, Row, Table};
+use ratatui::widgets::{Clear, Paragraph, Row, Table};
+use tokio::sync::mpsc::UnboundedSender;
 use transmission_rpc::types::{SessionStats, Torrent};
+use tui_input::{Input, InputRequest};
 
 use crate::app::Action;
 
@@ -12,13 +15,73 @@ use super::Component;
 pub struct TorrentsTab {
     table: GenericTable<Torrent>,
     stats: Option<Pin<Box<SessionStats>>>,
+    add_magnet_bar: Option<AddMagnetBar>,
+    trans_tx: UnboundedSender<Action>,
+}
+
+struct AddMagnetBar {
+    input: Input,
+}
+
+impl AddMagnetBar {
+    fn new() -> Self {
+        Self {
+            input: Input::default(),
+        }
+    }
+}
+
+fn to_input_request(keycode: KeyCode) -> Option<InputRequest> {
+    use InputRequest as R;
+
+    match keycode {
+        KeyCode::Backspace => Some(R::DeletePrevChar),
+        KeyCode::Delete => Some(R::DeleteNextChar),
+        KeyCode::Char(char) => Some(R::InsertChar(char)),
+        _ => None,
+    }
+}
+
+impl Component for AddMagnetBar {
+    #[must_use]
+    fn handle_events(&mut self, action: Action) -> Option<Action> {
+        match action {
+            Action::Input(input) => {
+                if let Some(req) = to_input_request(input.code) {
+                    self.input.handle(req);
+                }
+                if input.code == KeyCode::Enter {
+                    return Some(Action::TorrentAdd(Box::new(self.input.to_string())));
+                }
+                None
+            }
+            _ => None,
+        }
+    }
+
+    fn render(&mut self, f: &mut Frame, rect: Rect) {
+        f.render_widget(Clear, rect);
+
+        let input = self.input.to_string();
+
+        let paragraph_text = format!("Add (Magnet URL / Torrent path): {input}");
+        let prefix_len = paragraph_text.len() - input.len();
+
+        let paragraph = Paragraph::new(paragraph_text);
+        f.render_widget(paragraph, rect);
+
+        let cursor_offset = self.input.visual_cursor() + prefix_len;
+        f.set_cursor(rect.x + cursor_offset as u16, rect.y);
+    }
 }
 
 impl TorrentsTab {
-    pub fn new() -> Self {
+    pub fn new(trans_tx: UnboundedSender<Action>) -> Self {
         Self {
             table: GenericTable::new(vec![]),
             stats: None,
+            add_magnet_bar: None,
+            trans_tx,
         }
     }
 }
@@ -96,15 +159,29 @@ impl Component for TorrentsTab {
             let paragraph = Paragraph::new(text).alignment(Alignment::Right);
             f.render_widget(paragraph, stats_rect);
         }
+
+        if let Some(add_magnet_bar) = &mut self.add_magnet_bar {
+            add_magnet_bar.render(f, stats_rect);
+        }
     }
 
     fn handle_events(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::Up => self.table.previous(),
             Action::Down => self.table.next(),
+            Action::AddMagnet => {
+                self.add_magnet_bar = Some(AddMagnetBar::new());
+                return Some(Action::SwitchToInputMode);
+            }
             Action::TorrentListUpdate(torrents) => self.table.set_items(*torrents),
             Action::StatsUpdate(stats) => self.stats = Some(stats),
-            _ => (),
+            action => {
+                if let Some(add_magnet_bar) = &mut self.add_magnet_bar {
+                    return add_magnet_bar.handle_events(action);
+                } else {
+                    return None;
+                }
+            }
         };
         None
     }

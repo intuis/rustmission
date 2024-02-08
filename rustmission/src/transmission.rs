@@ -1,7 +1,14 @@
 use std::{sync::Arc, time::Duration};
 
-use tokio::sync::{mpsc::UnboundedSender, Mutex};
-use transmission_rpc::{types::TorrentGetField, TransClient};
+use tokio::sync::{
+    mpsc::Receiver,
+    mpsc::{UnboundedReceiver, UnboundedSender},
+    Mutex,
+};
+use transmission_rpc::{
+    types::{TorrentAddArgs, TorrentGetField},
+    TransClient,
+};
 
 use crate::app::Action;
 
@@ -49,5 +56,23 @@ pub async fn torrent_fetch(client: Arc<Mutex<TransClient>>, sender: UnboundedSen
             .unwrap();
 
         tokio::time::sleep(Duration::from_secs(4)).await;
+    }
+}
+
+pub async fn action_handler(
+    client: Arc<Mutex<TransClient>>,
+    mut sender: UnboundedReceiver<Action>,
+) {
+    while let Some(action) = sender.recv().await {
+        match action {
+            Action::TorrentAdd(url) => {
+                let args = TorrentAddArgs {
+                    filename: Some(*url),
+                    ..Default::default()
+                };
+                client.lock().await.torrent_add(args).await.unwrap();
+            }
+            _ => {}
+        }
     }
 }
