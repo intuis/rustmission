@@ -15,8 +15,33 @@ use super::Component;
 pub struct TorrentsTab {
     table: GenericTable<Torrent>,
     stats: Option<Pin<Box<SessionStats>>>,
-    add_magnet_bar: Option<AddMagnetBar>,
+    task: Task,
     trans_tx: UnboundedSender<Action>,
+}
+
+struct Task {
+    trans_tx: UnboundedSender<Action>,
+    current_task: CurrentTask,
+}
+
+impl Task {
+    fn new(trans_tx: UnboundedSender<Action>) -> Self {
+        Self {
+            trans_tx,
+            current_task: CurrentTask::default(),
+        }
+    }
+}
+
+enum CurrentTask {
+    AddMagnetBar(AddMagnetBar),
+    None,
+}
+
+impl Default for CurrentTask {
+    fn default() -> Self {
+        CurrentTask::None
+    }
 }
 
 struct AddMagnetBar {
@@ -27,6 +52,40 @@ impl AddMagnetBar {
     fn new() -> Self {
         Self {
             input: Input::default(),
+        }
+    }
+}
+
+impl Component for Task {
+    #[must_use]
+    fn handle_events(&mut self, action: Action) -> Option<Action> {
+        match &mut self.current_task {
+            CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_events(action) {
+                Some(Action::TorrentAdd(url)) => {
+                    self.trans_tx.send(Action::TorrentAdd(url)).unwrap();
+                    self.current_task = CurrentTask::None;
+                    Some(Action::SwitchToNormalMode)
+                }
+                Some(Action::Quit) => {
+                    self.current_task = CurrentTask::None;
+                    Some(Action::SwitchToNormalMode)
+                }
+                other => return other,
+            },
+            CurrentTask::None => match action {
+                Action::AddMagnet => {
+                    self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new());
+                    Some(Action::SwitchToInputMode)
+                }
+                _ => None,
+            },
+        }
+    }
+
+    fn render(&mut self, f: &mut Frame, rect: Rect) {
+        match &mut self.current_task {
+            CurrentTask::AddMagnetBar(magnet_bar) => magnet_bar.render(f, rect),
+            CurrentTask::None => (),
         }
     }
 }
@@ -47,11 +106,15 @@ impl Component for AddMagnetBar {
     fn handle_events(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::Input(input) => {
-                if let Some(req) = to_input_request(input.code) {
-                    self.input.handle(req);
-                }
                 if input.code == KeyCode::Enter {
                     return Some(Action::TorrentAdd(Box::new(self.input.to_string())));
+                }
+                if input.code == KeyCode::Esc {
+                    return Some(Action::Quit);
+                }
+
+                if let Some(req) = to_input_request(input.code) {
+                    self.input.handle(req);
                 }
                 None
             }
@@ -80,7 +143,7 @@ impl TorrentsTab {
         Self {
             table: GenericTable::new(vec![]),
             stats: None,
-            add_magnet_bar: None,
+            task: Task::new(trans_tx.clone()),
             trans_tx,
         }
     }
@@ -160,43 +223,29 @@ impl Component for TorrentsTab {
             f.render_widget(paragraph, stats_rect);
         }
 
-        if let Some(add_magnet_bar) = &mut self.add_magnet_bar {
-            add_magnet_bar.render(f, stats_rect);
-        }
+        self.task.render(f, stats_rect);
     }
 
     fn handle_events(&mut self, action: Action) -> Option<Action> {
         use Action as A;
-        match (&mut self.add_magnet_bar, action) {
-            (None, A::Up) => {
+        match action {
+            A::Up => {
                 self.table.previous();
                 None
             }
-            (None, A::Down) => {
+            A::Down => {
                 self.table.next();
                 None
             }
-            (None, A::TorrentListUpdate(torrents)) => {
+            A::TorrentListUpdate(torrents) => {
                 self.table.set_items(*torrents);
                 None
             }
-            (None, A::StatsUpdate(stats)) => {
+            A::StatsUpdate(stats) => {
                 self.stats = Some(stats);
                 None
             }
-            (None, A::AddMagnet) => {
-                self.add_magnet_bar = Some(AddMagnetBar::new());
-                Some(Action::SwitchToInputMode)
-            }
-            (Some(magnet_bar), action) => match magnet_bar.handle_events(action.clone()) {
-                Some(Action::TorrentAdd(url)) => {
-                    self.trans_tx.send(Action::TorrentAdd(url)).unwrap();
-                    self.add_magnet_bar = None;
-                    return Some(Action::SwitchToNormalMode);
-                }
-                action => return action,
-            },
-            _ => return None,
+            other => self.task.handle_events(other),
         }
     }
 }

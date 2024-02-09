@@ -150,6 +150,11 @@ impl App {
                 None
             }
 
+            Action::SwitchToNormalMode => {
+                self.mode = Mode::Normal;
+                None
+            }
+
             Action::TorrentAdd(_) => {
                 self.trans_tx.send(action).unwrap();
                 None
