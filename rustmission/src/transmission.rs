@@ -1,7 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
 use tokio::sync::{
-    mpsc::Receiver,
     mpsc::{UnboundedReceiver, UnboundedSender},
     Mutex,
 };
@@ -10,9 +9,9 @@ use transmission_rpc::{
     TransClient,
 };
 
-use crate::app::Action;
+use crate::action::Action;
 
-pub async fn spawn_tasks(client: Arc<Mutex<TransClient>>, sender: UnboundedSender<Action>) {
+pub async fn spawn_fetchers(client: Arc<Mutex<TransClient>>, sender: UnboundedSender<Action>) {
     let stats_task = stats_fetch(Arc::clone(&client), sender.clone());
     let torrent_task = torrent_fetch(client, sender);
     tokio::spawn(stats_task);
@@ -21,7 +20,7 @@ pub async fn spawn_tasks(client: Arc<Mutex<TransClient>>, sender: UnboundedSende
 
 pub async fn stats_fetch(client: Arc<Mutex<TransClient>>, sender: UnboundedSender<Action>) {
     loop {
-        let stats = Box::pin(client.lock().await.session_stats().await.unwrap().arguments);
+        let stats = Box::new(client.lock().await.session_stats().await.unwrap().arguments);
         sender.send(Action::StatsUpdate(stats)).unwrap();
         tokio::time::sleep(Duration::from_secs(4)).await;
     }

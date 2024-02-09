@@ -84,7 +84,7 @@ impl Config {
     fn put_default_conf_in_home() -> Result<Table> {
         let config_path = Self::get_config_path();
         let mut config_file = File::create(config_path)?;
-        config_file.write(DEFAULT_CONFIG.as_bytes())?;
+        config_file.write_all(DEFAULT_CONFIG.as_bytes())?;
         return Ok(toml::from_str(DEFAULT_CONFIG)?);
     }
 

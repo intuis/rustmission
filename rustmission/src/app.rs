@@ -1,25 +1,21 @@
 use ratatui::prelude::*;
 use rm_config::Config;
-use std::{pin::Pin, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
+    action::{event_to_action, Action, Mode},
     components::{tabcomponent::TabComponent, torrent_tab::TorrentsTab, Component},
     transmission,
-    tui::{Event, Tui},
+    tui::Tui,
 };
 
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::Frame;
 use static_assertions::const_assert;
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     Mutex,
 };
-use transmission_rpc::{
-    types::{BasicAuth, SessionStats, Torrent},
-    TransClient,
-};
+use transmission_rpc::{types::BasicAuth, TransClient};
 
 pub struct App {
     pub should_quit: bool,
@@ -32,33 +28,11 @@ pub struct App {
     mode: Mode,
 }
 
-enum Mode {
-    Input,
-    Normal,
-}
-
 #[derive(Clone, Copy)]
 pub enum Tab {
     Torrents,
     Search,
     Settings,
-}
-
-#[derive(Debug, Clone)]
-pub enum Action {
-    Tick,
-    Quit,
-    Render,
-    Up,
-    Down,
-    SwitchToInputMode,
-    SwitchToNormalMode,
-    AddMagnet,
-    Input(KeyEvent),
-    TorrentListUpdate(Box<Vec<Torrent>>),
-    StatsUpdate(Pin<Box<SessionStats>>),
-    TorrentAdd(Box<String>),
-    TorrentAddResult(Box<Result<(), String>>),
 }
 
 const_assert!(std::mem::size_of::<Action>() <= 16);
@@ -74,7 +48,7 @@ impl App {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
 
         let client = Arc::new(Mutex::new(TransClient::with_auth(url, auth)));
-        transmission::spawn_tasks(client.clone(), action_tx.clone()).await;
+        transmission::spawn_fetchers(client.clone(), action_tx.clone()).await;
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
         tokio::spawn(transmission::action_handler(client, trans_rx));
@@ -98,8 +72,8 @@ impl App {
         loop {
             let event = tui.next().await.unwrap();
 
-            if let Some(action) = self.event_to_action(event) {
-                if matches!(action, Action::Render) {
+            if let Some(action) = event_to_action(self.mode, event) {
+                if action.is_render() {
                     self.render(&mut tui)?;
                 } else if let Some(action) = self.update(action) {
                     self.action_tx.send(action)?;
@@ -166,30 +140,6 @@ impl App {
 
             _ => None,
         }
-    }
-
-    const fn event_to_action(&self, event: Event) -> Option<Action> {
-        match event {
-            Event::Quit => Some(Action::Quit),
-            Event::Error => todo!(),
-            Event::Tick => Some(Action::Tick),
-            Event::Render => Some(Action::Render),
-            Event::Key(key) if matches!(self.mode, Mode::Input) => Some(Action::Input(key)),
-            Event::Key(_) => Self::keycode_to_action(event),
-        }
-    }
-
-    const fn keycode_to_action(event: Event) -> Option<Action> {
-        if let Event::Key(key) = event {
-            return match key.code {
-                KeyCode::Char('j') => Some(Action::Down),
-                KeyCode::Char('k') => Some(Action::Up),
-                KeyCode::Char('m') => Some(Action::AddMagnet),
-                KeyCode::Char('q') => Some(Action::Quit),
-                _ => None,
-            };
-        }
-        None
     }
 }
 
