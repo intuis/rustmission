@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use transmission_rpc::types::{SessionStats, Torrent};
 
-use crate::tui::Event;
+use crate::{tui::Event, ui::ErrorPopup};
 
 #[derive(Debug, Clone)]
 pub enum Action {
@@ -10,10 +10,12 @@ pub enum Action {
     Render,
     Up,
     Down,
+    Confirm,
     SwitchToInputMode,
     SwitchToNormalMode,
     AddMagnet,
     Input(KeyEvent),
+    Error(Box<ErrorPopup>),
     TorrentListUpdate(Box<Vec<Torrent>>),
     StatsUpdate(Box<SessionStats>),
     TorrentAdd(Box<String>),
@@ -49,6 +51,7 @@ const fn keycode_to_action(event: Event) -> Option<Action> {
             KeyCode::Char('k') => Some(Action::Up),
             KeyCode::Char('m') => Some(Action::AddMagnet),
             KeyCode::Char('q') => Some(Action::Quit),
+            KeyCode::Enter => Some(Action::Confirm),
             _ => None,
         };
     }

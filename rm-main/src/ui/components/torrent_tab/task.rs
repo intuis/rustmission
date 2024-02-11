@@ -6,7 +6,7 @@ use ratatui::{
 use tokio::sync::mpsc::UnboundedSender;
 use tui_input::{Input, InputRequest};
 
-use crate::{action::Action, components::Component};
+use crate::{action::Action, ui::components::Component};
 
 pub struct Task {
     trans_tx: UnboundedSender<Action>,

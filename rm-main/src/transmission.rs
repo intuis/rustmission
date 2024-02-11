@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
+use anyhow::{Context, Result};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
     Mutex,
@@ -9,7 +10,7 @@ use transmission_rpc::{
     TransClient,
 };
 
-use crate::action::Action;
+use crate::{action::Action, ui::ErrorPopup};
 
 pub fn spawn_fetchers(client: Arc<Mutex<TransClient>>, sender: UnboundedSender<Action>) {
     let stats_task = stats_fetch(Arc::clone(&client), sender.clone());
@@ -60,16 +61,25 @@ pub async fn torrent_fetch(client: Arc<Mutex<TransClient>>, sender: UnboundedSen
 
 pub async fn action_handler(
     client: Arc<Mutex<TransClient>>,
-    mut sender: UnboundedReceiver<Action>,
+    mut receiver: UnboundedReceiver<Action>,
+    sender: UnboundedSender<Action>,
 ) {
-    while let Some(action) = sender.recv().await {
+    while let Some(action) = receiver.recv().await {
         if let Action::TorrentAdd(url) = action {
             let args = TorrentAddArgs {
-                filename: Some(*url),
+                filename: Some(*url.clone()),
                 ..Default::default()
             };
 
-            client.lock().await.torrent_add(args).await.unwrap();
+            if let Err(e) = client.lock().await.torrent_add(args).await {
+                let error_title = "Failed to add a torrent";
+                let msg = "Failed to add torrent with URL/Path:\n\"".to_owned()
+                    + &*url
+                    + "\"\n"
+                    + &e.to_string();
+                let error_popup = Box::new(ErrorPopup::new(error_title, msg));
+                sender.send(Action::Error(error_popup)).unwrap();
+            }
         }
     }
 }

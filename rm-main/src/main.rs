@@ -1,8 +1,8 @@
 mod action;
 pub mod app;
-mod components;
 mod transmission;
 pub mod tui;
+mod ui;
 
 use anyhow::Result;
 use app::App;
