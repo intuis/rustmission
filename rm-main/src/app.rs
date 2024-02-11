@@ -17,18 +17,18 @@ use tokio::sync::{
 use transmission_rpc::{types::BasicAuth, TransClient};
 
 pub struct App {
-    pub should_quit: bool,
+    should_quit: bool,
     action_tx: UnboundedSender<Action>,
-    pub action_rx: UnboundedReceiver<Action>,
+    action_rx: UnboundedReceiver<Action>,
     // TODO: change trans_tx to something else than Action
     trans_tx: UnboundedSender<Action>,
-    pub components: Components,
-    pub current_tab: Tab,
+    components: Components,
+    current_tab: Tab,
     mode: Mode,
 }
 
 #[derive(Clone, Copy)]
-pub enum Tab {
+enum Tab {
     Torrents,
     Search,
     Settings,
@@ -95,17 +95,9 @@ impl App {
 
     fn render(&mut self, tui: &mut Tui) -> Result<()> {
         tui.draw(|f| {
-            self.draw_main_ui(f);
+            self.components.render(f, f.size());
         })?;
         Ok(())
-    }
-
-    fn draw_main_ui(&mut self, f: &mut Frame) {
-        let [top_bar, main_window] =
-            Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)]).areas(f.size());
-
-        self.components.tabs.render(f, top_bar);
-        self.components.torrents_tab.render(f, main_window);
     }
 
     #[must_use]
@@ -140,16 +132,31 @@ impl App {
     }
 }
 
-pub struct Components {
-    pub tabs: TabComponent,
-    pub torrents_tab: TorrentsTab,
+// TODO: change this name
+struct Components {
+    tabs: TabComponent,
+    torrents_tab: TorrentsTab,
 }
 
 impl Components {
-    pub fn new(trans_tx: UnboundedSender<Action>) -> Self {
+    fn new(trans_tx: UnboundedSender<Action>) -> Self {
         Self {
             tabs: TabComponent::new(),
             torrents_tab: TorrentsTab::new(trans_tx),
         }
+    }
+}
+
+impl Component for Components {
+    fn handle_events(&mut self, action: Action) -> Option<Action> {
+        self.torrents_tab.handle_events(action)
+    }
+
+    fn render(&mut self, f: &mut Frame, rect: Rect) {
+        let [top_bar, main_window] =
+            Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)]).areas(rect);
+
+        self.tabs.render(f, top_bar);
+        self.torrents_tab.render(f, main_window);
     }
 }

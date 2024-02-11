@@ -17,7 +17,6 @@ pub enum Action {
     TorrentListUpdate(Box<Vec<Torrent>>),
     StatsUpdate(Box<SessionStats>),
     TorrentAdd(Box<String>),
-    TorrentAddResult(Box<Result<(), String>>),
 }
 
 impl Action {

@@ -78,14 +78,14 @@ impl Config {
         let mut config_buf = String::new();
         let mut config_file = File::open(config_path).unwrap();
         config_file.read_to_string(&mut config_buf).unwrap();
-        return Ok(toml::from_str(&config_buf)?);
+        Ok(toml::from_str(&config_buf)?)
     }
 
     fn put_default_conf_in_home() -> Result<Table> {
         let config_path = Self::get_config_path();
         let mut config_file = File::create(config_path)?;
         config_file.write_all(DEFAULT_CONFIG.as_bytes())?;
-        return Ok(toml::from_str(DEFAULT_CONFIG)?);
+        Ok(toml::from_str(DEFAULT_CONFIG)?)
     }
 
     fn get_xdg_dirs() -> &'static BaseDirectories {
