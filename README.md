@@ -6,7 +6,7 @@ Rustmission is a Terminal User Interface (TUI) client for [Transmission](https:/
 
 - **Async Rust**: Utilizes Rust's async/await syntax for efficient, non-blocking IO operations.
 - **Basic Operations**: Allows users to add, (remove, pause, and resume TODO) torrents.
-- **Built-in Search** (Coming Soon): Seamlessly search for torrents directly within Rustmission. This feature aims to be a game-changer.
+- **Built-in Search** (Coming Soon): Seamlessly search for torrents directly. This is a killer feature of Rustmission
 
 ## Installation TODO
 
