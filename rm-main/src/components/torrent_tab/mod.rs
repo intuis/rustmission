@@ -19,7 +19,7 @@ struct StatsComponent {
 
 impl StatsComponent {
     fn set_stats(&mut self, stats: SessionStats) {
-        self.stats = Some(stats)
+        self.stats = Some(stats);
     }
 }
 
@@ -51,7 +51,7 @@ impl TorrentsTab {
         }
     }
 
-    fn torrent_to_row<'a>(t: &'a Torrent) -> Row<'a> {
+    fn torrent_to_row(t: &Torrent) -> Row<'_> {
         let torrent_name = t.name.clone().unwrap();
 
         let size_when_done = bytes_to_human_format(t.size_when_done.expect("field requested"));

@@ -21,8 +21,8 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn is_render(&self) -> bool {
-        matches!(self, Action::Render)
+    pub const fn is_render(&self) -> bool {
+        matches!(self, Self::Render)
     }
 }
 

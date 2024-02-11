@@ -10,7 +10,6 @@ use crate::{
 };
 
 use anyhow::Result;
-use static_assertions::const_assert;
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     Mutex,
@@ -35,10 +34,8 @@ pub enum Tab {
     Settings,
 }
 
-const_assert!(std::mem::size_of::<Action>() <= 16);
-
 impl App {
-    pub async fn new(config: &Config) -> Self {
+    pub fn new(config: &Config) -> Self {
         let user = config.connection.username.clone();
         let password = config.connection.password.clone();
         let url = config.connection.url.clone().parse().unwrap();
@@ -48,7 +45,7 @@ impl App {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
 
         let client = Arc::new(Mutex::new(TransClient::with_auth(url, auth)));
-        transmission::spawn_fetchers(client.clone(), action_tx.clone()).await;
+        transmission::spawn_fetchers(client.clone(), action_tx.clone());
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
         tokio::spawn(transmission::action_handler(client, trans_rx));
@@ -135,7 +132,7 @@ impl App {
             }
 
             _ if matches!(self.current_tab, Tab::Torrents) => {
-                return self.components.torrents_tab.handle_events(action)
+                self.components.torrents_tab.handle_events(action)
             }
 
             _ => None,

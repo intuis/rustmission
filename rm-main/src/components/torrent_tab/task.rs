@@ -14,7 +14,7 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn new(trans_tx: UnboundedSender<Action>) -> Self {
+    pub const fn new(trans_tx: UnboundedSender<Action>) -> Self {
         Self {
             trans_tx,
             current_task: CurrentTask::None,
@@ -22,7 +22,7 @@ impl Task {
     }
 
     #[must_use]
-    fn handle_events_to_self(&mut self, action: Action) -> Option<Action> {
+    fn handle_events_to_self(&mut self, action: &Action) -> Option<Action> {
         match action {
             Action::AddMagnet => {
                 self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new());
@@ -75,7 +75,7 @@ impl Component for Task {
                 _ => None,
             },
 
-            CurrentTask::None => self.handle_events_to_self(action),
+            CurrentTask::None => self.handle_events_to_self(&action),
         }
     }
 
@@ -120,11 +120,11 @@ impl Component for AddMagnetBar {
         f.render_widget(paragraph, rect);
 
         let cursor_offset = self.input.visual_cursor() + prefix_len;
-        f.set_cursor(rect.x + cursor_offset as u16, rect.y);
+        f.set_cursor(rect.x + u16::try_from(cursor_offset).unwrap(), rect.y);
     }
 }
 
-fn to_input_request(keycode: KeyCode) -> Option<InputRequest> {
+const fn to_input_request(keycode: KeyCode) -> Option<InputRequest> {
     use InputRequest as R;
 
     match keycode {

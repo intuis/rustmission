@@ -11,7 +11,7 @@ use transmission_rpc::{
 
 use crate::action::Action;
 
-pub async fn spawn_fetchers(client: Arc<Mutex<TransClient>>, sender: UnboundedSender<Action>) {
+pub fn spawn_fetchers(client: Arc<Mutex<TransClient>>, sender: UnboundedSender<Action>) {
     let stats_task = stats_fetch(Arc::clone(&client), sender.clone());
     let torrent_task = torrent_fetch(client, sender);
     tokio::spawn(stats_task);
@@ -63,15 +63,13 @@ pub async fn action_handler(
     mut sender: UnboundedReceiver<Action>,
 ) {
     while let Some(action) = sender.recv().await {
-        match action {
-            Action::TorrentAdd(url) => {
-                let args = TorrentAddArgs {
-                    filename: Some(*url),
-                    ..Default::default()
-                };
-                client.lock().await.torrent_add(args).await.unwrap();
-            }
-            _ => {}
+        if let Action::TorrentAdd(url) = action {
+            let args = TorrentAddArgs {
+                filename: Some(*url),
+                ..Default::default()
+            };
+
+            client.lock().await.torrent_add(args).await.unwrap();
         }
     }
 }

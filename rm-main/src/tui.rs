@@ -37,7 +37,7 @@ pub struct Tui {
 }
 
 impl Tui {
-    pub fn new() -> Result<Self> {
+    pub(crate) fn new() -> Result<Self> {
         let tick_rate = 4.0;
         let frame_rate = 30.0;
         let terminal = ratatui::Terminal::new(Backend::new(std::io::stderr()))?;
@@ -60,7 +60,7 @@ impl Tui {
         let render_delay = std::time::Duration::from_secs_f64(1.0 / self.frame_rate);
         self.cancel();
         self.cancellation_token = CancellationToken::new();
-        let _cancellation_token = self.cancellation_token.clone();
+        let cancellation_token = self.cancellation_token.clone();
         let event_tx = self.event_tx.clone();
 
         // Tokio task
@@ -73,7 +73,7 @@ impl Tui {
                 let render_delay = render_interval.tick();
                 let crossterm_event = reader.next().fuse();
                 tokio::select! {
-                  _ = _cancellation_token.cancelled() => break,
+                  _ = cancellation_token.cancelled() => break,
                   event = crossterm_event => Self::handle_crossterm_event(event, &event_tx),
                   _ = tick_delay => event_tx.send(Event::Tick).unwrap(),
                   _ = render_delay => event_tx.send(Event::Render).unwrap(),
@@ -87,20 +87,17 @@ impl Tui {
         event_tx: &UnboundedSender<Event>,
     ) {
         match event {
-            Some(Ok(evt)) => match evt {
-                CrosstermEvent::Key(key) => {
-                    if key.kind == KeyEventKind::Press {
-                        event_tx.send(Event::Key(key)).unwrap();
-                    }
+            Some(Ok(CrosstermEvent::Key(key))) => {
+                if key.kind == KeyEventKind::Press {
+                    event_tx.send(Event::Key(key)).unwrap();
                 }
-                _ => (),
-            },
+            }
             Some(Err(_)) => event_tx.send(Event::Error).unwrap(),
-            None => (),
+            _ => (),
         }
     }
 
-    pub fn stop(&self) -> Result<()> {
+    pub(crate) fn stop(&self) {
         self.cancel();
         let mut counter = 0;
         while !self.task.is_finished() {
@@ -113,18 +110,17 @@ impl Tui {
                 break;
             }
         }
-        Ok(())
     }
 
-    pub fn enter(&mut self) -> Result<()> {
+    pub(crate) fn enter(&mut self) -> Result<()> {
         crossterm::terminal::enable_raw_mode()?;
         crossterm::execute!(std::io::stderr(), EnterAlternateScreen, cursor::Hide)?;
         self.start();
         Ok(())
     }
 
-    pub fn exit(&mut self) -> Result<()> {
-        self.stop()?;
+    pub(crate) fn exit(&mut self) -> Result<()> {
+        self.stop();
         if crossterm::terminal::is_raw_mode_enabled()? {
             self.flush()?;
             crossterm::execute!(std::io::stderr(), LeaveAlternateScreen, cursor::Show)?;
