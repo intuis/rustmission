@@ -2,7 +2,7 @@ pub mod components;
 
 use ratatui::{
     prelude::*,
-    widgets::{Block, Clear, Paragraph},
+    widgets::{Block, Clear, Paragraph, Wrap},
 };
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -89,16 +89,25 @@ impl Component for ErrorPopup {
         let centered_rect = centered_rect(f.size(), 50, 50);
         let popup_rect = centered_rect.inner(&Margin::new(1, 1));
         let text_rect = popup_rect.inner(&Margin::new(3, 2));
+        let button_rect = {
+            let temp_rect = Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)])
+                .split(text_rect)[1];
+            temp_rect
+        };
+
+        let button = Paragraph::new("[ OK ]").bold().right_aligned();
+
         let block = Block::bordered()
             .border_set(symbols::border::ROUNDED)
             .title_style(Style::new().red())
             .title(format!(" {} ", self.title));
 
-        let error_message = Paragraph::new(&*self.message);
+        let error_message = Paragraph::new(&*self.message).wrap(Wrap { trim: false });
 
         f.render_widget(Clear, centered_rect);
         f.render_widget(block, popup_rect);
         f.render_widget(error_message, text_rect);
+        f.render_widget(button, button_rect);
     }
 }
 
