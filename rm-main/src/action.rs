@@ -47,8 +47,8 @@ pub const fn event_to_action(mode: Mode, event: Event) -> Option<Action> {
 const fn keycode_to_action(event: Event) -> Option<Action> {
     if let Event::Key(key) = event {
         return match key.code {
-            KeyCode::Char('j') => Some(Action::Down),
-            KeyCode::Char('k') => Some(Action::Up),
+            KeyCode::Char('j') | KeyCode::Down => Some(Action::Down),
+            KeyCode::Char('k') | KeyCode::Up => Some(Action::Up),
             KeyCode::Char('m') => Some(Action::AddMagnet),
             KeyCode::Char('q') => Some(Action::Quit),
             KeyCode::Enter => Some(Action::Confirm),
