@@ -1,7 +1,9 @@
 mod task;
 
+use std::rc::Rc;
+
 use ratatui::prelude::*;
-use ratatui::widgets::{Paragraph, Row, Table};
+use ratatui::widgets::{Cell, Paragraph, Row, Table};
 use tokio::sync::mpsc::UnboundedSender;
 use transmission_rpc::types::{SessionStats, Torrent};
 
@@ -38,6 +40,7 @@ impl Component for StatsComponent {
 
 pub struct TorrentsTab {
     table: GenericTable<Torrent>,
+    rows: Vec<[String; 6]>,
     stats: StatsComponent,
     task: Task,
 }
@@ -46,12 +49,13 @@ impl TorrentsTab {
     pub fn new(trans_tx: UnboundedSender<Action>) -> Self {
         Self {
             table: GenericTable::new(vec![]),
+            rows: vec![],
             stats: StatsComponent::default(),
             task: Task::new(trans_tx),
         }
     }
 
-    fn torrent_to_row(t: &Torrent) -> Row<'_> {
+    fn torrent_to_row(t: &Torrent) -> [String; 6] {
         let torrent_name = t.name.clone().unwrap();
 
         let size_when_done = bytes_to_human_format(t.size_when_done.expect("field requested"));
@@ -76,14 +80,15 @@ impl TorrentsTab {
             0 => String::default(),
             upload => bytes_to_human_format(upload),
         };
-        Row::new(vec![
+
+        [
             torrent_name,
             size_when_done,
             progress,
             eta_secs,
             download_speed,
             upload_speed,
-        ])
+        ]
     }
 }
 
@@ -95,6 +100,7 @@ impl Component for TorrentsTab {
         let header = Row::new(vec![
             "Name", "Size", "Progress", "ETA", "Download", "Upload",
         ]);
+
         let header_widths = [
             Constraint::Length(60), // Name
             Constraint::Length(10), // Size
@@ -104,11 +110,15 @@ impl Component for TorrentsTab {
             Constraint::Length(10), // Upload
         ];
 
-        let torrent_rows: Vec<_> = self.table.items.iter().map(Self::torrent_to_row).collect();
+        let torrent_rows = self
+            .rows
+            .iter()
+            .map(|i| i.iter().map(|i| i.as_str()))
+            .map(Row::new);
 
         let torrents_table = Table::new(torrent_rows, header_widths)
             .header(header)
-            .highlight_style(Style::default().on_black().bold());
+            .highlight_style(Style::default().light_magenta().on_black().bold());
 
         f.render_stateful_widget(torrents_table, torrents_list_rect, &mut self.table.state);
 
@@ -117,24 +127,26 @@ impl Component for TorrentsTab {
         self.task.render(f, stats_rect);
     }
 
+    #[must_use]
     fn handle_events(&mut self, action: Action) -> Option<Action> {
         use Action as A;
         match action {
             A::Up => {
                 self.table.previous();
-                None
+                Some(Action::Render)
             }
             A::Down => {
                 self.table.next();
-                None
+                Some(Action::Render)
             }
             A::TorrentListUpdate(torrents) => {
                 self.table.set_items(*torrents);
-                None
+                self.rows = self.table.items.iter().map(Self::torrent_to_row).collect();
+                Some(Action::Render)
             }
             A::StatsUpdate(stats) => {
                 self.stats.set_stats(*stats);
-                None
+                Some(Action::Render)
             }
             other => self.task.handle_events(other),
         }

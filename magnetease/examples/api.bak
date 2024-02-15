@@ -1,0 +1,7 @@
+use magnetease::{Client, ClientBuilder};
+
+#[tokio::main]
+fn main() {
+    let client = ClientBuilder::default().add_provider(Provider::Knaben);
+    client.search("Ubuntu 22.04 LTS");
+}

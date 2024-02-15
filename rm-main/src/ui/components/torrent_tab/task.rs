@@ -72,6 +72,8 @@ impl Component for Task {
 
                 Some(Action::Quit) => self.finish_task(),
 
+                Some(Action::Render) => Some(Action::Render),
+
                 _ => None,
             },
 
@@ -101,6 +103,7 @@ impl Component for AddMagnetBar {
 
                 if let Some(req) = to_input_request(input.code) {
                     self.input.handle(req);
+                    return Some(Action::Render);
                 }
                 None
             }

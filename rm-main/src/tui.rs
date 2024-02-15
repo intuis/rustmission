@@ -27,7 +27,7 @@ pub enum Event {
 }
 
 pub struct Tui {
-    pub terminal: ratatui::Terminal<Backend<std::io::Stderr>>,
+    pub terminal: ratatui::Terminal<Backend<std::io::Stdout>>,
     pub task: JoinHandle<()>,
     pub cancellation_token: CancellationToken,
     pub event_rx: UnboundedReceiver<Event>,
@@ -39,8 +39,8 @@ pub struct Tui {
 impl Tui {
     pub(crate) fn new() -> Result<Self> {
         let tick_rate = 4.0;
-        let frame_rate = 30.0;
-        let terminal = ratatui::Terminal::new(Backend::new(std::io::stderr()))?;
+        let frame_rate = 25.0;
+        let terminal = ratatui::Terminal::new(Backend::new(std::io::stdout()))?;
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         let cancellation_token = CancellationToken::new();
         let task = tokio::spawn(async {});
@@ -76,7 +76,7 @@ impl Tui {
                   _ = cancellation_token.cancelled() => break,
                   event = crossterm_event => Self::handle_crossterm_event(event, &event_tx),
                   _ = tick_delay => event_tx.send(Event::Tick).unwrap(),
-                  _ = render_delay => event_tx.send(Event::Render).unwrap(),
+                  // _ = render_delay => event_tx.send(Event::Render).unwrap(),
                 }
             }
         });
@@ -114,7 +114,7 @@ impl Tui {
 
     pub(crate) fn enter(&mut self) -> Result<()> {
         crossterm::terminal::enable_raw_mode()?;
-        crossterm::execute!(std::io::stderr(), EnterAlternateScreen, cursor::Hide)?;
+        crossterm::execute!(std::io::stdout(), EnterAlternateScreen, cursor::Hide)?;
         self.start();
         Ok(())
     }
@@ -139,7 +139,7 @@ impl Tui {
 }
 
 impl Deref for Tui {
-    type Target = ratatui::Terminal<Backend<std::io::Stderr>>;
+    type Target = ratatui::Terminal<Backend<std::io::Stdout>>;
 
     fn deref(&self) -> &Self::Target {
         &self.terminal

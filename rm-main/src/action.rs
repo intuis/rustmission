@@ -11,9 +11,11 @@ pub enum Action {
     Up,
     Down,
     Confirm,
+    ShowHelp,
     SwitchToInputMode,
     SwitchToNormalMode,
     AddMagnet,
+    ChangeTab(u8),
     Input(KeyEvent),
     Error(Box<ErrorPopup>),
     TorrentListUpdate(Box<Vec<Torrent>>),
@@ -33,24 +35,29 @@ pub enum Mode {
     Normal,
 }
 
-pub const fn event_to_action(mode: Mode, event: Event) -> Option<Action> {
+pub fn event_to_action(mode: Mode, event: Event) -> Option<Action> {
     match event {
         Event::Quit => Some(Action::Quit),
         Event::Error => todo!(),
         Event::Tick => Some(Action::Tick),
         Event::Render => Some(Action::Render),
         Event::Key(key) if matches!(mode, Mode::Input) => Some(Action::Input(key)),
+        // TODO: simplify this
         Event::Key(_) => keycode_to_action(event),
     }
 }
 
-const fn keycode_to_action(event: Event) -> Option<Action> {
+fn keycode_to_action(event: Event) -> Option<Action> {
     if let Event::Key(key) = event {
         return match key.code {
             KeyCode::Char('j') | KeyCode::Down => Some(Action::Down),
             KeyCode::Char('k') | KeyCode::Up => Some(Action::Up),
-            KeyCode::Char('m') => Some(Action::AddMagnet),
             KeyCode::Char('q') => Some(Action::Quit),
+            KeyCode::Char('?') => Some(Action::ShowHelp),
+            KeyCode::Char('m') => Some(Action::AddMagnet),
+            KeyCode::Char(n @ '1'..='9') => {
+                Some(Action::ChangeTab(n.to_digit(10).expect("This is ok") as u8))
+            }
             KeyCode::Enter => Some(Action::Confirm),
             _ => None,
         };

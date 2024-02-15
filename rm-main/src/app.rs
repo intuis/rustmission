@@ -22,15 +22,7 @@ pub struct App {
     // TODO: change trans_tx to something else than Action
     trans_tx: UnboundedSender<Action>,
     main_window: MainWindow,
-    current_tab: Tab,
     mode: Mode,
-}
-
-#[derive(Clone, Copy)]
-enum Tab {
-    Torrents,
-    Search,
-    Settings,
 }
 
 impl App {
@@ -59,7 +51,6 @@ impl App {
             action_rx,
             main_window: MainWindow::new(trans_tx.clone()),
             trans_tx,
-            current_tab: Tab::Torrents,
             mode: Mode::Normal,
         }
     }
@@ -73,15 +64,17 @@ impl App {
             let event = tui.next().await.unwrap();
 
             if let Some(action) = event_to_action(self.mode, event) {
-                if action.is_render() {
-                    self.render(&mut tui)?;
-                } else if let Some(action) = self.update(action) {
+                if let Some(action) = self.update(action) {
                     self.action_tx.send(action)?;
                 }
             }
 
             // For actions that come from somewhere else
             while let Ok(action) = self.action_rx.try_recv() {
+                if action.is_render() {
+                    self.render(&mut tui)?;
+                }
+
                 if let Some(action) = self.update(action) {
                     self.action_tx.send(action)?;
                 }
@@ -113,12 +106,12 @@ impl App {
 
             Action::SwitchToInputMode => {
                 self.mode = Mode::Input;
-                None
+                Some(Action::Render)
             }
 
             Action::SwitchToNormalMode => {
                 self.mode = Mode::Normal;
-                None
+                Some(Action::Render)
             }
 
             Action::TorrentAdd(_) => {
@@ -126,12 +119,7 @@ impl App {
                 None
             }
 
-            // TODO: change it
-            _ if matches!(self.current_tab, Tab::Torrents) => {
-                self.main_window.handle_events(action)
-            }
-
-            _ => None,
+            _ => self.main_window.handle_events(action),
         }
     }
 }
