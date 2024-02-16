@@ -17,6 +17,10 @@ impl<T> GenericTable<T> {
         self.items = items;
     }
 
+    pub fn current_item(&self) -> Option<&T> {
+        Some(&self.items[self.state.selected()?])
+    }
+
     pub fn next(&mut self) {
         if let Some(curr) = self.state.selected() {
             if curr == self.items.len() {

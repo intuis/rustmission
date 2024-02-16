@@ -162,8 +162,8 @@ impl MainWindow {
     pub fn new(action_tx: UnboundedSender<Action>, trans_tx: UnboundedSender<Action>) -> Self {
         Self {
             tabs: TabComponent::new(),
-            torrents_tab: TorrentsTab::new(trans_tx),
-            search_tab: SearchTab::new(action_tx),
+            torrents_tab: TorrentsTab::new(trans_tx.clone()),
+            search_tab: SearchTab::new(action_tx, trans_tx),
             popup: Pipup::default(),
         }
     }

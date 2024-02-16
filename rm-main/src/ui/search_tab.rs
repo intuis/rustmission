@@ -31,10 +31,14 @@ pub(super) struct SearchTab {
     input: Input,
     req_sender: UnboundedSender<String>,
     table: Arc<Mutex<GenericTable<Magnet>>>,
+    trans_tx: UnboundedSender<Action>,
 }
 
 impl SearchTab {
-    pub(super) fn new(action_tx: UnboundedSender<Action>) -> Self {
+    pub(super) fn new(
+        action_tx: UnboundedSender<Action>,
+        trans_tx: UnboundedSender<Action>,
+    ) -> Self {
         let (tx, mut rx) = mpsc::unbounded_channel::<String>();
         let table = Arc::new(Mutex::new(GenericTable::new(vec![])));
         let table_clone = Arc::clone(&table);
@@ -52,6 +56,7 @@ impl SearchTab {
             input: Input::default(),
             table,
             req_sender: tx,
+            trans_tx,
         }
     }
 
@@ -107,6 +112,25 @@ impl Component for SearchTab {
                 self.table.lock().unwrap().next();
                 Some(Action::Render)
             }
+            Action::Up => {
+                self.table.lock().unwrap().previous();
+                Some(Action::Render)
+            }
+            Action::Confirm => {
+                let magnet_url = self
+                    .table
+                    .lock()
+                    .unwrap()
+                    .current_item()
+                    .and_then(|magnet| Some(magnet.url.clone()));
+                if let Some(magnet_url) = magnet_url {
+                    self.trans_tx
+                        .send(Action::TorrentAdd(Box::new(magnet_url)))
+                        .unwrap();
+                }
+                None
+            }
+
             _ => None,
         }
     }
@@ -151,16 +175,19 @@ impl Component for SearchTab {
             search_rect.y,
         );
 
-        let widths = [
-            Constraint::Length(5),
-            Constraint::Percentage(40),
-            Constraint::Length(8),
-        ];
         let header = Row::new(["S", "Title", "Size"]);
 
         let table_lock = self.table.lock().unwrap();
         let table_items = &table_lock.items;
+
+        let longest_title = table_items.iter().map(|magnet| magnet.title.len()).max();
         let items = table_items.iter().map(Self::magnet_to_row);
+
+        let widths = [
+            Constraint::Length(5),
+            Constraint::Length(longest_title.unwrap_or(10) as u16),
+            Constraint::Length(8),
+        ];
         let table = Table::new(items, widths)
             .header(header)
             .highlight_style(Style::default().light_magenta().on_black().bold());

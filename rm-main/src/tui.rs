@@ -54,7 +54,6 @@ impl Tui {
         let cancellation_token = self.cancellation_token.clone();
         let event_tx = self.event_tx.clone();
 
-        // Tokio task
         self.task = tokio::spawn(async move {
             let mut reader = crossterm::event::EventStream::new();
             loop {
