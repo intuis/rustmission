@@ -9,7 +9,7 @@ use transmission_rpc::{
     TransClient,
 };
 
-use crate::{action::Action, ui::ErrorPopup};
+use crate::{action::Action, ui::popup::ErrorPopup};
 
 pub fn spawn_fetchers(client: Arc<Mutex<TransClient>>, sender: UnboundedSender<Action>) {
     let stats_task = stats_fetch(Arc::clone(&client), sender.clone());

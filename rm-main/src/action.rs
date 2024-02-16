@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use transmission_rpc::types::{SessionStats, Torrent};
 
-use crate::{tui::Event, ui::ErrorPopup};
+use crate::{tui::Event, ui::popup::ErrorPopup};
 
 #[derive(Debug, Clone)]
 pub enum Action {

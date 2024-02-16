@@ -184,9 +184,9 @@ impl Component for SearchTab {
         let items = table_items.iter().map(Self::magnet_to_row);
 
         let widths = [
-            Constraint::Length(5),
-            Constraint::Length(longest_title.unwrap_or(10) as u16),
-            Constraint::Length(8),
+            Constraint::Length(5),                                  // Seeders
+            Constraint::Length(longest_title.unwrap_or(10) as u16), // Title
+            Constraint::Length(8),                                  // Size
         ];
         let table = Table::new(items, widths)
             .header(header)
