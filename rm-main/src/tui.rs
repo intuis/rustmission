@@ -17,6 +17,8 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
+use crate::action::Action;
+
 #[derive(Clone, Debug)]
 pub enum Event {
     Quit,
@@ -37,7 +39,7 @@ pub struct Tui {
 }
 
 impl Tui {
-    pub(crate) fn new() -> Result<Self> {
+    pub(crate) fn new(action_tx: UnboundedSender<Action>) -> Result<Self> {
         let tick_rate = 4.0;
         let frame_rate = 25.0;
         let terminal = ratatui::Terminal::new(Backend::new(std::io::stdout()))?;

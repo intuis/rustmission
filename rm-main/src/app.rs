@@ -56,9 +56,12 @@ impl App {
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        let mut tui = Tui::new()?;
+        // TODO: make this accept an action_tx
+        let mut tui = Tui::new(self.action_tx.clone())?;
 
         tui.enter()?;
+
+        self.render(&mut tui)?;
 
         loop {
             let event = tui.next().await.unwrap();
@@ -98,28 +101,29 @@ impl App {
 
     #[must_use]
     fn update(&mut self, action: Action) -> Option<Action> {
+        use Action as A;
         match &action {
-            Action::Quit => {
+            A::Quit => {
                 self.should_quit = true;
                 None
             }
 
-            Action::SwitchToInputMode => {
+            A::SwitchToInputMode => {
                 self.mode = Mode::Input;
-                Some(Action::Render)
+                Some(A::Render)
             }
 
-            Action::SwitchToNormalMode => {
+            A::SwitchToNormalMode => {
                 self.mode = Mode::Normal;
-                Some(Action::Render)
+                Some(A::Render)
             }
 
-            Action::TorrentAdd(_) => {
+            A::TorrentAdd(_) => {
                 self.trans_tx.send(action).unwrap();
                 None
             }
 
-            _ => self.main_window.handle_events(action),
+            _ => return self.main_window.handle_events(action),
         }
     }
 }

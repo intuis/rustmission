@@ -1,6 +1,5 @@
 use std::{sync::Arc, time::Duration};
 
-use anyhow::{Context, Result};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
     Mutex,
@@ -29,9 +28,6 @@ pub async fn stats_fetch(client: Arc<Mutex<TransClient>>, sender: UnboundedSende
 
 pub async fn torrent_fetch(client: Arc<Mutex<TransClient>>, sender: UnboundedSender<Action>) {
     loop {
-        // TODO: talk to rustmission-rpc's authors to tell them that torrent_get shouldnt
-        // take an ownership of this vec, or check the documentation (maybe there's a function that
-        // takes a reference who knows)
         let fields = vec![
             TorrentGetField::Id,
             TorrentGetField::Name,

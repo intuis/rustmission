@@ -4,7 +4,7 @@ use ratatui::{
     widgets::{Clear, Paragraph},
 };
 use tokio::sync::mpsc::UnboundedSender;
-use tui_input::{Input, InputRequest};
+use tui_input::Input;
 
 use crate::{
     action::Action,

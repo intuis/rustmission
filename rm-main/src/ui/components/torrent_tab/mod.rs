@@ -1,9 +1,7 @@
 mod task;
 
-use std::rc::Rc;
-
 use ratatui::prelude::*;
-use ratatui::widgets::{Cell, Paragraph, Row, Table};
+use ratatui::widgets::{Paragraph, Row, Table};
 use tokio::sync::mpsc::UnboundedSender;
 use transmission_rpc::types::{SessionStats, Torrent};
 
