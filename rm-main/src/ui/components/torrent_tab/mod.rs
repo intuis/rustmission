@@ -1,12 +1,12 @@
 mod task;
 
 use ratatui::prelude::*;
-use ratatui::widgets::{Paragraph, Row, Table};
+use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Row, Table};
 use tokio::sync::mpsc::UnboundedSender;
 use transmission_rpc::types::{SessionStats, Torrent};
 
 use crate::action::Action;
-use crate::ui::bytes_to_human_format;
+use crate::ui::{bytes_to_human_format, centered_rect};
 
 use self::task::Task;
 
@@ -37,11 +37,58 @@ impl Component for StatsComponent {
     }
 }
 
+struct StatisticsPopup {
+    stats: SessionStats,
+}
+
+impl StatisticsPopup {
+    fn new(stats: SessionStats) -> Self {
+        Self { stats }
+    }
+}
+
+impl Component for StatisticsPopup {
+    fn handle_events(&mut self, action: Action) -> Option<Action> {
+        if let Action::Confirm = action {
+            return Some(Action::Quit);
+        }
+        None
+    }
+
+    fn render(&mut self, f: &mut Frame, rect: Rect) {
+        let popup_rect = centered_rect(rect, 50, 50);
+        let block_rect = popup_rect.inner(&Margin::new(1, 1));
+        let text_rect = block_rect.inner(&Margin::new(3, 2));
+        let button_rect = {
+            Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)]).split(text_rect)
+                [1]
+        };
+
+        let block = Block::bordered()
+            .border_type(BorderType::Rounded)
+            .title(" Statistics ")
+            .title_style(Style::default().light_magenta());
+
+        let button = Paragraph::new("[ OK ]").bold().right_aligned();
+
+        let uploaded = bytes_to_human_format(self.stats.cumulative_stats.uploaded_bytes);
+        let downloaded = bytes_to_human_format(self.stats.cumulative_stats.downloaded_bytes);
+        let text = format!("Uploaded: {uploaded}\nDownloaded: {downloaded}");
+        let paragraph = Paragraph::new(text);
+
+        f.render_widget(Clear, popup_rect);
+        f.render_widget(block, block_rect);
+        f.render_widget(paragraph, text_rect);
+        f.render_widget(button, button_rect);
+    }
+}
+
 pub struct TorrentsTab {
     table: GenericTable<Torrent>,
     rows: Vec<[String; 6]>,
     stats: StatsComponent,
     task: Task,
+    statistics_popup: Option<StatisticsPopup>,
 }
 
 impl TorrentsTab {
@@ -51,6 +98,7 @@ impl TorrentsTab {
             rows: vec![],
             stats: StatsComponent::default(),
             task: Task::new(trans_tx),
+            statistics_popup: None,
         }
     }
 
@@ -124,11 +172,23 @@ impl Component for TorrentsTab {
         self.stats.render(f, stats_rect);
 
         self.task.render(f, stats_rect);
+
+        if let Some(popup) = &mut self.statistics_popup {
+            popup.render(f, f.size());
+        }
     }
 
     #[must_use]
     fn handle_events(&mut self, action: Action) -> Option<Action> {
         use Action as A;
+        if let Some(popup) = &mut self.statistics_popup {
+            if let Some(Action::Quit) = popup.handle_events(action) {
+                self.statistics_popup = None;
+                return Some(Action::Render);
+            };
+            return None;
+        }
+
         match action {
             A::Up => {
                 self.table.previous();
@@ -146,6 +206,14 @@ impl Component for TorrentsTab {
             A::StatsUpdate(stats) => {
                 self.stats.set_stats(*stats);
                 Some(Action::Render)
+            }
+            A::ShowStats => {
+                if let Some(stats) = &self.stats.stats {
+                    self.statistics_popup = Some(StatisticsPopup::new(stats.clone()));
+                    Some(Action::Render)
+                } else {
+                    None
+                }
             }
             other => self.task.handle_events(other),
         }

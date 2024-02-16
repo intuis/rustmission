@@ -56,7 +56,6 @@ impl App {
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        // TODO: make this accept an action_tx
         let mut tui = Tui::new()?;
 
         tui.enter()?;

@@ -76,9 +76,8 @@ impl Component for ErrorPopup {
         let popup_rect = centered_rect.inner(&Margin::new(1, 1));
         let text_rect = popup_rect.inner(&Margin::new(3, 2));
         let button_rect = {
-            let temp_rect = Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)])
-                .split(text_rect)[1];
-            temp_rect
+            Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)]).split(text_rect)
+                [1]
         };
 
         let button = Paragraph::new("[ OK ]").bold().right_aligned();
