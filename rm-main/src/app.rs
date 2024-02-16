@@ -57,29 +57,33 @@ impl App {
 
     pub async fn run(&mut self) -> Result<()> {
         // TODO: make this accept an action_tx
-        let mut tui = Tui::new(self.action_tx.clone())?;
+        let mut tui = Tui::new()?;
 
         tui.enter()?;
 
         self.render(&mut tui)?;
 
         loop {
-            let event = tui.next().await.unwrap();
+            let tui_event = tui.next();
+            let action = self.action_rx.recv();
 
-            if let Some(action) = event_to_action(self.mode, event) {
-                if let Some(action) = self.update(action) {
-                    self.action_tx.send(action)?;
-                }
-            }
+            tokio::select! {
+                event = tui_event => {
+                    if let Some(action) = event_to_action(self.mode, event.unwrap()) {
+                        if let Some(action) = self.update(action) {
+                            self.action_tx.send(action).unwrap();
+                        }
+                    };
+                },
 
-            // For actions that come from somewhere else
-            while let Ok(action) = self.action_rx.try_recv() {
-                if action.is_render() {
-                    self.render(&mut tui)?;
-                }
-
-                if let Some(action) = self.update(action) {
-                    self.action_tx.send(action)?;
+                action = action => {
+                    if let Some(action) = action {
+                        if action.is_render() {
+                            self.render(&mut tui)?;
+                        } else if let Some(action) = self.update(action) {
+                            self.action_tx.send(action).unwrap();
+                        }
+                    }
                 }
             }
 

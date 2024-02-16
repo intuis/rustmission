@@ -17,13 +17,10 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
-use crate::action::Action;
-
 #[derive(Clone, Debug)]
 pub enum Event {
     Quit,
     Error,
-    Tick,
     Render,
     Key(KeyEvent),
 }
@@ -34,14 +31,10 @@ pub struct Tui {
     pub cancellation_token: CancellationToken,
     pub event_rx: UnboundedReceiver<Event>,
     pub event_tx: UnboundedSender<Event>,
-    pub frame_rate: f64,
-    pub tick_rate: f64,
 }
 
 impl Tui {
-    pub(crate) fn new(action_tx: UnboundedSender<Action>) -> Result<Self> {
-        let tick_rate = 4.0;
-        let frame_rate = 25.0;
+    pub(crate) fn new() -> Result<Self> {
         let terminal = ratatui::Terminal::new(Backend::new(std::io::stdout()))?;
         let (event_tx, event_rx) = mpsc::unbounded_channel();
         let cancellation_token = CancellationToken::new();
@@ -52,14 +45,10 @@ impl Tui {
             cancellation_token,
             event_rx,
             event_tx,
-            frame_rate,
-            tick_rate,
         })
     }
 
     pub fn start(&mut self) {
-        let tick_delay = std::time::Duration::from_secs_f64(1.0 / self.tick_rate);
-        let render_delay = std::time::Duration::from_secs_f64(1.0 / self.frame_rate);
         self.cancel();
         self.cancellation_token = CancellationToken::new();
         let cancellation_token = self.cancellation_token.clone();
@@ -68,17 +57,11 @@ impl Tui {
         // Tokio task
         self.task = tokio::spawn(async move {
             let mut reader = crossterm::event::EventStream::new();
-            let mut tick_interval = tokio::time::interval(tick_delay);
-            let mut render_interval = tokio::time::interval(render_delay);
             loop {
-                let tick_delay = tick_interval.tick();
-                let render_delay = render_interval.tick();
                 let crossterm_event = reader.next().fuse();
                 tokio::select! {
                   _ = cancellation_token.cancelled() => break,
                   event = crossterm_event => Self::handle_crossterm_event(event, &event_tx),
-                  _ = tick_delay => event_tx.send(Event::Tick).unwrap(),
-                  // _ = render_delay => event_tx.send(Event::Render).unwrap(),
                 }
             }
         });
