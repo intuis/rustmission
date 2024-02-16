@@ -8,6 +8,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use transmission_rpc::types::{SessionStats, Torrent};
 
 use crate::action::Action;
+use crate::ui::bytes_to_human_format;
 
 use self::task::Task;
 
@@ -151,29 +152,4 @@ impl Component for TorrentsTab {
             other => self.task.handle_events(other),
         }
     }
-}
-
-fn bytes_to_human_format(bytes: i64) -> String {
-    const KB: f64 = 1024.0;
-    const MB: f64 = KB * 1024.0;
-    const GB: f64 = MB * 1024.0;
-    const TB: f64 = GB * 1024.0;
-
-    if bytes == 0 {
-        return "0 B".to_string();
-    }
-
-    let (value, unit) = if bytes < (KB - 25f64) as i64 {
-        (bytes as f64, "B")
-    } else if bytes < (MB - 25f64) as i64 {
-        (bytes as f64 / KB, "KB")
-    } else if bytes < (GB - 25f64) as i64 {
-        (bytes as f64 / MB, "MB")
-    } else if bytes < (TB - 25f64) as i64 {
-        (bytes as f64 / GB, "GB")
-    } else {
-        (bytes as f64 / TB, "TB")
-    };
-
-    format!("{value:.1} {unit}")
 }

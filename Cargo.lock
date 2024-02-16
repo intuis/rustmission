@@ -947,6 +947,7 @@ dependencies = [
  "anyhow",
  "crossterm",
  "futures",
+ "magnetease",
  "ratatui",
  "rm-config",
  "serde",

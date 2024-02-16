@@ -4,7 +4,7 @@ use crate::{providers::knaben::Knaben, Magnet, Provider};
 
 pub struct Magnetease {
     client: Client,
-    providers: Vec<Box<dyn Provider>>,
+    providers: Vec<Box<dyn Provider + Send + Sync>>,
 }
 
 impl Magnetease {

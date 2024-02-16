@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 rm-config = { path = "../rm-config" }
+magnetease = { path = "../magnetease" }
 
 anyhow = "1"
 ratatui = "0.26"

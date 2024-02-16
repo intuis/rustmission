@@ -12,8 +12,10 @@ pub enum Action {
     Down,
     Confirm,
     ShowHelp,
+    Search,
     SwitchToInputMode,
     SwitchToNormalMode,
+    ChangeFocus,
     AddMagnet,
     ChangeTab(u8),
     Input(KeyEvent),
@@ -50,10 +52,12 @@ pub fn event_to_action(mode: Mode, event: Event) -> Option<Action> {
 fn keycode_to_action(event: Event) -> Option<Action> {
     if let Event::Key(key) = event {
         return match key.code {
+            KeyCode::Tab => Some(Action::ChangeFocus),
             KeyCode::Char('j') | KeyCode::Down => Some(Action::Down),
             KeyCode::Char('k') | KeyCode::Up => Some(Action::Up),
             KeyCode::Char('q') => Some(Action::Quit),
             KeyCode::Char('?') => Some(Action::ShowHelp),
+            KeyCode::Char('/') => Some(Action::Search),
             KeyCode::Char('m') => Some(Action::AddMagnet),
             KeyCode::Char(n @ '1'..='9') => {
                 Some(Action::ChangeTab(n.to_digit(10).expect("This is ok") as u8))

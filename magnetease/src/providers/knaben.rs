@@ -47,7 +47,14 @@ impl TryFrom<KnabenMagnet> for Magnet {
             KnabenMagnet {
                 title,
                 magnet_url: Some(url),
-            } => Ok(Self { title, url }),
+                seeders,
+                bytes,
+            } => Ok(Self {
+                title,
+                url,
+                seeders,
+                bytes,
+            }),
             _ => Err(()),
         }
     }
@@ -63,4 +70,6 @@ struct KnabenAPIResult {
 struct KnabenMagnet {
     magnet_url: Option<String>,
     title: String,
+    seeders: u32,
+    bytes: u64,
 }

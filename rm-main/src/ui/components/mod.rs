@@ -1,5 +1,5 @@
 pub mod tabcomponent;
-mod table;
+pub mod table;
 pub mod torrent_tab;
 
 use ratatui::{prelude::Rect, Frame};

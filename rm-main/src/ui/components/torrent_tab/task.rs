@@ -6,7 +6,10 @@ use ratatui::{
 use tokio::sync::mpsc::UnboundedSender;
 use tui_input::{Input, InputRequest};
 
-use crate::{action::Action, ui::components::Component};
+use crate::{
+    action::Action,
+    ui::{components::Component, to_input_request},
+};
 
 pub struct Task {
     trans_tx: UnboundedSender<Action>,
@@ -124,16 +127,5 @@ impl Component for AddMagnetBar {
 
         let cursor_offset = self.input.visual_cursor() + prefix_len;
         f.set_cursor(rect.x + u16::try_from(cursor_offset).unwrap(), rect.y);
-    }
-}
-
-const fn to_input_request(keycode: KeyCode) -> Option<InputRequest> {
-    use InputRequest as R;
-
-    match keycode {
-        KeyCode::Backspace => Some(R::DeletePrevChar),
-        KeyCode::Delete => Some(R::DeleteNextChar),
-        KeyCode::Char(char) => Some(R::InsertChar(char)),
-        _ => None,
     }
 }

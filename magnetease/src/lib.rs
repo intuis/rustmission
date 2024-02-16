@@ -7,6 +7,8 @@ use reqwest::Client;
 pub struct Magnet {
     pub title: String,
     pub url: String,
+    pub seeders: u32,
+    pub bytes: u64,
 }
 
 #[async_trait]

@@ -47,9 +47,9 @@ impl App {
 
         Self {
             should_quit: false,
+            main_window: MainWindow::new(action_tx.clone(), trans_tx.clone()),
             action_tx,
             action_rx,
-            main_window: MainWindow::new(trans_tx.clone()),
             trans_tx,
             mode: Mode::Normal,
         }
