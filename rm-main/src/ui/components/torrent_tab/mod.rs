@@ -1,7 +1,5 @@
 mod task;
 
-use std::borrow::BorrowMut;
-
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Row, Table};
 use tokio::sync::mpsc::UnboundedSender;

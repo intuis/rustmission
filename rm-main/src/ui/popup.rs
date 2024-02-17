@@ -124,10 +124,19 @@ impl Component for HelpPopup {
             )])
             .centered(),
         );
-
         lines.push(Line::from(vec![
             Span::styled("?", Style::default().bold()),
             " - show/hide help popup".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("1", Style::default().bold()),
+            " - switch to torrents tab".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("2", Style::default().bold()),
+            " - switch to search tab".into(),
         ]));
 
         lines.push(Line::from(vec![
