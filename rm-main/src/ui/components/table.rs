@@ -1,14 +1,16 @@
+use std::cell::RefCell;
+
 use ratatui::widgets::TableState;
 
 pub struct GenericTable<T> {
-    pub state: TableState,
+    pub state: RefCell<TableState>,
     pub items: Vec<T>,
 }
 
 impl<T> GenericTable<T> {
     pub fn new(items: Vec<T>) -> Self {
         Self {
-            state: TableState::new().with_selected(Some(0)),
+            state: RefCell::new(TableState::new().with_selected(Some(0))),
             items,
         }
     }
@@ -18,25 +20,28 @@ impl<T> GenericTable<T> {
     }
 
     pub fn current_item(&self) -> Option<&T> {
-        Some(&self.items[self.state.selected()?])
+        Some(&self.items[self.state.borrow().selected()?])
     }
 
     pub fn next(&mut self) {
-        if let Some(curr) = self.state.selected() {
+        let mut state = self.state.borrow_mut();
+        if let Some(curr) = state.selected() {
             if curr == self.items.len() {
-                self.state.select(Some(0));
+                state.select(Some(0));
             } else {
-                self.state.select(Some(curr + 1));
+                state.select(Some(curr + 1));
             }
         }
     }
 
     pub fn previous(&mut self) {
-        if let Some(curr) = self.state.selected() {
+        let mut state = self.state.borrow_mut();
+
+        if let Some(curr) = state.selected() {
             if curr == 0 {
-                self.state.select(Some(self.items.len()));
+                state.select(Some(self.items.len()));
             } else {
-                self.state.select(Some(curr - 1));
+                state.select(Some(curr - 1));
             }
         }
     }

@@ -1,5 +1,7 @@
 mod task;
 
+use std::borrow::BorrowMut;
+
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Row, Table};
 use tokio::sync::mpsc::UnboundedSender;
@@ -71,9 +73,12 @@ impl Component for StatisticsPopup {
 
         let button = Paragraph::new("[ OK ]").bold().right_aligned();
 
-        let uploaded = bytes_to_human_format(self.stats.cumulative_stats.uploaded_bytes);
-        let downloaded = bytes_to_human_format(self.stats.cumulative_stats.downloaded_bytes);
-        let text = format!("Uploaded: {uploaded}\nDownloaded: {downloaded}");
+        let uploaded_bytes = self.stats.cumulative_stats.uploaded_bytes;
+        let downloaded_bytes = self.stats.cumulative_stats.downloaded_bytes;
+        let uploaded = bytes_to_human_format(uploaded_bytes);
+        let downloaded = bytes_to_human_format(downloaded_bytes);
+        let ratio = uploaded_bytes / downloaded_bytes;
+        let text = format!("Uploaded: {uploaded}\nDownloaded: {downloaded}\nRatio: {ratio}");
         let paragraph = Paragraph::new(text);
 
         f.render_widget(Clear, popup_rect);
@@ -167,7 +172,11 @@ impl Component for TorrentsTab {
             .header(header)
             .highlight_style(Style::default().light_magenta().on_black().bold());
 
-        f.render_stateful_widget(torrents_table, torrents_list_rect, &mut self.table.state);
+        f.render_stateful_widget(
+            torrents_table,
+            torrents_list_rect,
+            &mut self.table.state.borrow_mut(),
+        );
 
         self.stats.render(f, stats_rect);
 

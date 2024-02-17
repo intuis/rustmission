@@ -1,5 +1,5 @@
 use std::{
-    borrow::Cow,
+    borrow::{BorrowMut, Cow},
     sync::{Arc, Mutex},
 };
 
@@ -192,8 +192,6 @@ impl Component for SearchTab {
             .header(header)
             .highlight_style(Style::default().light_magenta().on_black().bold());
 
-        let mut table_state = table_lock.state.clone();
-
-        f.render_stateful_widget(table, rest, &mut table_state)
+        f.render_stateful_widget(table, rest, &mut *table_lock.state.borrow_mut());
     }
 }
