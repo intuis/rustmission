@@ -58,7 +58,11 @@ impl Component for MainWindow {
         }
 
         if let Action::ShowHelp = action {
-            self.popup.help_popup = Some(HelpPopup);
+            if self.popup.help_popup.is_some() {
+                self.popup.help_popup = None;
+            } else {
+                self.popup.help_popup = Some(HelpPopup);
+            }
             return Some(Action::Render);
         }
 

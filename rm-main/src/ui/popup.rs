@@ -113,14 +113,68 @@ impl Component for HelpPopup {
 
         let block = Block::bordered()
             .border_set(symbols::border::ROUNDED)
-            .title_style(Style::new().red())
-            .title("Help");
+            .title_style(Style::new().light_magenta())
+            .title(" Help ");
 
-        let global_headline =
-            Line::styled("GLOBAL KEYBINDINGS", Style::new().bold().underlined()).centered();
+        let mut lines = vec![];
+        lines.push(
+            Line::from(vec![Span::styled(
+                "Global Keybindings",
+                Style::default().bold().underlined(),
+            )])
+            .centered(),
+        );
+
+        lines.push(Line::from(vec![
+            Span::styled("?", Style::default().bold()),
+            " - show/hide help popup".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("s", Style::default().bold()),
+            " - show statistics popup".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("/", Style::default().bold()),
+            " - search".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("m", Style::default().bold()),
+            " - add a magnet url/torrent path".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("q", Style::default().bold()),
+            " - quit Rustmission".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("TAB", Style::default().bold()),
+            " - switch focus".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("Enter", Style::default().bold()),
+            " - confirm".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("j / Down arrow", Style::default().bold()),
+            " - move down".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("k / Up arrow", Style::default().bold()),
+            " - move up".into(),
+        ]));
+
+        let help_text = Text::from(lines);
+        let help_paragraph = Paragraph::new(help_text);
 
         f.render_widget(Clear, centered_rect);
         f.render_widget(block, popup_rect);
-        f.render_widget(global_headline, text_rect);
+        f.render_widget(help_paragraph, text_rect);
     }
 }
