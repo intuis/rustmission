@@ -73,7 +73,6 @@ impl Component for MainWindow {
             match self.tabs.current_tab {
                 CurrentTab::Torrents => return self.torrents_tab.handle_events(action),
                 CurrentTab::Search => self.search_tab.handle_events(action),
-                CurrentTab::Settings => todo!(),
             }
         }
     }
@@ -87,7 +86,6 @@ impl Component for MainWindow {
         match self.tabs.current_tab {
             CurrentTab::Torrents => self.torrents_tab.render(f, main_window),
             CurrentTab::Search => self.search_tab.render(f, main_window),
-            CurrentTab::Settings => todo!(),
         }
 
         self.popup.render(f, f.size());

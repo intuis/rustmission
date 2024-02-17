@@ -7,18 +7,17 @@ use ratatui::{layout::Flex, prelude::*, widgets::Tabs};
 pub enum CurrentTab {
     Torrents = 0,
     Search,
-    Settings,
 }
 
 pub struct TabComponent {
-    tabs_list: [&'static str; 3],
+    tabs_list: [&'static str; 2],
     pub current_tab: CurrentTab,
 }
 
 impl TabComponent {
     pub fn new() -> Self {
         Self {
-            tabs_list: ["Torrents", "Search", "Settings"],
+            tabs_list: ["Torrents", "Search"],
             current_tab: CurrentTab::Torrents,
         }
     }
