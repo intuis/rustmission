@@ -25,13 +25,9 @@ impl TabComponent {
 
 impl Component for TabComponent {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let center_rect = Layout::horizontal([
-            Constraint::Length(30),
-            Constraint::Length(30),
-            Constraint::Length(30),
-        ])
-        .flex(Flex::Center)
-        .split(rect)[1];
+        let center_rect = Layout::horizontal([Constraint::Length(18)])
+            .flex(Flex::Center)
+            .split(rect)[0];
 
         let tabs = Tabs::new(self.tabs_list.clone())
             .style(Style::default().white())
