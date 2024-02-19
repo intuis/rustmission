@@ -1,6 +1,10 @@
-# Rustmission
-
-Rustmission is a Terminal User Interface (TUI) client for [Transmission](https://transmissionbt.com) daemon, crafted with async Rust.
+<div align="center">
+    <h1><strong>Rustmission</strong></h1>
+    <p>
+	    <strong>TUI for the Transmission daemon</strong>
+    </p>
+    <a href="https://asciinema.org/a/5szjGR0ccoYolnV3zP3b6vqxF" target="_blank"><img src="https://asciinema.org/a/5szjGR0ccoYolnV3zP3b6vqxF.svg" /></a>
+</div>
 
 ## Features
 
