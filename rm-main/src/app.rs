@@ -62,6 +62,13 @@ impl App {
 
         self.render(&mut tui)?;
 
+        self.main_loop(&mut tui).await?;
+
+        tui.exit()?;
+        Ok(())
+    }
+
+    async fn main_loop(&mut self, tui: &mut Tui) -> Result<()> {
         loop {
             let tui_event = tui.next();
             let action = self.action_rx.recv();
@@ -78,7 +85,7 @@ impl App {
                 action = action => {
                     if let Some(action) = action {
                         if action.is_render() {
-                            self.render(&mut tui)?;
+                            self.render(tui)?;
                         } else if let Some(action) = self.update(action) {
                             self.action_tx.send(action).unwrap();
                         }
@@ -87,12 +94,9 @@ impl App {
             }
 
             if self.should_quit {
-                break;
+                break Ok(());
             }
         }
-
-        tui.exit()?;
-        Ok(())
     }
 
     fn render(&mut self, tui: &mut Tui) -> Result<()> {
