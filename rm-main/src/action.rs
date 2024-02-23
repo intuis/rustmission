@@ -56,7 +56,7 @@ fn keycode_to_action(event: Event) -> Option<Action> {
             KeyCode::Char('k') | KeyCode::Up => Some(Action::Up),
             KeyCode::Char('q') => Some(Action::Quit),
             KeyCode::Char('?') => Some(Action::ShowHelp),
-            KeyCode::Char('s') => Some(Action::ShowStats),
+            KeyCode::Char('t') => Some(Action::ShowStats),
             KeyCode::Char('/') => Some(Action::Search),
             KeyCode::Char('m') => Some(Action::AddMagnet),
             KeyCode::Char(n @ '1'..='9') => {

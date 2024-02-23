@@ -117,6 +117,7 @@ impl Component for HelpPopup {
             .title(" Help ");
 
         let mut lines = vec![];
+
         lines.push(
             Line::from(vec![Span::styled(
                 "Global Keybindings",
@@ -124,9 +125,10 @@ impl Component for HelpPopup {
             )])
             .centered(),
         );
+
         lines.push(Line::from(vec![
             Span::styled("?", Style::default().bold()),
-            " - show/hide help popup".into(),
+            " - show/hide help".into(),
         ]));
 
         lines.push(Line::from(vec![
@@ -140,18 +142,8 @@ impl Component for HelpPopup {
         ]));
 
         lines.push(Line::from(vec![
-            Span::styled("s", Style::default().bold()),
-            " - show statistics popup".into(),
-        ]));
-
-        lines.push(Line::from(vec![
             Span::styled("/", Style::default().bold()),
             " - search".into(),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("m", Style::default().bold()),
-            " - add a magnet url/torrent path".into(),
         ]));
 
         lines.push(Line::from(vec![
@@ -170,13 +162,31 @@ impl Component for HelpPopup {
         ]));
 
         lines.push(Line::from(vec![
-            Span::styled("j / Down arrow", Style::default().bold()),
+            Span::styled("j / ↓", Style::default().bold()),
             " - move down".into(),
         ]));
 
         lines.push(Line::from(vec![
-            Span::styled("k / Up arrow", Style::default().bold()),
+            Span::styled("k / ↑", Style::default().bold()),
             " - move up".into(),
+        ]));
+
+        lines.push(
+            Line::from(vec![Span::styled(
+                "Torrents Tab",
+                Style::default().bold().underlined(),
+            )])
+            .centered(),
+        );
+
+        lines.push(Line::from(vec![
+            Span::styled("t", Style::default().bold()),
+            " - show statistics popup".into(),
+        ]));
+
+        lines.push(Line::from(vec![
+            Span::styled("m", Style::default().bold()),
+            " - add a magnet url/torrent path".into(),
         ]));
 
         let help_text = Text::from(lines);
