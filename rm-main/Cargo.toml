@@ -10,11 +10,15 @@ rm-config = { path = "../rm-config" }
 magnetease = { path = "../magnetease" }
 
 anyhow = "1"
-ratatui = "0.26"
-tokio = { version = "1", features = ["rt", "macros", "sync"] }
-tokio-util = "0.7"
-crossterm = { version = "0.27", features = ["event-stream"] }
-futures = "0.3"
 serde = { version = "1", features = ["derive"] }
 transmission-rpc = "0.4.2"
+
+# Async
+tokio = { version = "1", features = ["rt", "macros", "sync"] }
+tokio-util = "0.7"
+futures = "0.3"
+
+# TUI
+crossterm = { version = "0.27", features = ["event-stream"] }
+ratatui = "0.26"
 tui-input = "0.8"

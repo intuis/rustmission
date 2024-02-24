@@ -22,7 +22,7 @@ pub async fn stats_fetch(client: Arc<Mutex<TransClient>>, sender: UnboundedSende
     loop {
         let stats = Box::new(client.lock().await.session_stats().await.unwrap().arguments);
         sender.send(Action::StatsUpdate(stats)).unwrap();
-        tokio::time::sleep(Duration::from_secs(4)).await;
+        tokio::time::sleep(Duration::from_secs(3)).await;
     }
 }
 
@@ -51,7 +51,7 @@ pub async fn torrent_fetch(client: Arc<Mutex<TransClient>>, sender: UnboundedSen
             .send(Action::TorrentListUpdate(Box::new(torrents)))
             .unwrap();
 
-        tokio::time::sleep(Duration::from_secs(4)).await;
+        tokio::time::sleep(Duration::from_secs(3)).await;
     }
 }
 
