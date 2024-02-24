@@ -2,7 +2,8 @@ pub mod tabcomponent;
 pub mod table;
 pub mod torrent_tab;
 
-use ratatui::{prelude::Rect, Frame};
+use ratatui::prelude::*;
+use ratatui::Frame;
 
 use crate::action::Action;
 pub use tabcomponent::TabComponent;

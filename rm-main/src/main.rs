@@ -12,7 +12,7 @@ use rm_config::Config;
 async fn main() -> Result<()> {
     let config = Config::init()?;
 
-    let mut app = App::new(&config);
+    let mut app = App::new(config);
     app.run().await?;
 
     Ok(())

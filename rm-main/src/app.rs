@@ -26,10 +26,10 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(config: &Config) -> Self {
-        let user = config.connection.username.clone();
-        let password = config.connection.password.clone();
-        let url = config.connection.url.clone().parse().unwrap();
+    pub fn new(config: Config) -> Self {
+        let user = config.connection.username;
+        let password = config.connection.password;
+        let url = config.connection.url.parse().unwrap();
 
         let auth = BasicAuth { user, password };
 
