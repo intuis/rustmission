@@ -100,7 +100,7 @@ impl App {
     }
 
     fn render(&mut self, tui: &mut Tui) -> Result<()> {
-        tui.draw(|f| {
+        tui.terminal.draw(|f| {
             self.main_window.render(f, f.size());
         })?;
         Ok(())

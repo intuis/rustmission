@@ -1,7 +1,4 @@
-use std::{
-    ops::{Deref, DerefMut},
-    time::Duration,
-};
+use std::time::Duration;
 
 use anyhow::Result;
 use crossterm::{
@@ -106,7 +103,7 @@ impl Tui {
     pub(crate) fn exit(&mut self) -> Result<()> {
         self.stop();
         if crossterm::terminal::is_raw_mode_enabled()? {
-            self.flush()?;
+            self.terminal.flush()?;
             crossterm::execute!(std::io::stderr(), LeaveAlternateScreen, cursor::Show)?;
             crossterm::terminal::disable_raw_mode()?;
         }
@@ -119,25 +116,5 @@ impl Tui {
 
     pub async fn next(&mut self) -> Option<Event> {
         self.event_rx.recv().await
-    }
-}
-
-impl Deref for Tui {
-    type Target = ratatui::Terminal<Backend<std::io::Stdout>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.terminal
-    }
-}
-
-impl DerefMut for Tui {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.terminal
-    }
-}
-
-impl Drop for Tui {
-    fn drop(&mut self) {
-        self.exit().unwrap();
     }
 }
