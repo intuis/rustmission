@@ -48,7 +48,7 @@ impl StatisticsPopup {
 }
 
 impl Component for StatisticsPopup {
-    fn handle_events(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
         if let Action::Confirm = action {
             return Some(Action::Quit);
         }
@@ -186,10 +186,10 @@ impl Component for TorrentsTab {
     }
 
     #[must_use]
-    fn handle_events(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
         use Action as A;
         if let Some(popup) = &mut self.statistics_popup {
-            if let Some(Action::Quit) = popup.handle_events(action) {
+            if let Some(Action::Quit) = popup.handle_actions(action) {
                 self.statistics_popup = None;
                 return Some(Action::Render);
             };
@@ -222,7 +222,7 @@ impl Component for TorrentsTab {
                     None
                 }
             }
-            other => self.task.handle_events(other),
+            other => self.task.handle_actions(other),
         }
     }
 }

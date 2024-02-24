@@ -9,7 +9,7 @@ pub use tabcomponent::TabComponent;
 pub use torrent_tab::TorrentsTab;
 
 pub trait Component {
-    fn handle_events(&mut self, _action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, _action: Action) -> Option<Action> {
         None
     }
     fn render(&mut self, _f: &mut Frame, _rect: Rect) {}

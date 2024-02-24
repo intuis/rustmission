@@ -20,15 +20,15 @@ impl Popup {
 }
 
 impl Component for Popup {
-    fn handle_events(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
         if let Some(popup) = &mut self.error_popup {
-            if let Some(Action::Quit) = popup.handle_events(action) {
+            if let Some(Action::Quit) = popup.handle_actions(action) {
                 self.error_popup = None;
                 return Some(Action::Render);
             }
             None
         } else if let Some(popup) = &mut self.help_popup {
-            if let Some(Action::Quit) = popup.handle_events(action) {
+            if let Some(Action::Quit) = popup.handle_actions(action) {
                 self.help_popup = None;
                 return Some(Action::Render);
             }
@@ -64,7 +64,7 @@ impl ErrorPopup {
 }
 
 impl Component for ErrorPopup {
-    fn handle_events(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
         if let Action::Confirm = action {
             return Some(Action::Quit);
         }
@@ -99,7 +99,7 @@ impl Component for ErrorPopup {
 pub(super) struct HelpPopup;
 
 impl Component for HelpPopup {
-    fn handle_events(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
         if let Action::Quit = action {
             return Some(Action::Quit);
         }

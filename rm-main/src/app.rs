@@ -130,7 +130,7 @@ impl App {
                 None
             }
 
-            _ => return self.main_window.handle_events(action),
+            _ => return self.main_window.handle_actions(action),
         }
     }
 }

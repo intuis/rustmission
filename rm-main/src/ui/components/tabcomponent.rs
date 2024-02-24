@@ -38,7 +38,7 @@ impl Component for TabComponent {
         f.render_widget(tabs, center_rect);
     }
 
-    fn handle_events(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
         if let Action::ChangeTab(tab) = action {
             match tab {
                 1 => self.current_tab = CurrentTab::Torrents,

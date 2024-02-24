@@ -80,7 +80,7 @@ impl SearchTab {
 }
 
 impl Component for SearchTab {
-    fn handle_events(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::Search => {
                 self.search_focus = SearchFocus::Search;

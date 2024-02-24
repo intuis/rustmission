@@ -65,9 +65,9 @@ impl AddMagnetBar {
 
 impl Component for Task {
     #[must_use]
-    fn handle_events(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
         match &mut self.current_task {
-            CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_events(action) {
+            CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
                 Some(Action::TorrentAdd(url)) => {
                     self.trans_tx.send(Action::TorrentAdd(url)).unwrap();
                     self.finish_task()
@@ -94,7 +94,7 @@ impl Component for Task {
 
 impl Component for AddMagnetBar {
     #[must_use]
-    fn handle_events(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::Input(input) => {
                 if input.code == KeyCode::Enter {

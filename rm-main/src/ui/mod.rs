@@ -35,7 +35,7 @@ impl MainWindow {
 
 impl Component for MainWindow {
     #[must_use]
-    fn handle_events(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
         if let Action::Error(e_popup) = action {
             self.popup.error_popup = Some(*e_popup);
             return Some(Action::Render);
@@ -51,16 +51,16 @@ impl Component for MainWindow {
         }
 
         if let Action::ChangeTab(_) = action {
-            self.tabs.handle_events(action);
+            self.tabs.handle_actions(action);
             return Some(Action::Render);
         }
 
         if self.popup.needs_action() {
-            return self.popup.handle_events(action);
+            return self.popup.handle_actions(action);
         } else {
             match self.tabs.current_tab {
-                CurrentTab::Torrents => return self.torrents_tab.handle_events(action),
-                CurrentTab::Search => self.search_tab.handle_events(action),
+                CurrentTab::Torrents => return self.torrents_tab.handle_actions(action),
+                CurrentTab::Search => self.search_tab.handle_actions(action),
             }
         }
     }
