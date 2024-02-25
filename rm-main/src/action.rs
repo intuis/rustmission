@@ -1,10 +1,10 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use transmission_rpc::types::{SessionStats, Torrent};
+use transmission_rpc::types::Torrent;
 
 use crate::{tui::Event, ui::popup::ErrorPopup};
 
 #[derive(Debug, Clone)]
-pub enum Action {
+pub(crate) enum Action {
     Quit,
     Render,
     Up,
@@ -21,7 +21,6 @@ pub enum Action {
     Input(KeyEvent),
     Error(Box<ErrorPopup>),
     TorrentListUpdate(Box<Vec<Torrent>>),
-    StatsUpdate(Box<SessionStats>),
     TorrentAdd(Box<String>),
 }
 

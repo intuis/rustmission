@@ -4,10 +4,12 @@ mod search_tab;
 
 use crossterm::event::KeyCode;
 use ratatui::prelude::*;
-use tokio::sync::mpsc::UnboundedSender;
 use tui_input::InputRequest;
 
-use crate::action::Action;
+use crate::{
+    action::Action,
+    app::{self},
+};
 
 use self::{
     components::{tabcomponent::CurrentTab, Component, TabComponent, TorrentsTab},
@@ -23,11 +25,11 @@ pub struct MainWindow {
 }
 
 impl MainWindow {
-    pub fn new(action_tx: UnboundedSender<Action>, trans_tx: UnboundedSender<Action>) -> Self {
+    pub fn new(ctx: app::Ctx) -> Self {
         Self {
             tabs: TabComponent::new(),
-            torrents_tab: TorrentsTab::new(trans_tx.clone()),
-            search_tab: SearchTab::new(action_tx, trans_tx),
+            torrents_tab: TorrentsTab::new(ctx.clone()),
+            search_tab: SearchTab::new(ctx.clone()),
             popup: Popup::default(),
         }
     }

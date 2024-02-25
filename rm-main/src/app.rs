@@ -15,12 +15,32 @@ use tokio::sync::{
 };
 use transmission_rpc::{types::BasicAuth, TransClient};
 
+#[derive(Clone)]
+pub(crate) struct Ctx {
+    pub(crate) client: Arc<Mutex<TransClient>>,
+    pub(crate) action_tx: UnboundedSender<Action>,
+    pub(crate) trans_tx: UnboundedSender<Action>,
+}
+
+impl Ctx {
+    fn new(
+        client: Arc<Mutex<TransClient>>,
+        action_tx: UnboundedSender<Action>,
+        trans_tx: UnboundedSender<Action>,
+    ) -> Self {
+        Ctx {
+            client,
+            action_tx,
+            trans_tx,
+        }
+    }
+}
+
 pub struct App {
     should_quit: bool,
-    action_tx: UnboundedSender<Action>,
+    ctx: Ctx,
     action_rx: UnboundedReceiver<Action>,
     // TODO: change trans_tx to something else than Action
-    trans_tx: UnboundedSender<Action>,
     main_window: MainWindow,
     mode: Mode,
 }
@@ -36,21 +56,19 @@ impl App {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
 
         let client = Arc::new(Mutex::new(TransClient::with_auth(url, auth)));
+
         transmission::spawn_fetchers(client.clone(), action_tx.clone());
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
-        tokio::spawn(transmission::action_handler(
-            client,
-            trans_rx,
-            action_tx.clone(),
-        ));
+        let ctx = Ctx::new(client, action_tx, trans_tx);
+
+        tokio::spawn(transmission::action_handler(ctx.clone(), trans_rx));
 
         Self {
             should_quit: false,
-            main_window: MainWindow::new(action_tx.clone(), trans_tx.clone()),
-            action_tx,
+            main_window: MainWindow::new(ctx.clone()),
             action_rx,
-            trans_tx,
+            ctx,
             mode: Mode::Normal,
         }
     }
@@ -77,7 +95,7 @@ impl App {
                 event = tui_event => {
                     if let Some(action) = event_to_action(self.mode, event.unwrap()) {
                         if let Some(action) = self.update(action) {
-                            self.action_tx.send(action).unwrap();
+                            self.ctx.action_tx.send(action).unwrap();
                         }
                     };
                 },
@@ -87,7 +105,7 @@ impl App {
                         if action.is_render() {
                             self.render(tui)?;
                         } else if let Some(action) = self.update(action) {
-                            self.action_tx.send(action).unwrap();
+                            self.ctx.action_tx.send(action).unwrap();
                         }
                     }
                 }
@@ -126,7 +144,7 @@ impl App {
             }
 
             A::TorrentAdd(_) => {
-                self.trans_tx.send(action).unwrap();
+                self.ctx.trans_tx.send(action).unwrap();
                 None
             }
 

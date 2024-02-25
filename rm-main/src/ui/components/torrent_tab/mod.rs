@@ -1,12 +1,14 @@
 mod task;
 
+use std::sync::{Arc, Mutex};
+
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Row, Table};
-use tokio::sync::mpsc::UnboundedSender;
 use transmission_rpc::types::{SessionStats, Torrent};
 
 use crate::action::Action;
 use crate::ui::{bytes_to_human_format, centered_rect};
+use crate::{app, transmission};
 
 use self::task::Task;
 
@@ -15,18 +17,13 @@ use super::Component;
 
 #[derive(Default)]
 struct StatsComponent {
-    stats: Option<SessionStats>,
-}
-
-impl StatsComponent {
-    fn set_stats(&mut self, stats: SessionStats) {
-        self.stats = Some(stats);
-    }
+    // TODO: get rid of the Option
+    stats: Arc<Mutex<Option<SessionStats>>>,
 }
 
 impl Component for StatsComponent {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        if let Some(stats) = &self.stats {
+        if let Some(stats) = &*self.stats.lock().unwrap() {
             let upload = bytes_to_human_format(stats.upload_speed);
             let download = bytes_to_human_format(stats.download_speed);
             let all = stats.torrent_count;
@@ -95,12 +92,17 @@ pub struct TorrentsTab {
 }
 
 impl TorrentsTab {
-    pub fn new(trans_tx: UnboundedSender<Action>) -> Self {
+    pub fn new(ctx: app::Ctx) -> Self {
+        let stats = StatsComponent::default();
+        tokio::spawn(transmission::stats_fetch(
+            ctx.client,
+            Arc::clone(&stats.stats),
+        ));
         Self {
             table: GenericTable::new(vec![]),
             rows: vec![],
-            stats: StatsComponent::default(),
-            task: Task::new(trans_tx),
+            stats,
+            task: Task::new(ctx.trans_tx),
             statistics_popup: None,
         }
     }
@@ -210,12 +212,8 @@ impl Component for TorrentsTab {
                 self.rows = self.table.items.iter().map(Self::torrent_to_row).collect();
                 Some(Action::Render)
             }
-            A::StatsUpdate(stats) => {
-                self.stats.set_stats(*stats);
-                Some(Action::Render)
-            }
             A::ShowStats => {
-                if let Some(stats) = &self.stats.stats {
+                if let Some(stats) = &*self.stats.stats.lock().unwrap() {
                     self.statistics_popup = Some(StatisticsPopup::new(stats.clone()));
                     Some(Action::Render)
                 } else {

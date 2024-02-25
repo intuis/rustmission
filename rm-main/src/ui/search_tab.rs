@@ -13,7 +13,7 @@ use ratatui::{
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::Input;
 
-use crate::action::Action;
+use crate::{action::Action, app};
 
 use super::{
     bytes_to_human_format,
@@ -35,10 +35,7 @@ pub(super) struct SearchTab {
 }
 
 impl SearchTab {
-    pub(super) fn new(
-        action_tx: UnboundedSender<Action>,
-        trans_tx: UnboundedSender<Action>,
-    ) -> Self {
+    pub(super) fn new(ctx: app::Ctx) -> Self {
         let (tx, mut rx) = mpsc::unbounded_channel::<String>();
         let table = Arc::new(Mutex::new(GenericTable::new(vec![])));
         let table_clone = Arc::clone(&table);
@@ -47,7 +44,7 @@ impl SearchTab {
             while let Some(search_phrase) = rx.recv().await {
                 let res = magnetease.search(&search_phrase).await;
                 let _ = table_clone.lock().unwrap().set_items(res);
-                action_tx.send(Action::Render).unwrap();
+                ctx.action_tx.send(Action::Render).unwrap();
             }
         });
 
@@ -56,7 +53,7 @@ impl SearchTab {
             input: Input::default(),
             table,
             req_sender: tx,
-            trans_tx,
+            trans_tx: ctx.trans_tx,
         }
     }
 
