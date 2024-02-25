@@ -2,6 +2,7 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Clear, Paragraph, Wrap},
 };
+use ratatui_macros::constraints;
 
 use crate::action::Action;
 
@@ -75,10 +76,7 @@ impl Component for ErrorPopup {
         let centered_rect = centered_rect(f.size(), 50, 50);
         let popup_rect = centered_rect.inner(&Margin::new(1, 1));
         let text_rect = popup_rect.inner(&Margin::new(3, 2));
-        let button_rect = {
-            Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)]).split(text_rect)
-                [1]
-        };
+        let button_rect = { Layout::vertical(constraints![==100%, ==1]).split(text_rect)[1] };
 
         let button = Paragraph::new("[ OK ]").bold().right_aligned();
 

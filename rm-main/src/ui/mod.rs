@@ -4,6 +4,7 @@ mod search_tab;
 
 use crossterm::event::KeyCode;
 use ratatui::prelude::*;
+use ratatui_macros::constraints;
 use tui_input::InputRequest;
 
 use crate::{
@@ -68,8 +69,7 @@ impl Component for MainWindow {
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let [top_bar, main_window] =
-            Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)]).areas(rect);
+        let [top_bar, main_window] = Layout::vertical(constraints![==1, ==100%]).areas(rect);
 
         self.tabs.render(f, top_bar);
 
@@ -119,17 +119,13 @@ pub fn bytes_to_human_format(bytes: i64) -> String {
 }
 
 fn centered_rect(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let popup_layout = Layout::vertical([
-        Constraint::Percentage((100 - percent_y) / 2),
-        Constraint::Percentage(percent_y),
-        Constraint::Percentage((100 - percent_y) / 2),
-    ])
+    let popup_layout = Layout::vertical(
+        constraints![==((100 - percent_y) / 2)%, ==percent_y%, ==((100 - percent_y) / 2)%],
+    )
     .split(r);
 
-    Layout::horizontal([
-        Constraint::Percentage((100 - percent_x) / 2),
-        Constraint::Percentage(percent_x),
-        Constraint::Percentage((100 - percent_x) / 2),
-    ])
+    Layout::horizontal(
+        constraints![==((100 - percent_x) / 2)%, ==percent_x%, ==((100 - percent_x) / 2)%],
+    )
     .split(popup_layout[1])[1]
 }
