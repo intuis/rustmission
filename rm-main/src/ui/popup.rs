@@ -8,6 +8,16 @@ use crate::action::Action;
 
 use super::{centered_rect, components::Component};
 
+macro_rules! add_line {
+    ($lines:expr, $key:expr, $description:expr) => {
+        $lines.push(Line::from(vec![
+            Span::styled($key, Style::default().bold()),
+            " - ".into(),
+            $description.into(),
+        ]));
+    };
+}
+
 #[derive(Default)]
 pub(super) struct Popup {
     pub error_popup: Option<ErrorPopup>,
@@ -124,50 +134,15 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        lines.push(Line::from(vec![
-            Span::styled("?", Style::default().bold()),
-            " - show/hide help".into(),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("1", Style::default().bold()),
-            " - switch to torrents tab".into(),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("2", Style::default().bold()),
-            " - switch to search tab".into(),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("/", Style::default().bold()),
-            " - search".into(),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("q", Style::default().bold()),
-            " - quit Rustmission".into(),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("TAB", Style::default().bold()),
-            " - switch focus".into(),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("Enter", Style::default().bold()),
-            " - confirm".into(),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("j / ↓", Style::default().bold()),
-            " - move down".into(),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("k / ↑", Style::default().bold()),
-            " - move up".into(),
-        ]));
+        add_line!(lines, "?", "show/hide help");
+        add_line!(lines, "1", "switch to torrents tab");
+        add_line!(lines, "2", "switch to search tab");
+        add_line!(lines, "/", "search");
+        add_line!(lines, "q", "quit Rustmission");
+        add_line!(lines, "TAB", "switch focus");
+        add_line!(lines, "Enter", "confirm");
+        add_line!(lines, "j / ↓", "move down");
+        add_line!(lines, "k / ↑", "move up");
 
         lines.push(
             Line::from(vec![Span::styled(
@@ -177,15 +152,8 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        lines.push(Line::from(vec![
-            Span::styled("t", Style::default().bold()),
-            " - show statistics popup".into(),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("m", Style::default().bold()),
-            " - add a magnet url/torrent path".into(),
-        ]));
+        add_line!(lines, "t", "show statistics");
+        add_line!(lines, "m", "add a magnet url/torrent path");
 
         let help_text = Text::from(lines);
         let help_paragraph = Paragraph::new(help_text);
