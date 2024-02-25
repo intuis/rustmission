@@ -40,7 +40,6 @@ pub struct App {
     should_quit: bool,
     ctx: Ctx,
     action_rx: UnboundedReceiver<Action>,
-    // TODO: change trans_tx to something else than Action
     main_window: MainWindow,
     mode: Mode,
 }
@@ -56,8 +55,6 @@ impl App {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
 
         let client = Arc::new(Mutex::new(TransClient::with_auth(url, auth)));
-
-        transmission::spawn_fetchers(client.clone(), action_tx.clone());
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
         let ctx = Ctx::new(client, action_tx, trans_tx);
@@ -148,7 +145,7 @@ impl App {
                 None
             }
 
-            _ => return self.main_window.handle_actions(action),
+            _ => self.main_window.handle_actions(action),
         }
     }
 }

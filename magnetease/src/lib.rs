@@ -4,6 +4,7 @@ pub mod providers;
 use async_trait::async_trait;
 use reqwest::Client;
 
+#[derive(Clone)]
 pub struct Magnet {
     pub title: String,
     pub url: String,

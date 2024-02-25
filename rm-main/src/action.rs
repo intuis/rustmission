@@ -1,5 +1,4 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use transmission_rpc::types::Torrent;
 
 use crate::{tui::Event, ui::popup::ErrorPopup};
 
@@ -20,7 +19,6 @@ pub(crate) enum Action {
     ChangeTab(u8),
     Input(KeyEvent),
     Error(Box<ErrorPopup>),
-    TorrentListUpdate(Box<Vec<Torrent>>),
     TorrentAdd(Box<String>),
 }
 
@@ -47,7 +45,7 @@ pub fn event_to_action(mode: Mode, event: Event) -> Option<Action> {
 }
 
 fn keycode_to_action(key: KeyEvent) -> Option<Action> {
-    return match key.code {
+    match key.code {
         KeyCode::Tab => Some(Action::ChangeFocus),
         KeyCode::Char('j') | KeyCode::Down => Some(Action::Down),
         KeyCode::Char('k') | KeyCode::Up => Some(Action::Up),
@@ -61,5 +59,5 @@ fn keycode_to_action(key: KeyEvent) -> Option<Action> {
         }
         KeyCode::Enter => Some(Action::Confirm),
         _ => None,
-    };
+    }
 }

@@ -58,10 +58,10 @@ impl Component for MainWindow {
         }
 
         if self.popup.needs_action() {
-            return self.popup.handle_actions(action);
+            self.popup.handle_actions(action)
         } else {
             match self.tabs.current_tab {
-                CurrentTab::Torrents => return self.torrents_tab.handle_actions(action),
+                CurrentTab::Torrents => self.torrents_tab.handle_actions(action),
                 CurrentTab::Search => self.search_tab.handle_actions(action),
             }
         }

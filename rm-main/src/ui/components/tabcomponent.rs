@@ -29,7 +29,7 @@ impl Component for TabComponent {
             .flex(Flex::Center)
             .split(rect)[0];
 
-        let tabs = Tabs::new(self.tabs_list.clone())
+        let tabs = Tabs::new(self.tabs_list)
             .style(Style::default().white())
             .highlight_style(Style::default().light_magenta())
             .select(self.current_tab as usize)

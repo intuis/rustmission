@@ -43,7 +43,7 @@ impl SearchTab {
             let magnetease = Magnetease::new();
             while let Some(search_phrase) = rx.recv().await {
                 let res = magnetease.search(&search_phrase).await;
-                let _ = table_clone.lock().unwrap().set_items(res);
+                table_clone.lock().unwrap().set_items(res);
                 ctx.action_tx.send(Action::Render).unwrap();
             }
         });
@@ -119,7 +119,7 @@ impl Component for SearchTab {
                     .lock()
                     .unwrap()
                     .current_item()
-                    .and_then(|magnet| Some(magnet.url.clone()));
+                    .map(|magnet| magnet.url.clone());
                 if let Some(magnet_url) = magnet_url {
                     self.trans_tx
                         .send(Action::TorrentAdd(Box::new(magnet_url)))
@@ -175,7 +175,7 @@ impl Component for SearchTab {
         let header = Row::new(["S", "Title", "Size"]);
 
         let table_lock = self.table.lock().unwrap();
-        let table_items = &table_lock.items;
+        let table_items = &table_lock.items.lock().unwrap();
 
         let longest_title = table_items.iter().map(|magnet| magnet.title.len()).max();
         let items = table_items.iter().map(Self::magnet_to_row);

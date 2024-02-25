@@ -85,7 +85,7 @@ impl Component for StatisticsPopup {
 
 pub struct TorrentsTab {
     table: GenericTable<Torrent>,
-    rows: Vec<[String; 6]>,
+    rows: Arc<Mutex<Vec<[String; 6]>>>,
     stats: StatsComponent,
     task: Task,
     statistics_popup: Option<StatisticsPopup>,
@@ -94,53 +94,27 @@ pub struct TorrentsTab {
 impl TorrentsTab {
     pub fn new(ctx: app::Ctx) -> Self {
         let stats = StatsComponent::default();
+        let table = GenericTable::new(vec![]);
+        let rows = Arc::new(Mutex::new(vec![]));
+
         tokio::spawn(transmission::stats_fetch(
-            ctx.client,
+            ctx.clone(),
             Arc::clone(&stats.stats),
         ));
+
+        tokio::spawn(transmission::torrent_fetch(
+            ctx.clone(),
+            Arc::clone(&table.items),
+            Arc::clone(&rows),
+        ));
+
         Self {
-            table: GenericTable::new(vec![]),
-            rows: vec![],
+            table,
+            rows,
             stats,
             task: Task::new(ctx.trans_tx),
             statistics_popup: None,
         }
-    }
-
-    fn torrent_to_row(t: &Torrent) -> [String; 6] {
-        let torrent_name = t.name.clone().unwrap();
-
-        let size_when_done = bytes_to_human_format(t.size_when_done.expect("field requested"));
-
-        let progress = match t.percent_done.expect("field requested") {
-            done if done == 1f32 => String::default(),
-            percent => format!("{:.2}%", percent * 100f32),
-        };
-
-        let eta_secs = match t.eta.expect("field requested") {
-            -2 => "∞".to_string(),
-            -1 => String::default(),
-            eta_secs => eta_secs.to_string(),
-        };
-
-        let download_speed = match t.rate_download.expect("field requested") {
-            0 => String::default(),
-            down => bytes_to_human_format(down),
-        };
-
-        let upload_speed = match t.rate_upload.expect("field requested") {
-            0 => String::default(),
-            upload => bytes_to_human_format(upload),
-        };
-
-        [
-            torrent_name,
-            size_when_done,
-            progress,
-            eta_secs,
-            download_speed,
-            upload_speed,
-        ]
     }
 }
 
@@ -162,8 +136,9 @@ impl Component for TorrentsTab {
             Constraint::Length(10), // Upload
         ];
 
-        let torrent_rows = self
-            .rows
+        let rows = self.rows.lock().unwrap();
+
+        let torrent_rows = rows
             .iter()
             .map(|i| i.iter().map(|i| i.as_str()))
             .map(Row::new);
@@ -205,11 +180,6 @@ impl Component for TorrentsTab {
             }
             A::Down => {
                 self.table.next();
-                Some(Action::Render)
-            }
-            A::TorrentListUpdate(torrents) => {
-                self.table.set_items(*torrents);
-                self.rows = self.table.items.iter().map(Self::torrent_to_row).collect();
                 Some(Action::Render)
             }
             A::ShowStats => {
