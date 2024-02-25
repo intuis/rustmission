@@ -4,7 +4,7 @@ use tokio::sync::mpsc::UnboundedReceiver;
 use transmission_rpc::types::{SessionStats, Torrent, TorrentAddArgs, TorrentGetField};
 
 use crate::{
-    action::Action,
+    action::{Action, TorrentAction},
     app,
     ui::{bytes_to_human_format, popup::ErrorPopup},
 };
@@ -20,7 +20,7 @@ pub async fn stats_fetch(ctx: app::Ctx, stats: Arc<std::sync::Mutex<Option<Sessi
             .unwrap()
             .arguments;
         *stats.lock().unwrap() = Some(new_stats);
-        ctx.action_tx.send(Action::Render).unwrap();
+        ctx.send_action(Action::Render);
         tokio::time::sleep(Duration::from_secs(3)).await;
     }
 }
@@ -50,13 +50,11 @@ pub async fn torrent_fetch(
             .torrent_get(Some(fields), None)
             .await
             .unwrap();
+
         let new_torrents = rpc_response.arguments.torrents;
-
         *rows.lock().unwrap() = new_torrents.iter().map(torrent_to_row).collect();
-
         *torrents.lock().unwrap() = new_torrents;
-
-        ctx.action_tx.send(Action::Render).unwrap();
+        ctx.send_action(Action::Render);
 
         tokio::time::sleep(Duration::from_secs(3)).await;
     }
@@ -98,9 +96,9 @@ fn torrent_to_row(t: &Torrent) -> [String; 6] {
     ]
 }
 
-pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Action>) {
+pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<TorrentAction>) {
     while let Some(action) = trans_rx.recv().await {
-        if let Action::TorrentAdd(url) = action {
+        if let TorrentAction::TorrentAdd(url) = action {
             let args = TorrentAddArgs {
                 filename: Some(*url.clone()),
                 ..Default::default()
@@ -113,7 +111,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Actio
                     + "\"\n"
                     + &e.to_string();
                 let error_popup = Box::new(ErrorPopup::new(error_title, msg));
-                ctx.action_tx.send(Action::Error(error_popup)).unwrap();
+                ctx.send_action(Action::Error(error_popup));
             }
         }
     }

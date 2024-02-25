@@ -13,7 +13,10 @@ use ratatui::{
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::Input;
 
-use crate::{action::Action, app};
+use crate::{
+    action::{Action, TorrentAction},
+    app,
+};
 
 use super::{
     bytes_to_human_format,
@@ -31,7 +34,7 @@ pub(super) struct SearchTab {
     input: Input,
     req_sender: UnboundedSender<String>,
     table: Arc<Mutex<GenericTable<Magnet>>>,
-    trans_tx: UnboundedSender<Action>,
+    ctx: app::Ctx,
 }
 
 impl SearchTab {
@@ -39,12 +42,14 @@ impl SearchTab {
         let (tx, mut rx) = mpsc::unbounded_channel::<String>();
         let table = Arc::new(Mutex::new(GenericTable::new(vec![])));
         let table_clone = Arc::clone(&table);
+
+        let ctx_clone = ctx.clone();
         tokio::task::spawn(async move {
             let magnetease = Magnetease::new();
             while let Some(search_phrase) = rx.recv().await {
                 let res = magnetease.search(&search_phrase).await;
                 table_clone.lock().unwrap().set_items(res);
-                ctx.action_tx.send(Action::Render).unwrap();
+                ctx_clone.send_action(Action::Render);
             }
         });
 
@@ -53,13 +58,12 @@ impl SearchTab {
             input: Input::default(),
             table,
             req_sender: tx,
-            trans_tx: ctx.trans_tx,
+            ctx,
         }
     }
 
     fn magnet_to_row(magnet: &Magnet) -> Row {
         let size = bytes_to_human_format(magnet.bytes as i64);
-        // TODO: use cow
         Row::new([
             Cell::from(Cow::Owned(magnet.seeders.to_string())).light_green(),
             Cell::from(Cow::Borrowed(&*magnet.title)),
@@ -121,9 +125,8 @@ impl Component for SearchTab {
                     .current_item()
                     .map(|magnet| magnet.url.clone());
                 if let Some(magnet_url) = magnet_url {
-                    self.trans_tx
-                        .send(Action::TorrentAdd(Box::new(magnet_url)))
-                        .unwrap();
+                    self.ctx
+                        .send_torrent_action(TorrentAction::TorrentAdd(Box::new(magnet_url)));
                 }
                 None
             }

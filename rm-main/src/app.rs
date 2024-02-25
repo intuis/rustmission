@@ -2,7 +2,7 @@ use rm_config::Config;
 use std::sync::Arc;
 
 use crate::{
-    action::{event_to_action, Action, Mode},
+    action::{event_to_action, Action, Mode, TorrentAction},
     transmission,
     tui::Tui,
     ui::{components::Component, MainWindow},
@@ -18,21 +18,29 @@ use transmission_rpc::{types::BasicAuth, TransClient};
 #[derive(Clone)]
 pub(crate) struct Ctx {
     pub(crate) client: Arc<Mutex<TransClient>>,
-    pub(crate) action_tx: UnboundedSender<Action>,
-    pub(crate) trans_tx: UnboundedSender<Action>,
+    action_tx: UnboundedSender<Action>,
+    trans_tx: UnboundedSender<TorrentAction>,
 }
 
 impl Ctx {
     fn new(
         client: Arc<Mutex<TransClient>>,
         action_tx: UnboundedSender<Action>,
-        trans_tx: UnboundedSender<Action>,
+        trans_tx: UnboundedSender<TorrentAction>,
     ) -> Self {
         Ctx {
             client,
             action_tx,
             trans_tx,
         }
+    }
+
+    pub(crate) fn send_action(&self, action: Action) {
+        self.action_tx.send(action).unwrap();
+    }
+
+    pub(crate) fn send_torrent_action(&self, action: TorrentAction) {
+        self.trans_tx.send(action).unwrap();
     }
 }
 
@@ -138,11 +146,6 @@ impl App {
             A::SwitchToNormalMode => {
                 self.mode = Mode::Normal;
                 Some(A::Render)
-            }
-
-            A::TorrentAdd(_) => {
-                self.ctx.trans_tx.send(action).unwrap();
-                None
             }
 
             _ => self.main_window.handle_actions(action),

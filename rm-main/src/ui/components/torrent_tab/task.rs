@@ -3,23 +3,23 @@ use ratatui::{
     prelude::*,
     widgets::{Clear, Paragraph},
 };
-use tokio::sync::mpsc::UnboundedSender;
 use tui_input::Input;
 
 use crate::{
-    action::Action,
+    action::{Action, TorrentAction},
+    app,
     ui::{components::Component, to_input_request},
 };
 
 pub struct Task {
-    trans_tx: UnboundedSender<Action>,
+    ctx: app::Ctx,
     current_task: CurrentTask,
 }
 
 impl Task {
-    pub const fn new(trans_tx: UnboundedSender<Action>) -> Self {
+    pub const fn new(ctx: app::Ctx) -> Self {
         Self {
-            trans_tx,
+            ctx,
             current_task: CurrentTask::None,
         }
     }
@@ -28,7 +28,7 @@ impl Task {
     fn handle_events_to_self(&mut self, action: &Action) -> Option<Action> {
         match action {
             Action::AddMagnet => {
-                self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new());
+                self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new(self.ctx.clone()));
                 Some(Action::SwitchToInputMode)
             }
             _ => None,
@@ -53,12 +53,14 @@ enum CurrentTask {
 
 struct AddMagnetBar {
     input: Input,
+    ctx: app::Ctx,
 }
 
 impl AddMagnetBar {
-    fn new() -> Self {
+    fn new(ctx: app::Ctx) -> Self {
         Self {
             input: Input::default(),
+            ctx,
         }
     }
 }
@@ -68,11 +70,6 @@ impl Component for Task {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
-                Some(Action::TorrentAdd(url)) => {
-                    self.trans_tx.send(Action::TorrentAdd(url)).unwrap();
-                    self.finish_task()
-                }
-
                 Some(Action::Quit) => self.finish_task(),
 
                 Some(Action::Render) => Some(Action::Render),
@@ -98,7 +95,11 @@ impl Component for AddMagnetBar {
         match action {
             Action::Input(input) => {
                 if input.code == KeyCode::Enter {
-                    return Some(Action::TorrentAdd(Box::new(self.input.to_string())));
+                    self.ctx
+                        .send_torrent_action(TorrentAction::TorrentAdd(Box::new(
+                            self.input.to_string(),
+                        )));
+                    return Some(Action::Quit);
                 }
                 if input.code == KeyCode::Esc {
                     return Some(Action::Quit);

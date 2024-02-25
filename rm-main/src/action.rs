@@ -3,6 +3,11 @@ use crossterm::event::{KeyCode, KeyEvent};
 use crate::{tui::Event, ui::popup::ErrorPopup};
 
 #[derive(Debug, Clone)]
+pub(crate) enum TorrentAction {
+    TorrentAdd(Box<String>),
+}
+
+#[derive(Debug, Clone)]
 pub(crate) enum Action {
     Quit,
     Render,
@@ -19,7 +24,6 @@ pub(crate) enum Action {
     ChangeTab(u8),
     Input(KeyEvent),
     Error(Box<ErrorPopup>),
-    TorrentAdd(Box<String>),
 }
 
 impl Action {

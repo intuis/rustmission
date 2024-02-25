@@ -112,7 +112,7 @@ impl TorrentsTab {
             table,
             rows,
             stats,
-            task: Task::new(ctx.trans_tx),
+            task: Task::new(ctx),
             statistics_popup: None,
         }
     }
