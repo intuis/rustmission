@@ -1,5 +1,5 @@
 [connection]
-url = "CHANGE_ME" # REQUIRED!
+url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 
 # If you need username and password to authenticate:
 # username = "CHANGE_ME"
