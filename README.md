@@ -17,7 +17,7 @@
 To install Rustmission, ensure you have Rust and Cargo installed on your system, and then run:
 
 ```bash
-cargo install rustmission # won't work yet
+cargo install rustmission
 ```
 
 ## Usage
