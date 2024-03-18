@@ -603,6 +603,8 @@ dependencies = [
 [[package]]
 name = "magnetease"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "354261a9c9810c2810c14f1758d2b70d2c9ea41acd8d4bb6560f78226e29e192"
 dependencies = [
  "async-trait",
  "reqwest",

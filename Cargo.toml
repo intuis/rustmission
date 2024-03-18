@@ -3,7 +3,6 @@ resolver = "2"
 members = [
   "rm-main",
   "rm-config",
-  "magnetease",
 ]
 
 [profile.release]

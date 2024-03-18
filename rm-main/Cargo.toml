@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 rm-config = { path = "../rm-config" }
-magnetease = { path = "../magnetease" }
 
+magnetease = "0.1"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 transmission-rpc = "0.4.2"
