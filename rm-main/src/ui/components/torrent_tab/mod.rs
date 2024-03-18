@@ -5,9 +5,10 @@ use std::sync::{Arc, Mutex};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, BorderType, Clear, Paragraph, Row, Table};
 use ratatui_macros::constraints;
-use transmission_rpc::types::{SessionStats, Torrent};
+use transmission_rpc::types::{SessionStats, Torrent, TorrentStatus};
 
-use crate::action::Action;
+use crate::action::{Action, TorrentAction};
+use crate::transmission::RustmissionTorrent;
 use crate::ui::{bytes_to_human_format, centered_rect};
 use crate::{app, transmission};
 
@@ -83,10 +84,11 @@ impl Component for StatisticsPopup {
 
 pub struct TorrentsTab {
     table: GenericTable<Torrent>,
-    rows: Arc<Mutex<Vec<[String; 6]>>>,
+    rows: Arc<Mutex<Vec<RustmissionTorrent>>>,
     stats: StatsComponent,
     task: Task,
     statistics_popup: Option<StatisticsPopup>,
+    ctx: app::Ctx,
 }
 
 impl TorrentsTab {
@@ -110,8 +112,9 @@ impl TorrentsTab {
             table,
             rows,
             stats,
-            task: Task::new(ctx),
+            task: Task::new(ctx.clone()),
             statistics_popup: None,
+            ctx,
         }
     }
 }
@@ -138,8 +141,7 @@ impl Component for TorrentsTab {
 
         let torrent_rows = rows
             .iter()
-            .map(|i| i.iter().map(|i| i.as_str()))
-            .map(Row::new);
+            .map(crate::transmission::RustmissionTorrent::to_row);
 
         let torrents_table = Table::new(torrent_rows, header_widths)
             .header(header)
@@ -188,6 +190,30 @@ impl Component for TorrentsTab {
                     None
                 }
             }
+            A::Pause => {
+                if let Some(torrent) = self.table.current_item() {
+                    let torrent_id = torrent.id().unwrap();
+                    let torrent_status = torrent.status.unwrap();
+
+                    match torrent_status {
+                        TorrentStatus::Stopped => {
+                            self.ctx
+                                .send_torrent_action(TorrentAction::TorrentStart(Box::new(vec![
+                                    torrent_id,
+                                ])));
+                        }
+                        _ => {
+                            self.ctx
+                                .send_torrent_action(TorrentAction::TorrentStop(Box::new(vec![
+                                    torrent_id,
+                                ])));
+                        }
+                    }
+                    return None;
+                }
+                None
+            }
+
             other => self.task.handle_actions(other),
         }
     }

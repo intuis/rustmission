@@ -1,7 +1,15 @@
 use std::{sync::Arc, time::Duration};
 
+use ratatui::{
+    style::{Style, Stylize},
+    widgets::Row,
+};
 use tokio::sync::mpsc::UnboundedReceiver;
-use transmission_rpc::types::{SessionStats, Torrent, TorrentAddArgs, TorrentGetField};
+use transmission_rpc::types::{
+    SessionStats, Torrent, TorrentAddArgs, TorrentGetField, TorrentStatus,
+};
+
+use transmission_rpc::types::TorrentAction as RPCAction;
 
 use crate::{
     action::{Action, TorrentAction},
@@ -28,7 +36,7 @@ pub async fn stats_fetch(ctx: app::Ctx, stats: Arc<std::sync::Mutex<Option<Sessi
 pub async fn torrent_fetch(
     ctx: app::Ctx,
     torrents: Arc<std::sync::Mutex<Vec<Torrent>>>,
-    rows: Arc<std::sync::Mutex<Vec<[String; 6]>>>,
+    rows: Arc<std::sync::Mutex<Vec<RustmissionTorrent>>>,
 ) {
     loop {
         let fields = vec![
@@ -42,6 +50,7 @@ pub async fn torrent_fetch(
             TorrentGetField::Eta,
             TorrentGetField::RateUpload,
             TorrentGetField::RateDownload,
+            TorrentGetField::Status,
         ];
         let rpc_response = ctx
             .client
@@ -52,7 +61,10 @@ pub async fn torrent_fetch(
             .unwrap();
 
         let new_torrents = rpc_response.arguments.torrents;
-        *rows.lock().unwrap() = new_torrents.iter().map(torrent_to_row).collect();
+        *rows.lock().unwrap() = new_torrents
+            .iter()
+            .map(|torrent| torrent_to_row(torrent))
+            .collect();
         *torrents.lock().unwrap() = new_torrents;
         ctx.send_action(Action::Render);
 
@@ -60,7 +72,36 @@ pub async fn torrent_fetch(
     }
 }
 
-fn torrent_to_row(t: &Torrent) -> [String; 6] {
+pub struct RustmissionTorrent {
+    torrent_name: String,
+    size_when_done: String,
+    progress: String,
+    eta_secs: String,
+    download_speed: String,
+    upload_speed: String,
+    status: TorrentStatus,
+}
+
+impl RustmissionTorrent {
+    pub fn to_row(&self) -> ratatui::widgets::Row {
+        let style = match self.status {
+            TorrentStatus::Stopped => Style::default().gray().italic(),
+            _ => Style::default(),
+        };
+
+        Row::new([
+            self.torrent_name.as_str(),
+            self.size_when_done.as_str(),
+            self.progress.as_str(),
+            self.eta_secs.as_str(),
+            self.download_speed.as_str(),
+            self.upload_speed.as_str(),
+        ])
+        .style(style)
+    }
+}
+
+fn torrent_to_row(t: &Torrent) -> RustmissionTorrent {
     let torrent_name = t.name.clone().unwrap();
 
     let size_when_done = bytes_to_human_format(t.size_when_done.expect("field requested"));
@@ -86,32 +127,53 @@ fn torrent_to_row(t: &Torrent) -> [String; 6] {
         upload => bytes_to_human_format(upload),
     };
 
-    [
+    let status = t.status.expect("field requested");
+
+    RustmissionTorrent {
         torrent_name,
         size_when_done,
         progress,
         eta_secs,
         download_speed,
         upload_speed,
-    ]
+        status,
+    }
 }
 
 pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<TorrentAction>) {
     while let Some(action) = trans_rx.recv().await {
-        if let TorrentAction::TorrentAdd(url) = action {
-            let args = TorrentAddArgs {
-                filename: Some(*url.clone()),
-                ..Default::default()
-            };
+        match action {
+            TorrentAction::TorrentAdd(ref url) => {
+                let args = TorrentAddArgs {
+                    filename: Some(*url.clone()),
+                    ..Default::default()
+                };
 
-            if let Err(e) = ctx.client.lock().await.torrent_add(args).await {
-                let error_title = "Failed to add a torrent";
-                let msg = "Failed to add torrent with URL/Path:\n\"".to_owned()
-                    + &*url
-                    + "\"\n"
-                    + &e.to_string();
-                let error_popup = Box::new(ErrorPopup::new(error_title, msg));
-                ctx.send_action(Action::Error(error_popup));
+                if let Err(e) = ctx.client.lock().await.torrent_add(args).await {
+                    let error_title = "Failed to add a torrent";
+                    let msg = "Failed to add torrent with URL/Path:\n\"".to_owned()
+                        + &*url
+                        + "\"\n"
+                        + &e.to_string();
+                    let error_popup = Box::new(ErrorPopup::new(error_title, msg));
+                    ctx.send_action(Action::Error(error_popup));
+                }
+            }
+            TorrentAction::TorrentStop(ids) => {
+                ctx.client
+                    .lock()
+                    .await
+                    .torrent_action(RPCAction::Stop, *ids.clone())
+                    .await
+                    .unwrap();
+            }
+            TorrentAction::TorrentStart(ids) => {
+                ctx.client
+                    .lock()
+                    .await
+                    .torrent_action(RPCAction::Start, *ids.clone())
+                    .await
+                    .unwrap();
             }
         }
     }

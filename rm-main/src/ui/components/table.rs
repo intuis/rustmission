@@ -27,7 +27,7 @@ impl<T: Clone> GenericTable<T> {
     pub fn current_item(&self) -> Option<T> {
         let items = self.items.lock().unwrap();
         let selected = self.state.borrow().selected()?;
-        Some(items[selected].clone())
+        items.get(selected).cloned()
     }
 
     pub fn next(&mut self) {
