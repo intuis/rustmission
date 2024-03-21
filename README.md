@@ -20,6 +20,12 @@ To install Rustmission, ensure you have Rust and Cargo installed on your system,
 cargo install rustmission
 ```
 
+or with Nix:
+
+```bash
+nix run .
+```
+
 ## Usage
 
 Launch Rustmission in your terminal to initialize the configuration and make adjustments as needed. Subsequently, run Rustmission again. For list of keybindings, press '?'.
