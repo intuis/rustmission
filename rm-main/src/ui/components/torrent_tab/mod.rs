@@ -83,7 +83,7 @@ impl Component for StatisticsPopup {
 }
 
 pub struct TorrentsTab {
-    table: GenericTable<Torrent>,
+    table: Arc<Mutex<GenericTable<Torrent>>>,
     rows: Arc<Mutex<Vec<RustmissionTorrent>>>,
     stats: StatsComponent,
     task: Task,
@@ -94,7 +94,7 @@ pub struct TorrentsTab {
 impl TorrentsTab {
     pub fn new(ctx: app::Ctx) -> Self {
         let stats = StatsComponent::default();
-        let table = GenericTable::new(vec![]);
+        let table = Arc::new(Mutex::new(GenericTable::new(vec![])));
         let rows = Arc::new(Mutex::new(vec![]));
 
         tokio::spawn(transmission::stats_fetch(
@@ -104,15 +104,15 @@ impl TorrentsTab {
 
         tokio::spawn(transmission::torrent_fetch(
             ctx.clone(),
-            Arc::clone(&table.items),
+            Arc::clone(&table.lock().unwrap().items),
             Arc::clone(&rows),
         ));
 
         Self {
-            table,
+            table: Arc::clone(&table),
             rows,
             stats,
-            task: Task::new(ctx.clone()),
+            task: Task::new(Arc::clone(&table), ctx.clone()),
             statistics_popup: None,
             ctx,
         }
@@ -150,7 +150,7 @@ impl Component for TorrentsTab {
         f.render_stateful_widget(
             torrents_table,
             torrents_list_rect,
-            &mut self.table.state.borrow_mut(),
+            &mut self.table.lock().unwrap().state.borrow_mut(),
         );
 
         self.stats.render(f, stats_rect);
@@ -175,11 +175,11 @@ impl Component for TorrentsTab {
 
         match action {
             A::Up => {
-                self.table.previous();
+                self.table.lock().unwrap().previous();
                 Some(Action::Render)
             }
             A::Down => {
-                self.table.next();
+                self.table.lock().unwrap().next();
                 Some(Action::Render)
             }
             A::ShowStats => {
@@ -191,7 +191,7 @@ impl Component for TorrentsTab {
                 }
             }
             A::Pause => {
-                if let Some(torrent) = self.table.current_item() {
+                if let Some(torrent) = self.table.lock().unwrap().current_item() {
                     let torrent_id = torrent.id().unwrap();
                     let torrent_status = torrent.status.unwrap();
 
