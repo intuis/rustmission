@@ -154,6 +154,8 @@ impl Component for HelpPopup {
 
         add_line!(lines, "t", "show statistics");
         add_line!(lines, "m", "add a magnet url/torrent path");
+        add_line!(lines, "p", "pause/unpause a torrent");
+        add_line!(lines, "d", "delete a torrent");
 
         let help_text = Text::from(lines);
         let help_paragraph = Paragraph::new(help_text);

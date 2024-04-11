@@ -10,7 +10,7 @@
 
 - **Built-in Search**: Seamlessly search for torrents directly. This is a killer feature of Rustmission.
 - **Async Rust**: Utilizes Rust's async/await syntax for efficient, non-blocking IO operations.
-- **Basic Operations**: Allows users to add, (remove, pause, and resume TODO) torrents.
+- **Basic Operations**: Allows to add, pause, remove torrents.
 
 ## Installation TODO
 

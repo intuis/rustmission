@@ -54,8 +54,8 @@ pub struct App {
 
 impl App {
     pub fn new(config: Config) -> Self {
-        let user = config.connection.username;
-        let password = config.connection.password;
+        let user = config.connection.username.unwrap_or("".to_string());
+        let password = config.connection.password.unwrap_or("".to_string());
         let url = config.connection.url.parse().unwrap();
 
         let auth = BasicAuth { user, password };

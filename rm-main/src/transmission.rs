@@ -85,7 +85,7 @@ pub struct RustmissionTorrent {
 impl RustmissionTorrent {
     pub fn to_row(&self) -> ratatui::widgets::Row {
         let style = match self.status {
-            TorrentStatus::Stopped => Style::default().gray().italic(),
+            TorrentStatus::Stopped => Style::default().dark_gray().italic(),
             _ => Style::default(),
         };
 

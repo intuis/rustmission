@@ -17,8 +17,8 @@ pub struct Config {
 
 #[derive(Serialize, Deserialize)]
 pub struct Connection {
-    pub username: String,
-    pub password: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
     pub url: String,
 }
 
@@ -30,7 +30,15 @@ impl Config {
     pub fn init() -> Result<Self> {
         let table = match Self::table_from_home() {
             Ok(table) => table,
-            Err(_) => Self::put_default_conf_in_home()?,
+            Err(_) => {
+                Self::put_default_conf_in_home()?;
+                // TODO: check if the user really changed the config.
+                println!(
+                    "Update {:?} and start rustmission again",
+                    Self::get_config_path()
+                );
+                std::process::exit(0);
+            }
         };
 
         Self::table_config_verify(&table)?;

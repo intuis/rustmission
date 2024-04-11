@@ -16,7 +16,7 @@ serde = { version = "1", features = ["derive"] }
 transmission-rpc = "0.4.2"
 
 # Async
-tokio = { version = "1", features = ["rt", "macros", "sync"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
 tokio-util = "0.7"
 futures = "0.3"
 

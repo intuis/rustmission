@@ -6,4 +6,8 @@ members = [
 ]
 
 [profile.release]
-lto = "thin"
+opt-level = 3
+strip = "symbols"
+codegen-units = 1
+lto = "fat"
+panic = "abort"
