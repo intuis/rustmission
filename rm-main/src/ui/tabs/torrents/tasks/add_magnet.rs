@@ -4,10 +4,7 @@ use ratatui::prelude::*;
 use crate::{
     action::{Action, TorrentAction},
     app,
-    ui::{
-        components::{torrent_tab::task_manager::InputManager, Component},
-        to_input_request,
-    },
+    ui::{components::Component, tabs::torrents::task_manager::InputManager, to_input_request},
 };
 
 pub struct AddMagnetBar {

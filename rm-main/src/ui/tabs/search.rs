@@ -17,12 +17,11 @@ use tui_input::Input;
 use crate::{
     action::{Action, TorrentAction},
     app,
-};
-
-use super::{
-    bytes_to_human_format,
-    components::{table::GenericTable, Component},
-    to_input_request,
+    ui::{
+        bytes_to_human_format,
+        components::{table::GenericTable, Component},
+        to_input_request,
+    },
 };
 
 enum SearchFocus {
@@ -30,7 +29,7 @@ enum SearchFocus {
     List,
 }
 
-pub(super) struct SearchTab {
+pub(crate) struct SearchTab {
     search_focus: SearchFocus,
     input: Input,
     req_sender: UnboundedSender<String>,
@@ -39,7 +38,7 @@ pub(super) struct SearchTab {
 }
 
 impl SearchTab {
-    pub(super) fn new(ctx: app::Ctx) -> Self {
+    pub(crate) fn new(ctx: app::Ctx) -> Self {
         let (tx, mut rx) = mpsc::unbounded_channel::<String>();
         let table = Arc::new(Mutex::new(GenericTable::new(vec![])));
         let table_clone = Arc::clone(&table);

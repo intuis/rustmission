@@ -10,13 +10,12 @@ use transmission_rpc::types::{SessionStats, Torrent, TorrentStatus};
 
 use crate::action::{Action, TorrentAction};
 use crate::transmission::RustmissionTorrent;
+use crate::ui::components::table::GenericTable;
+use crate::ui::components::Component;
 use crate::ui::{bytes_to_human_format, centered_rect};
 use crate::{app, transmission};
 
 use self::task_manager::TaskManager;
-
-use super::table::GenericTable;
-use super::Component;
 
 #[derive(Default)]
 struct StatsComponent {

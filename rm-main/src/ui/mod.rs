@@ -1,6 +1,8 @@
 pub mod components;
 pub mod popup;
-mod search_tab;
+pub mod tabs;
+
+use tabs::torrents::TorrentsTab;
 
 use crossterm::event::KeyCode;
 use ratatui::prelude::*;
@@ -13,15 +15,14 @@ use crate::{
 };
 
 use self::{
-    components::{tabcomponent::CurrentTab, Component, TabComponent, TorrentsTab},
+    components::{tabs::CurrentTab, Component, TabComponent},
     popup::{HelpPopup, Popup},
-    search_tab::SearchTab,
 };
 
 pub struct MainWindow {
     tabs: TabComponent,
     torrents_tab: TorrentsTab,
-    search_tab: SearchTab,
+    search_tab: tabs::search::SearchTab,
     popup: Popup,
 }
 
@@ -30,7 +31,7 @@ impl MainWindow {
         Self {
             tabs: TabComponent::new(),
             torrents_tab: TorrentsTab::new(ctx.clone()),
-            search_tab: SearchTab::new(ctx.clone()),
+            search_tab: tabs::search::SearchTab::new(ctx.clone()),
             popup: Popup::default(),
         }
     }
