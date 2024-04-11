@@ -2,7 +2,7 @@ pub mod components;
 pub mod popup;
 pub mod tabs;
 
-use tabs::torrents::TorrentsTab;
+use crate::ui::tabs::torrents::torrents::TorrentsTab;
 
 use crossterm::event::KeyCode;
 use ratatui::prelude::*;
