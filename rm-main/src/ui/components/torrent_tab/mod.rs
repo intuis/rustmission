@@ -1,4 +1,5 @@
-mod task;
+mod task_manager;
+mod tasks;
 
 use std::sync::{Arc, Mutex};
 
@@ -12,7 +13,7 @@ use crate::transmission::RustmissionTorrent;
 use crate::ui::{bytes_to_human_format, centered_rect};
 use crate::{app, transmission};
 
-use self::task::Task;
+use self::task_manager::TaskManager;
 
 use super::table::GenericTable;
 use super::Component;
@@ -86,7 +87,7 @@ pub struct TorrentsTab {
     table: Arc<Mutex<GenericTable<Torrent>>>,
     rows: Arc<Mutex<Vec<RustmissionTorrent>>>,
     stats: StatsComponent,
-    task: Task,
+    task: TaskManager,
     statistics_popup: Option<StatisticsPopup>,
     ctx: app::Ctx,
 }
@@ -112,7 +113,7 @@ impl TorrentsTab {
             table: Arc::clone(&table),
             rows,
             stats,
-            task: Task::new(Arc::clone(&table), ctx.clone()),
+            task: TaskManager::new(Arc::clone(&table), ctx.clone()),
             statistics_popup: None,
             ctx,
         }
