@@ -1,3 +1,6 @@
+# Uncomment to hide empty columns
+# auto_hide = true
+
 [connection]
 url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 
@@ -5,6 +8,4 @@ url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 # username = "CHANGE_ME"
 # password = "CHANGE_ME"
 
-# Uncomment to hide empty columns
-# auto_hide = true
 

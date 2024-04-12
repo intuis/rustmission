@@ -36,12 +36,15 @@ Rustmission stores its configuration in a TOML file located at ~/.config/rustmis
 set the daemon's IP address.
 
 ```toml
+# Uncomment to hide empty columns
+# auto_hide = true
+
 [connection]
 url = "http://change_me:9091/transmission/rpc" # REQUIRED!
 
 # If you need username and password to authenticate:
-username = "CHANGE_ME"
-password = "CHANGE_ME"
+#username = "CHANGE_ME"
+#password = "CHANGE_ME"
 ```
 
 # Contributing

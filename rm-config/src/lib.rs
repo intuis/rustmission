@@ -10,14 +10,14 @@ use serde::{Deserialize, Serialize};
 use toml::Table;
 use xdg::BaseDirectories;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub connection: Connection,
     #[serde(default)]
     pub auto_hide: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Connection {
     pub username: Option<String>,
     pub password: Option<String>,
