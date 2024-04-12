@@ -18,6 +18,7 @@ use transmission_rpc::{types::BasicAuth, TransClient};
 #[derive(Clone)]
 pub(crate) struct Ctx {
     pub(crate) client: Arc<Mutex<TransClient>>,
+    pub(crate) config: Arc<Config>,
     action_tx: UnboundedSender<Action>,
     trans_tx: UnboundedSender<TorrentAction>,
 }
@@ -25,11 +26,13 @@ pub(crate) struct Ctx {
 impl Ctx {
     fn new(
         client: Arc<Mutex<TransClient>>,
+        config: Config,
         action_tx: UnboundedSender<Action>,
         trans_tx: UnboundedSender<TorrentAction>,
     ) -> Self {
         Ctx {
             client,
+            config: Arc::new(config),
             action_tx,
             trans_tx,
         }
@@ -54,8 +57,18 @@ pub struct App {
 
 impl App {
     pub fn new(config: Config) -> Self {
-        let user = config.connection.username.unwrap_or("".to_string());
-        let password = config.connection.password.unwrap_or("".to_string());
+        let user = config
+            .connection
+            .username
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .clone();
+        let password = config
+            .connection
+            .password
+            .as_ref()
+            .unwrap_or(&"".to_string())
+            .clone();
         let url = config.connection.url.parse().unwrap();
 
         let auth = BasicAuth { user, password };
@@ -65,7 +78,7 @@ impl App {
         let client = Arc::new(Mutex::new(TransClient::with_auth(url, auth)));
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
-        let ctx = Ctx::new(client, action_tx, trans_tx);
+        let ctx = Ctx::new(client, config, action_tx, trans_tx);
 
         tokio::spawn(transmission::action_handler(ctx.clone(), trans_rx));
 

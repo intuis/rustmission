@@ -13,6 +13,8 @@ use xdg::BaseDirectories;
 #[derive(Serialize, Deserialize)]
 pub struct Config {
     pub connection: Connection,
+    #[serde(default)]
+    pub auto_hide: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -118,6 +120,7 @@ mod tests {
             [connection]
             username = "username"
             password = "password"
+            auto_hide = "dfgoij"
             url = "bad_url"
         }
     }

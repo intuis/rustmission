@@ -4,3 +4,7 @@ url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 # If you need username and password to authenticate:
 # username = "CHANGE_ME"
 # password = "CHANGE_ME"
+
+# Uncomment to hide empty columns
+# auto_hide = true
+

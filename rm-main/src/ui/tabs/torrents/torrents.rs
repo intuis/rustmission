@@ -27,28 +27,49 @@ pub struct TorrentsTab {
 }
 
 pub struct TableManager {
+    ctx: app::Ctx,
     table: Arc<Mutex<GenericTable<Torrent>>>,
     rows: Vec<RustmissionTorrent>,
     widths: [Constraint; 6],
 }
 
 impl TableManager {
-    fn new(table: Arc<Mutex<GenericTable<Torrent>>>, rows: Vec<RustmissionTorrent>) -> Self {
-        let widths = Self::header_widths(&rows);
+    fn new(
+        ctx: app::Ctx,
+        table: Arc<Mutex<GenericTable<Torrent>>>,
+        rows: Vec<RustmissionTorrent>,
+    ) -> Self {
+        let widths = Self::default_widths();
         TableManager {
+            ctx,
             rows,
             table,
             widths,
         }
     }
 
+    fn default_widths() -> [Constraint; 6] {
+        [
+            Constraint::Max(65),    // Name
+            Constraint::Length(10), // Size
+            Constraint::Length(10), // Progress
+            Constraint::Length(10), // ETA
+            Constraint::Length(10), // Download
+            Constraint::Length(10), // Upload
+        ]
+    }
+
     pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
         self.rows = rows;
-        self.widths = Self::header_widths(&self.rows);
+        self.widths = self.header_widths(&self.rows);
     }
 
     // TODO: benchmark this!
-    fn header_widths(rows: &[RustmissionTorrent]) -> [Constraint; 6] {
+    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 6] {
+        if !self.ctx.config.auto_hide {
+            return Self::default_widths();
+        }
+
         let mut download_width = 0;
         let mut upload_width = 0;
         let mut progress_width = 0;
@@ -87,7 +108,11 @@ impl TorrentsTab {
         let table = Arc::new(Mutex::new(GenericTable::new(vec![])));
         let rows = vec![];
 
-        let table_manager = Arc::new(Mutex::new(TableManager::new(Arc::clone(&table), rows)));
+        let table_manager = Arc::new(Mutex::new(TableManager::new(
+            ctx.clone(),
+            Arc::clone(&table),
+            rows,
+        )));
 
         tokio::spawn(transmission::stats_fetch(
             ctx.clone(),
