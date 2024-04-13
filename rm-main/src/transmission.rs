@@ -14,7 +14,7 @@ use transmission_rpc::types::TorrentAction as RPCAction;
 use crate::{
     action::{Action, TorrentAction},
     app,
-    ui::{bytes_to_human_format, popup::ErrorPopup, tabs::torrents::torrents::TableManager},
+    ui::{bytes_to_human_format, popup::ErrorPopup, tabs::torrents::TableManager},
 };
 
 pub async fn stats_fetch(ctx: app::Ctx, stats: Arc<std::sync::Mutex<Option<SessionStats>>>) {

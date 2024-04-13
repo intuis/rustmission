@@ -13,6 +13,11 @@ use xdg::BaseDirectories;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub connection: Connection,
+    pub general: General,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct General {
     #[serde(default)]
     pub auto_hide: bool,
 }
@@ -48,6 +53,25 @@ impl Config {
         Self::table_to_config(table)
     }
 
+    fn table_from_home() -> Result<Table> {
+        let xdg_dirs = xdg::BaseDirectories::with_prefix("rustmission")?;
+        let config_path = xdg_dirs
+            .find_config_file("config.toml")
+            .ok_or_else(|| anyhow::anyhow!("config.toml not found"))?;
+
+        let mut config_buf = String::new();
+        let mut config_file = File::open(config_path).unwrap();
+        config_file.read_to_string(&mut config_buf).unwrap();
+        Ok(toml::from_str(&config_buf)?)
+    }
+
+    fn put_default_conf_in_home() -> Result<Table> {
+        let config_path = Self::get_config_path();
+        let mut config_file = File::create(config_path)?;
+        config_file.write_all(DEFAULT_CONFIG.as_bytes())?;
+        Ok(toml::from_str(DEFAULT_CONFIG)?)
+    }
+
     fn table_to_config(table: Table) -> Result<Self> {
         let config_string = table.to_string();
         let config: Config = toml::from_str(&config_string)?;
@@ -77,25 +101,6 @@ impl Config {
         })?;
 
         Ok(())
-    }
-
-    fn table_from_home() -> Result<Table> {
-        let xdg_dirs = xdg::BaseDirectories::with_prefix("rustmission")?;
-        let config_path = xdg_dirs
-            .find_config_file("config.toml")
-            .ok_or_else(|| anyhow::anyhow!("config.toml not found"))?;
-
-        let mut config_buf = String::new();
-        let mut config_file = File::open(config_path).unwrap();
-        config_file.read_to_string(&mut config_buf).unwrap();
-        Ok(toml::from_str(&config_buf)?)
-    }
-
-    fn put_default_conf_in_home() -> Result<Table> {
-        let config_path = Self::get_config_path();
-        let mut config_file = File::create(config_path)?;
-        config_file.write_all(DEFAULT_CONFIG.as_bytes())?;
-        Ok(toml::from_str(DEFAULT_CONFIG)?)
     }
 
     fn get_xdg_dirs() -> &'static BaseDirectories {

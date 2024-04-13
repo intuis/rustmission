@@ -146,6 +146,8 @@ impl App {
     fn update(&mut self, action: Action) -> Option<Action> {
         use Action as A;
         match &action {
+            A::Render => Some(A::Render),
+
             A::Quit => {
                 self.should_quit = true;
                 None

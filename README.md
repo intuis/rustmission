@@ -36,6 +36,7 @@ Rustmission stores its configuration in a TOML file located at ~/.config/rustmis
 set the daemon's IP address.
 
 ```toml
+[general]
 # Uncomment to hide empty columns
 # auto_hide = true
 

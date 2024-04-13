@@ -73,6 +73,7 @@ impl Tui {
                     event_tx.send(Event::Key(key)).unwrap();
                 }
             }
+            Some(Ok(CrosstermEvent::Resize(_, _))) => event_tx.send(Event::Render).unwrap(),
             Some(Err(_)) => event_tx.send(Event::Error).unwrap(),
             _ => (),
         }

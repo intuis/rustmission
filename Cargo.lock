@@ -955,7 +955,7 @@ dependencies = [
 
 [[package]]
 name = "rm-config"
-version = "0.1.1"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "serde",
@@ -1044,7 +1044,7 @@ dependencies = [
 
 [[package]]
 name = "rustmission"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "crossterm",

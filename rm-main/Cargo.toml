@@ -1,6 +1,6 @@
 [package]
 name = "rustmission"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "TUI for Transmission daemon"
 license = "GPL-3.0-or-later"
@@ -8,7 +8,7 @@ license = "GPL-3.0-or-later"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rm-config = { version = "0.2", path = "../rm-config" }
+rm-config = { version = "0.3", path = "../rm-config" }
 
 magnetease = "0.1"
 anyhow = "1"
