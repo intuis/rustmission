@@ -61,12 +61,10 @@ pub async fn torrent_fetch(
             .unwrap();
 
         let new_torrents = rpc_response.arguments.torrents;
-        table_manager.lock().unwrap().set_new_rows(
-            new_torrents
-                .iter()
-                .map(|torrent| torrent_to_row(torrent))
-                .collect(),
-        );
+        table_manager
+            .lock()
+            .unwrap()
+            .set_new_rows(new_torrents.iter().map(torrent_to_row).collect());
         *torrents.lock().unwrap() = new_torrents;
         ctx.send_action(Action::Render);
 
@@ -147,7 +145,7 @@ fn torrent_to_row(t: &Torrent) -> RustmissionTorrent {
 pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<TorrentAction>) {
     while let Some(action) = trans_rx.recv().await {
         match action {
-            TorrentAction::TorrentAdd(ref url) => {
+            TorrentAction::Add(ref url) => {
                 let args = TorrentAddArgs {
                     filename: Some(*url.clone()),
                     ..Default::default()
@@ -156,14 +154,14 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                 if let Err(e) = ctx.client.lock().await.torrent_add(args).await {
                     let error_title = "Failed to add a torrent";
                     let msg = "Failed to add torrent with URL/Path:\n\"".to_owned()
-                        + &*url
+                        + url
                         + "\"\n"
                         + &e.to_string();
                     let error_popup = Box::new(ErrorPopup::new(error_title, msg));
                     ctx.send_action(Action::Error(error_popup));
                 }
             }
-            TorrentAction::TorrentStop(ids) => {
+            TorrentAction::Stop(ids) => {
                 ctx.client
                     .lock()
                     .await
@@ -171,7 +169,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .await
                     .unwrap();
             }
-            TorrentAction::TorrentStart(ids) => {
+            TorrentAction::Start(ids) => {
                 ctx.client
                     .lock()
                     .await
@@ -179,7 +177,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .await
                     .unwrap();
             }
-            TorrentAction::TorrentDelete(ids) => {
+            TorrentAction::Delete(ids) => {
                 ctx.client
                     .lock()
                     .await

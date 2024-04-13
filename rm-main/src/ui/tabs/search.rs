@@ -126,7 +126,7 @@ impl Component for SearchTab {
                     .map(|magnet| magnet.url.clone());
                 if let Some(magnet_url) = magnet_url {
                     self.ctx
-                        .send_torrent_action(TorrentAction::TorrentAdd(Box::new(magnet_url)));
+                        .send_torrent_action(TorrentAction::Add(Box::new(magnet_url)));
                 }
                 None
             }

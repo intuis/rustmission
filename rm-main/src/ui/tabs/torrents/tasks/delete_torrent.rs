@@ -31,14 +31,12 @@ impl Component for DeleteBar {
                 if input.code == KeyCode::Enter {
                     let text = self.input_mgr.text().to_lowercase();
                     if text == "y" || text == "yes" {
-                        self.ctx
-                            .send_torrent_action(TorrentAction::TorrentDelete(Box::new(
-                                self.to_delete.clone(),
-                            )));
+                        self.ctx.send_torrent_action(TorrentAction::Delete(Box::new(
+                            self.to_delete.clone(),
+                        )));
                         return Some(Action::Quit);
                     } else if text == "n" || text == "no" {
                         return Some(Action::Quit);
-                    } else {
                     }
                 }
 

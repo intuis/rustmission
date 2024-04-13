@@ -124,15 +124,11 @@ impl Component for HelpPopup {
             .title_style(Style::new().light_magenta())
             .title(" Help ");
 
-        let mut lines = vec![];
-
-        lines.push(
-            Line::from(vec![Span::styled(
-                "Global Keybindings",
-                Style::default().bold().underlined(),
-            )])
-            .centered(),
-        );
+        let mut lines = vec![Line::from(vec![Span::styled(
+            "Global Keybindings",
+            Style::default().bold().underlined(),
+        )])
+        .centered()];
 
         add_line!(lines, "?", "show/hide help");
         add_line!(lines, "1", "switch to torrents tab");

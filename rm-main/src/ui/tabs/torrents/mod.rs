@@ -238,13 +238,13 @@ impl Component for TorrentsTab {
                     match torrent_status {
                         TorrentStatus::Stopped => {
                             self.ctx
-                                .send_torrent_action(TorrentAction::TorrentStart(Box::new(vec![
+                                .send_torrent_action(TorrentAction::Start(Box::new(vec![
                                     torrent_id,
                                 ])));
                         }
                         _ => {
                             self.ctx
-                                .send_torrent_action(TorrentAction::TorrentStop(Box::new(vec![
+                                .send_torrent_action(TorrentAction::Stop(Box::new(vec![
                                     torrent_id,
                                 ])));
                         }
