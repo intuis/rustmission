@@ -1,4 +1,4 @@
-use crate::action::Action;
+use crate::{action::Action, app};
 
 use super::Component;
 use ratatui::{layout::Flex, prelude::*, widgets::Tabs};
@@ -12,11 +12,13 @@ pub enum CurrentTab {
 pub struct TabComponent {
     tabs_list: [&'static str; 2],
     pub current_tab: CurrentTab,
+    ctx: app::Ctx,
 }
 
 impl TabComponent {
-    pub fn new() -> Self {
+    pub fn new(ctx: app::Ctx) -> Self {
         Self {
+            ctx,
             tabs_list: ["Torrents", "Search"],
             current_tab: CurrentTab::Torrents,
         }
@@ -29,9 +31,11 @@ impl Component for TabComponent {
             .flex(Flex::Center)
             .split(rect)[0];
 
+        let tabs_highlight_style =
+            Style::default().fg(self.ctx.config.general.accent_color.as_ratatui());
         let tabs = Tabs::new(self.tabs_list)
             .style(Style::default().white())
-            .highlight_style(Style::default().light_magenta())
+            .highlight_style(tabs_highlight_style)
             .select(self.current_tab as usize)
             .divider(symbols::DOT);
 

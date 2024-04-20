@@ -37,15 +37,19 @@ set the daemon's IP address.
 
 ```toml
 [general]
-# Uncomment to hide empty columns
-# auto_hide = true
+# Whether to hide empty columns or not
+# auto_hide = false
+
+# Possible values: Red, Green, Blue, Yellow, Magenta, Cyan.
+# Use prefix "Light" for a brighter color.
+# accent_color = "LightMagenta"
 
 [connection]
 url = "http://change_me:9091/transmission/rpc" # REQUIRED!
 
 # If you need username and password to authenticate:
-#username = "CHANGE_ME"
-#password = "CHANGE_ME"
+# username = "CHANGE_ME"
+# password = "CHANGE_ME"
 ```
 
 # Contributing

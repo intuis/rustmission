@@ -20,6 +20,7 @@ use self::{
 };
 
 pub struct MainWindow {
+    ctx: app::Ctx,
     tabs: TabComponent,
     torrents_tab: TorrentsTab,
     search_tab: tabs::search::SearchTab,
@@ -29,7 +30,8 @@ pub struct MainWindow {
 impl MainWindow {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
-            tabs: TabComponent::new(),
+            ctx: ctx.clone(),
+            tabs: TabComponent::new(ctx.clone()),
             torrents_tab: TorrentsTab::new(ctx.clone()),
             search_tab: tabs::search::SearchTab::new(ctx.clone()),
             popup: Popup::default(),
@@ -49,7 +51,7 @@ impl Component for MainWindow {
             if self.popup.help_popup.is_some() {
                 self.popup.help_popup = None;
             } else {
-                self.popup.help_popup = Some(HelpPopup);
+                self.popup.help_popup = Some(HelpPopup::new(self.ctx.clone()));
             }
             return Some(Action::Render);
         }

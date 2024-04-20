@@ -152,7 +152,9 @@ impl Component for SearchTab {
 
         let search_style = {
             if let SearchFocus::Search = self.search_focus {
-                Style::default().light_magenta().underlined()
+                Style::default()
+                    .underlined()
+                    .fg(self.ctx.config.general.accent_color.as_ratatui())
             } else {
                 Style::default().gray().underlined()
             }
@@ -183,9 +185,16 @@ impl Component for SearchTab {
             Constraint::Length(longest_title.unwrap_or(10) as u16), // Title
             Constraint::Length(8),                                  // Size
         ];
+
+        let table_higlight_style = Style::default().on_black().bold().fg(self
+            .ctx
+            .config
+            .general
+            .accent_color
+            .as_ratatui());
         let table = Table::new(items, widths)
             .header(header)
-            .highlight_style(Style::default().light_magenta().on_black().bold());
+            .highlight_style(table_higlight_style);
 
         f.render_stateful_widget(table, rest, &mut *table_lock.state.borrow_mut());
     }

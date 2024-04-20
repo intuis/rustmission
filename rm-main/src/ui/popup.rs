@@ -4,7 +4,7 @@ use ratatui::{
 };
 use ratatui_macros::constraints;
 
-use crate::action::Action;
+use crate::{action::Action, app};
 
 use super::{centered_rect, components::Component};
 
@@ -104,7 +104,15 @@ impl Component for ErrorPopup {
     }
 }
 
-pub(super) struct HelpPopup;
+pub(super) struct HelpPopup {
+    ctx: app::Ctx,
+}
+
+impl HelpPopup {
+    pub fn new(ctx: app::Ctx) -> Self {
+        Self { ctx }
+    }
+}
 
 impl Component for HelpPopup {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
@@ -119,9 +127,10 @@ impl Component for HelpPopup {
         let popup_rect = centered_rect.inner(&Margin::new(1, 1));
         let text_rect = popup_rect.inner(&Margin::new(3, 2));
 
+        let title_style = Style::new().fg(self.ctx.config.general.accent_color.as_ratatui());
         let block = Block::bordered()
             .border_set(symbols::border::ROUNDED)
-            .title_style(Style::new().light_magenta())
+            .title_style(title_style)
             .title(" Help ");
 
         let mut lines = vec![Line::from(vec![Span::styled(

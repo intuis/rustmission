@@ -163,12 +163,18 @@ impl Component for TorrentsTab {
             .iter()
             .map(crate::transmission::RustmissionTorrent::to_row);
 
-        let torrents_table = Table::new(torrent_rows, table_manager.widths)
+        let highlight_table_style = Style::default().on_black().bold().fg(self
+            .ctx
+            .config
+            .general
+            .accent_color
+            .as_ratatui());
+        let table = Table::new(torrent_rows, table_manager.widths)
             .header(Row::new(self.header().iter().map(|s| s.as_str())))
-            .highlight_style(Style::default().light_magenta().on_black().bold());
+            .highlight_style(highlight_table_style);
 
         f.render_stateful_widget(
-            torrents_table,
+            table,
             torrents_list_rect,
             &mut table_manager.table.lock().unwrap().state.borrow_mut(),
         );
@@ -216,7 +222,8 @@ impl Component for TorrentsTab {
             }
             A::ShowStats => {
                 if let Some(stats) = &*self.stats.stats.lock().unwrap() {
-                    self.statistics_popup = Some(StatisticsPopup::new(stats.clone()));
+                    self.statistics_popup =
+                        Some(StatisticsPopup::new(self.ctx.clone(), stats.clone()));
                     Some(Action::Render)
                 } else {
                     None

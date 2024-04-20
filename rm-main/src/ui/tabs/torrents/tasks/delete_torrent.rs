@@ -19,7 +19,9 @@ impl DeleteBar {
         Self {
             to_delete,
             ctx,
-            input_mgr: InputManager::new("Are you sure want to delete selected?: ".to_string()),
+            input_mgr: InputManager::new(
+                "Are you sure want to delete selected? (y/n): ".to_string(),
+            ),
         }
     }
 }

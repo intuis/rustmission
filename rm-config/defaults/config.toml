@@ -1,6 +1,10 @@
 [general]
-# Uncomment to hide empty columns
-# auto_hide = true
+# Whether to hide empty columns or not
+# auto_hide = false
+
+# Possible values: Red, Green, Blue, Yellow, Magenta, Cyan.
+# Use prefix "Light" for a brighter color.
+# accent_color = "LightMagenta"
 
 [connection]
 url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
