@@ -5,14 +5,9 @@ use ratatui::{
     widgets::{Clear, Paragraph},
 };
 
-use transmission_rpc::types::Torrent;
 use tui_input::{Input, InputRequest};
 
-use crate::{
-    action::Action,
-    app,
-    ui::components::{table::GenericTable, Component},
-};
+use crate::{action::Action, app, ui::components::Component};
 
 use super::{
     tasks::{add_magnet::AddMagnetBar, delete_torrent::DeleteBar, filter::FilterBar},
@@ -59,10 +54,8 @@ impl TaskManager {
                 Some(Action::SwitchToInputMode)
             }
             Action::Search => {
-                self.current_task = CurrentTask::FilterBar(FilterBar::new(
-                    self.ctx.clone(),
-                    self.table_manager.clone(),
-                ));
+                self.current_task =
+                    CurrentTask::FilterBar(FilterBar::new(self.table_manager.clone()));
                 Some(Action::SwitchToInputMode)
             }
             _ => None,

@@ -1,5 +1,7 @@
 pub mod popups;
+pub mod rustmission_torrent;
 mod stats;
+pub mod table_manager;
 pub mod task_manager;
 pub mod tasks;
 
@@ -7,20 +9,19 @@ use std::sync::{Arc, Mutex};
 
 use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
 
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
 use ratatui_macros::constraints;
-use transmission_rpc::types::{Torrent, TorrentStatus};
+use transmission_rpc::types::TorrentStatus;
 
 use crate::action::{Action, TorrentAction};
-use crate::transmission::RustmissionTorrent;
 use crate::ui::components::table::GenericTable;
 use crate::ui::components::Component;
 use crate::{app, transmission};
 
+use self::rustmission_torrent::RustmissionTorrent;
 use self::stats::StatsComponent;
+use self::table_manager::TableManager;
 use self::task_manager::TaskManager;
 
 pub struct TorrentsTab {
@@ -30,112 +31,6 @@ pub struct TorrentsTab {
     statistics_popup: Option<StatisticsPopup>,
     ctx: app::Ctx,
     header: Vec<String>,
-}
-
-pub struct TableManager {
-    ctx: app::Ctx,
-    table: Arc<Mutex<GenericTable<Torrent>>>,
-    rows: Vec<RustmissionTorrent>,
-    widths: [Constraint; 6],
-    filter: Arc<Mutex<Option<String>>>,
-}
-
-impl TableManager {
-    fn new(
-        ctx: app::Ctx,
-        table: Arc<Mutex<GenericTable<Torrent>>>,
-        rows: Vec<RustmissionTorrent>,
-    ) -> Self {
-        let widths = Self::default_widths();
-        TableManager {
-            ctx,
-            rows,
-            table,
-            widths,
-            filter: Arc::new(Mutex::new(None)),
-        }
-    }
-
-    fn default_widths() -> [Constraint; 6] {
-        [
-            Constraint::Max(70),    // Name
-            Constraint::Length(10), // Size
-            Constraint::Length(10), // Progress
-            Constraint::Length(10), // ETA
-            Constraint::Length(10), // Download
-            Constraint::Length(10), // Upload
-        ]
-    }
-
-    pub fn get_current_item(&self) -> Option<RustmissionTorrent> {
-        let matcher = SkimMatcherV2::default();
-        let index = {
-            if let Some(index) = self.table.lock().unwrap().state.borrow().selected() {
-                index
-            } else {
-                return None;
-            }
-        };
-
-        if let Some(filter) = &*self.filter.lock().unwrap() {
-            let filtered_rows: Vec<_> = self
-                .rows
-                .iter()
-                .filter(|row| matcher.fuzzy_match(&row.torrent_name, &filter).is_some())
-                .collect();
-            return filtered_rows.get(index).cloned().cloned();
-        }
-        self.rows.get(index).cloned()
-    }
-
-    pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
-        let matcher = SkimMatcherV2::default();
-        if let Some(filter) = &*self.filter.lock().unwrap() {
-            self.rows = rows
-                .into_iter()
-                .filter(|row| matcher.fuzzy_match(&row.torrent_name, &filter).is_some())
-                .collect();
-        } else {
-            self.rows = rows;
-        };
-        self.widths = self.header_widths(&self.rows);
-    }
-
-    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 6] {
-        if !self.ctx.config.general.auto_hide {
-            return Self::default_widths();
-        }
-
-        let mut download_width = 0;
-        let mut upload_width = 0;
-        let mut progress_width = 0;
-        let mut eta_width = 0;
-
-        for row in rows {
-            if !row.download_speed.is_empty() {
-                download_width = 9;
-            }
-            if !row.upload_speed.is_empty() {
-                upload_width = 9;
-            }
-            if !row.progress.is_empty() {
-                progress_width = 9;
-            }
-
-            if !row.eta_secs.is_empty() {
-                eta_width = 9;
-            }
-        }
-
-        [
-            Constraint::Max(70),                // Name
-            Constraint::Length(9),              // Size
-            Constraint::Length(progress_width), // Progress
-            Constraint::Length(eta_width),      // ETA
-            Constraint::Length(download_width), // Download
-            Constraint::Length(upload_width),   // Upload
-        ]
-    }
 }
 
 impl TorrentsTab {
@@ -195,10 +90,7 @@ impl Component for TorrentsTab {
         let torrent_rows: Vec<_> = rows
             .iter()
             .map(|torrent| {
-                crate::transmission::RustmissionTorrent::to_row(
-                    torrent,
-                    &table_manager.filter.lock().unwrap(),
-                )
+                RustmissionTorrent::to_row(torrent, &table_manager.filter.lock().unwrap())
             })
             .filter_map(|row| row)
             .collect();
