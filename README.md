@@ -52,6 +52,12 @@ url = "http://change_me:9091/transmission/rpc" # REQUIRED!
 # password = "CHANGE_ME"
 ```
 
-# Contributing
+## Alternatives
+- [Transgression](https://github.com/PanAeon/transg-tui)
+- [tremc](https://github.com/tremc/tremc)
+- [trt](https://github.com/murtaza-u/transmission-remote-tui)
+- [stig](https://github.com/rndusr/stig)
+
+## Contributing
 
 Contributions are welcome! If you'd like to contribute to Rustmission, please fork the repository, make your changes, and submit a pull request!
