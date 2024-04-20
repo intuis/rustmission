@@ -14,6 +14,7 @@ magnetease = "0.1"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 transmission-rpc = "0.4.2"
+fuzzy-matcher = "0.3.7"
 
 # Async
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }

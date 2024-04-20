@@ -47,6 +47,6 @@ impl Component for AddMagnetBar {
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        self.input.render(f, rect)
+        self.input.render(f, rect);
     }
 }

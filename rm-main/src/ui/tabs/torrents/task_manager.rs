@@ -14,20 +14,23 @@ use crate::{
     ui::components::{table::GenericTable, Component},
 };
 
-use super::tasks::{add_magnet::AddMagnetBar, delete_torrent::DeleteBar};
+use super::{
+    tasks::{add_magnet::AddMagnetBar, delete_torrent::DeleteBar, filter::FilterBar},
+    TableManager,
+};
 
 pub struct TaskManager {
     ctx: app::Ctx,
     current_task: CurrentTask,
-    table: Arc<Mutex<GenericTable<Torrent>>>,
+    table_manager: Arc<Mutex<TableManager>>,
 }
 
 impl TaskManager {
-    pub const fn new(table: Arc<Mutex<GenericTable<Torrent>>>, ctx: app::Ctx) -> Self {
+    pub const fn new(table_manager: Arc<Mutex<TableManager>>, ctx: app::Ctx) -> Self {
         Self {
             ctx,
             current_task: CurrentTask::None,
-            table,
+            table_manager,
         }
     }
 
@@ -42,6 +45,9 @@ impl TaskManager {
                 self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
                     self.ctx.clone(),
                     vec![self
+                        .table_manager
+                        .lock()
+                        .unwrap()
                         .table
                         .lock()
                         .unwrap()
@@ -49,6 +55,13 @@ impl TaskManager {
                         .unwrap()
                         .id()
                         .unwrap()],
+                ));
+                Some(Action::SwitchToInputMode)
+            }
+            Action::Search => {
+                self.current_task = CurrentTask::FilterBar(FilterBar::new(
+                    self.ctx.clone(),
+                    self.table_manager.clone(),
                 ));
                 Some(Action::SwitchToInputMode)
             }
@@ -66,6 +79,10 @@ impl TaskManager {
                 self.current_task = CurrentTask::None;
                 Some(Action::SwitchToNormalMode)
             }
+            CurrentTask::FilterBar(_) => {
+                self.current_task = CurrentTask::None;
+                Some(Action::SwitchToNormalMode)
+            }
             CurrentTask::None => None,
         }
     }
@@ -74,6 +91,7 @@ impl TaskManager {
 enum CurrentTask {
     AddMagnetBar(AddMagnetBar),
     DeleteBar(DeleteBar),
+    FilterBar(FilterBar),
     None,
 }
 
@@ -97,6 +115,14 @@ impl Component for TaskManager {
                 _ => None,
             },
 
+            CurrentTask::FilterBar(filter_bar) => match filter_bar.handle_actions(action) {
+                Some(Action::Quit) => self.finish_task(),
+
+                Some(Action::Render) => Some(Action::Render),
+
+                _ => None,
+            },
+
             CurrentTask::None => self.handle_events_to_self(&action),
         }
     }
@@ -105,6 +131,7 @@ impl Component for TaskManager {
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => magnet_bar.render(f, rect),
             CurrentTask::DeleteBar(delete_bar) => delete_bar.render(f, rect),
+            CurrentTask::FilterBar(filter_bar) => filter_bar.render(f, rect),
             CurrentTask::None => (),
         }
     }
@@ -120,6 +147,13 @@ impl InputManager {
         Self {
             prompt,
             input: Input::default(),
+        }
+    }
+
+    pub fn new_with_value(prompt: String, value: String) -> Self {
+        Self {
+            prompt,
+            input: Input::default().with_value(value),
         }
     }
 

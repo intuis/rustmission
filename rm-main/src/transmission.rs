@@ -1,12 +1,13 @@
 use std::{sync::Arc, time::Duration};
 
+use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{
     style::{Style, Stylize},
     widgets::Row,
 };
 use tokio::sync::mpsc::UnboundedReceiver;
 use transmission_rpc::types::{
-    SessionStats, Torrent, TorrentAddArgs, TorrentGetField, TorrentStatus,
+    Id, SessionStats, Torrent, TorrentAddArgs, TorrentGetField, TorrentStatus,
 };
 
 use transmission_rpc::types::TorrentAction as RPCAction;
@@ -72,6 +73,7 @@ pub async fn torrent_fetch(
     }
 }
 
+#[derive(Clone)]
 pub struct RustmissionTorrent {
     pub torrent_name: String,
     pub size_when_done: String,
@@ -81,23 +83,34 @@ pub struct RustmissionTorrent {
     pub upload_speed: String,
     pub status: TorrentStatus,
     pub style: Style,
+    pub id: Id,
 }
 
 impl RustmissionTorrent {
-    pub fn to_row(&self) -> ratatui::widgets::Row {
-        Row::new([
-            self.torrent_name.as_str(),
-            self.size_when_done.as_str(),
-            self.progress.as_str(),
-            self.eta_secs.as_str(),
-            self.download_speed.as_str(),
-            self.upload_speed.as_str(),
-        ])
-        .style(self.style)
+    pub fn to_row(&self, filter: &Option<String>) -> Option<ratatui::widgets::Row> {
+        if let Some(filter) = filter {
+            let matcher = SkimMatcherV2::default();
+            if !matcher.fuzzy_match(&self.torrent_name, filter).is_some() {
+                return None;
+            }
+        }
+        Some(
+            Row::new([
+                self.torrent_name.as_str(),
+                self.size_when_done.as_str(),
+                self.progress.as_str(),
+                self.eta_secs.as_str(),
+                self.download_speed.as_str(),
+                self.upload_speed.as_str(),
+            ])
+            .style(self.style),
+        )
     }
 }
 
-fn torrent_to_row(t: &Torrent) -> RustmissionTorrent {
+pub fn torrent_to_row(t: &Torrent) -> RustmissionTorrent {
+    let id = t.id().unwrap();
+
     let torrent_name = t.name.clone().unwrap();
 
     let size_when_done = bytes_to_human_format(t.size_when_done.expect("field requested"));
@@ -139,6 +152,7 @@ fn torrent_to_row(t: &Torrent) -> RustmissionTorrent {
         upload_speed,
         status,
         style,
+        id,
     }
 }
 
