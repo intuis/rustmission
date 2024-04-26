@@ -13,6 +13,7 @@ pub struct TableManager {
     pub rows: Vec<RustmissionTorrent>,
     pub widths: [Constraint; 6],
     pub filter: Arc<Mutex<Option<String>>>,
+    header: Vec<String>,
 }
 
 impl TableManager {
@@ -28,7 +29,19 @@ impl TableManager {
             table,
             widths,
             filter: Arc::new(Mutex::new(None)),
+            header: vec![
+                "Name".to_owned(),
+                "Size".to_owned(),
+                "Progress".to_owned(),
+                "ETA".to_owned(),
+                "Download".to_owned(),
+                "Upload".to_owned(),
+            ],
         }
+    }
+
+    pub fn header(&self) -> &Vec<String> {
+        &self.header
     }
 
     fn default_widths() -> [Constraint; 6] {
@@ -42,7 +55,7 @@ impl TableManager {
         ]
     }
 
-    pub fn get_current_item(&self) -> Option<RustmissionTorrent> {
+    pub fn current_item(&self) -> Option<RustmissionTorrent> {
         let matcher = SkimMatcherV2::default();
         let index = {
             if let Some(index) = self.table.lock().unwrap().state.borrow().selected() {
