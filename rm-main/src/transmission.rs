@@ -102,11 +102,19 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .await
                     .unwrap();
             }
-            TorrentAction::Delete(ids) => {
+            TorrentAction::DeleteWithFiles(ids) => {
                 ctx.client
                     .lock()
                     .await
                     .torrent_remove(*ids, true)
+                    .await
+                    .unwrap();
+            }
+            TorrentAction::DeleteWithoutFiles(ids) => {
+                ctx.client
+                    .lock()
+                    .await
+                    .torrent_remove(*ids, false)
                     .await
                     .unwrap();
             }

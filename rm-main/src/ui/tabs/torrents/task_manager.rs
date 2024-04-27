@@ -10,7 +10,11 @@ use tui_input::{Input, InputRequest};
 use crate::{action::Action, app, ui::components::Component};
 
 use super::{
-    tasks::{add_magnet::AddMagnetBar, delete_torrent::DeleteBar, filter::FilterBar},
+    tasks::{
+        add_magnet::AddMagnetBar,
+        delete_torrent::{DeleteBar, Mode},
+        filter::FilterBar,
+    },
     TableManager,
 };
 
@@ -36,7 +40,7 @@ impl TaskManager {
                 self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new(self.ctx.clone()));
                 Some(Action::SwitchToInputMode)
             }
-            Action::Delete => {
+            Action::DeleteWithFiles => {
                 self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
                     self.ctx.clone(),
                     vec![self
@@ -50,6 +54,25 @@ impl TaskManager {
                         .unwrap()
                         .id()
                         .unwrap()],
+                    Mode::WithFiles,
+                ));
+                Some(Action::SwitchToInputMode)
+            }
+            Action::DeleteWithoutFiles => {
+                self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
+                    self.ctx.clone(),
+                    vec![self
+                        .table_manager
+                        .lock()
+                        .unwrap()
+                        .table
+                        .lock()
+                        .unwrap()
+                        .current_item()
+                        .unwrap()
+                        .id()
+                        .unwrap()],
+                    Mode::WithoutFiles,
                 ));
                 Some(Action::SwitchToInputMode)
             }

@@ -8,7 +8,8 @@ pub(crate) enum TorrentAction {
     Add(Box<String>),
     Stop(Box<Vec<Id>>),
     Start(Box<Vec<Id>>),
-    Delete(Box<Vec<Id>>),
+    DeleteWithoutFiles(Box<Vec<Id>>),
+    DeleteWithFiles(Box<Vec<Id>>),
 }
 
 #[derive(Debug, Clone)]
@@ -22,7 +23,8 @@ pub(crate) enum Action {
     ShowStats,
     Search,
     Pause,
-    Delete,
+    DeleteWithoutFiles,
+    DeleteWithFiles,
     SwitchToInputMode,
     SwitchToNormalMode,
     ChangeFocus,
@@ -65,7 +67,8 @@ fn keycode_to_action(key: KeyEvent) -> Option<Action> {
         KeyCode::Char('/') => Some(Action::Search),
         KeyCode::Char('m') => Some(Action::AddMagnet),
         KeyCode::Char('p') => Some(Action::Pause),
-        KeyCode::Char('d') => Some(Action::Delete),
+        KeyCode::Char('d') => Some(Action::DeleteWithoutFiles),
+        KeyCode::Char('D') => Some(Action::DeleteWithFiles),
         KeyCode::Char(n @ '1'..='9') => {
             Some(Action::ChangeTab(n.to_digit(10).expect("This is ok") as u8))
         }
