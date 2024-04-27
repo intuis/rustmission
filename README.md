@@ -8,11 +8,11 @@
 
 ## Features
 
-- **Built-in Search**: Seamlessly search for torrents directly. This is a killer feature of Rustmission.
+- **Built-in Search**: Seamlessly search for magnets directly. This is a killer feature of Rustmission.
 - **Async Rust**: Utilizes Rust's async/await syntax for efficient, non-blocking IO operations.
-- **Basic Operations**: Allows to add, pause, remove torrents.
+- **Basic Operations**: Allows to add, pause, remove, fuzzy filter your torrents.
 
-## Installation TODO
+## Installation
 
 To install Rustmission, ensure you have Rust and Cargo installed on your system, and then run:
 
