@@ -51,7 +51,7 @@ impl TableManager {
         ]
     }
 
-    pub fn current_item(&self) -> Option<RustmissionTorrent> {
+    pub fn current_torrent(&self) -> Option<RustmissionTorrent> {
         let matcher = SkimMatcherV2::default();
         let index = {
             if let Some(index) = self.table.borrow().state.borrow().selected() {

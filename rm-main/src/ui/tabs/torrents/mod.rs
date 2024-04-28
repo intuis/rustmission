@@ -76,8 +76,6 @@ impl Component for TorrentsTab {
             })
             .filter_map(|row| row)
             .collect();
-        let torrent_rows = torrent_rows.clone();
-
         let torrents_len = torrent_rows.len();
         table_borrow.overwrite_len(torrents_len);
 
@@ -151,7 +149,7 @@ impl TorrentsTab {
 
     fn pause_current_torrent(&mut self) -> Option<Action> {
         let table_manager = self.table_manager.lock().unwrap();
-        if let Some(torrent) = table_manager.current_item() {
+        if let Some(torrent) = table_manager.current_torrent() {
             let torrent_id = torrent.id.clone();
             let torrent_status = torrent.status;
             match torrent_status {
