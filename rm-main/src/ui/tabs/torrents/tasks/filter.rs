@@ -44,19 +44,16 @@ impl Component for FilterBar {
 
                 if let Some(req) = to_input_request(input.code) {
                     self.input.handle(req);
-                    self.table_manager
-                        .lock()
-                        .unwrap()
+                    let table_manager_lock = self.table_manager.lock().unwrap();
+
+                    table_manager_lock
                         .filter
                         .lock()
                         .unwrap()
                         .replace(self.input.text());
-                    self.table_manager
-                        .lock()
-                        .unwrap()
+                    table_manager_lock
                         .table
-                        .lock()
-                        .unwrap()
+                        .borrow()
                         .state
                         .borrow_mut()
                         .select(Some(0));

@@ -175,7 +175,7 @@ impl Component for SearchTab {
         let header = Row::new(["S", "Title", "Size"]);
 
         let table_lock = self.table.lock().unwrap();
-        let table_items = &table_lock.items.lock().unwrap();
+        let table_items = &table_lock.items;
 
         let longest_title = table_items.iter().map(|magnet| magnet.title.len()).max();
         let items = table_items.iter().map(Self::magnet_to_row);

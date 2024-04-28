@@ -1,7 +1,9 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::prelude::*;
-use std::sync::{Arc, Mutex};
-use transmission_rpc::types::Torrent;
+use std::{
+    cell::RefCell,
+    sync::{Arc, Mutex},
+};
 
 use crate::{app, ui::components::table::GenericTable};
 
@@ -9,24 +11,18 @@ use super::rustmission_torrent::RustmissionTorrent;
 
 pub struct TableManager {
     ctx: app::Ctx,
-    pub table: Arc<Mutex<GenericTable<Torrent>>>,
-    pub rows: Vec<RustmissionTorrent>,
+    pub table: RefCell<GenericTable<RustmissionTorrent>>,
     pub widths: [Constraint; 6],
     pub filter: Arc<Mutex<Option<String>>>,
     header: Vec<String>,
 }
 
 impl TableManager {
-    pub fn new(
-        ctx: app::Ctx,
-        table: Arc<Mutex<GenericTable<Torrent>>>,
-        rows: Vec<RustmissionTorrent>,
-    ) -> Self {
+    pub fn new(ctx: app::Ctx, table: GenericTable<RustmissionTorrent>) -> Self {
         let widths = Self::default_widths();
         TableManager {
             ctx,
-            rows,
-            table,
+            table: table.into(),
             widths,
             filter: Arc::new(Mutex::new(None)),
             header: vec![
@@ -58,7 +54,7 @@ impl TableManager {
     pub fn current_item(&self) -> Option<RustmissionTorrent> {
         let matcher = SkimMatcherV2::default();
         let index = {
-            if let Some(index) = self.table.lock().unwrap().state.borrow().selected() {
+            if let Some(index) = self.table.borrow().state.borrow().selected() {
                 index
             } else {
                 return None;
@@ -66,19 +62,20 @@ impl TableManager {
         };
 
         if let Some(filter) = &*self.filter.lock().unwrap() {
-            let filtered_rows: Vec<_> = self
-                .rows
+            let table_borrow = self.table.borrow();
+            let filtered_rows: Vec<_> = table_borrow
+                .items
                 .iter()
                 .filter(|row| matcher.fuzzy_match(&row.torrent_name, &filter).is_some())
                 .collect();
             return filtered_rows.get(index).cloned().cloned();
         }
-        self.rows.get(index).cloned()
+        self.table.borrow().items.get(index).cloned()
     }
 
     pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
-        self.rows = rows;
-        self.widths = self.header_widths(&self.rows);
+        self.table.borrow_mut().items = rows;
+        self.widths = self.header_widths(&self.table.borrow().items);
     }
 
     fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 6] {

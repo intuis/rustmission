@@ -28,11 +28,7 @@ pub async fn stats_fetch(ctx: app::Ctx, stats: Arc<std::sync::Mutex<Option<Sessi
     }
 }
 
-pub async fn torrent_fetch(
-    ctx: app::Ctx,
-    torrents: Arc<std::sync::Mutex<Vec<Torrent>>>,
-    table_manager: Arc<std::sync::Mutex<TableManager>>,
-) {
+pub async fn torrent_fetch(ctx: app::Ctx, table_manager: Arc<std::sync::Mutex<TableManager>>) {
     loop {
         let fields = vec![
             TorrentGetField::Id,
@@ -56,13 +52,15 @@ pub async fn torrent_fetch(
             .unwrap();
 
         let new_torrents = rpc_response.arguments.torrents;
-        table_manager
-            .lock()
-            .unwrap()
-            .set_new_rows(new_torrents.iter().map(RustmissionTorrent::from).collect());
-        *torrents.lock().unwrap() = new_torrents;
-        ctx.send_action(Action::Render);
 
+        {
+            let mut table_manager_lock = table_manager.lock().unwrap();
+            table_manager_lock
+                .set_new_rows(new_torrents.iter().map(RustmissionTorrent::from).collect());
+            // If Rustmission is working as expected, remove this comment
+            // table_manager_lock.table.set_items(new_torrents);
+        }
+        ctx.send_action(Action::Render);
         tokio::time::sleep(Duration::from_secs(3)).await;
     }
 }

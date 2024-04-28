@@ -43,17 +43,16 @@ impl TaskManager {
             Action::DeleteWithFiles => {
                 self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
                     self.ctx.clone(),
-                    vec![self
-                        .table_manager
-                        .lock()
-                        .unwrap()
-                        .table
-                        .lock()
-                        .unwrap()
-                        .current_item()
-                        .unwrap()
-                        .id()
-                        .unwrap()],
+                    vec![
+                        self.table_manager
+                            .lock()
+                            .unwrap()
+                            .table
+                            .borrow()
+                            .current_item()
+                            .unwrap()
+                            .id,
+                    ],
                     Mode::WithFiles,
                 ));
                 Some(Action::SwitchToInputMode)
@@ -61,17 +60,16 @@ impl TaskManager {
             Action::DeleteWithoutFiles => {
                 self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
                     self.ctx.clone(),
-                    vec![self
-                        .table_manager
-                        .lock()
-                        .unwrap()
-                        .table
-                        .lock()
-                        .unwrap()
-                        .current_item()
-                        .unwrap()
-                        .id()
-                        .unwrap()],
+                    vec![
+                        self.table_manager
+                            .lock()
+                            .unwrap()
+                            .table
+                            .borrow()
+                            .current_item()
+                            .unwrap()
+                            .id,
+                    ],
                     Mode::WithoutFiles,
                 ));
                 Some(Action::SwitchToInputMode)

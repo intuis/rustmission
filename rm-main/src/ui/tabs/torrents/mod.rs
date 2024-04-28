@@ -36,14 +36,9 @@ pub struct TorrentsTab {
 impl TorrentsTab {
     pub fn new(ctx: app::Ctx) -> Self {
         let stats = StatsComponent::default();
-        let table = Arc::new(Mutex::new(GenericTable::new(vec![])));
-        let rows = vec![];
+        let table = GenericTable::new(vec![]);
 
-        let table_manager = Arc::new(Mutex::new(TableManager::new(
-            ctx.clone(),
-            Arc::clone(&table),
-            rows,
-        )));
+        let table_manager = Arc::new(Mutex::new(TableManager::new(ctx.clone(), table)));
 
         tokio::spawn(transmission::stats_fetch(
             ctx.clone(),
@@ -52,7 +47,6 @@ impl TorrentsTab {
 
         tokio::spawn(transmission::torrent_fetch(
             ctx.clone(),
-            Arc::clone(&table.lock().unwrap().items),
             Arc::clone(&table_manager),
         ));
 
@@ -71,23 +65,21 @@ impl Component for TorrentsTab {
         let [torrents_list_rect, stats_rect] =
             Layout::vertical(constraints![>=10, ==1]).areas(rect);
 
-        let table_manager = &self.table_manager.lock().unwrap();
+        let table_manager_lock = &mut *self.table_manager.lock().unwrap();
+        let table_borrow = table_manager_lock.table.borrow();
 
-        let rows = &table_manager.rows;
-
-        let torrent_rows: Vec<_> = rows
+        let torrent_rows: Vec<_> = table_borrow
+            .items
             .iter()
             .map(|torrent| {
-                RustmissionTorrent::to_row(torrent, &table_manager.filter.lock().unwrap())
+                RustmissionTorrent::to_row(torrent, &table_manager_lock.filter.lock().unwrap())
             })
             .filter_map(|row| row)
             .collect();
+        let torrent_rows = torrent_rows.clone();
 
-        table_manager
-            .table
-            .lock()
-            .unwrap()
-            .overwrite_len(torrent_rows.len());
+        let torrents_len = torrent_rows.len();
+        table_borrow.overwrite_len(torrents_len);
 
         let highlight_table_style = Style::default().on_black().bold().fg(self
             .ctx
@@ -95,14 +87,16 @@ impl Component for TorrentsTab {
             .general
             .accent_color
             .as_ratatui());
-        let table = Table::new(torrent_rows, table_manager.widths)
-            .header(Row::new(table_manager.header().iter().map(|s| s.as_str())))
+        let table = Table::new(torrent_rows, table_manager_lock.widths)
+            .header(Row::new(
+                table_manager_lock.header().iter().map(|s| s.as_str()),
+            ))
             .highlight_style(highlight_table_style);
 
         f.render_stateful_widget(
             table,
             torrents_list_rect,
-            &mut table_manager.table.lock().unwrap().state.borrow_mut(),
+            &mut table_manager_lock.table.borrow().state.borrow_mut(),
         );
 
         self.stats.render(f, stats_rect);
@@ -145,20 +139,13 @@ impl TorrentsTab {
             .lock()
             .unwrap()
             .table
-            .lock()
-            .unwrap()
+            .borrow_mut()
             .previous();
         Some(Action::Render)
     }
 
     fn next_torrent(&self) -> Option<Action> {
-        self.table_manager
-            .lock()
-            .unwrap()
-            .table
-            .lock()
-            .unwrap()
-            .next();
+        self.table_manager.lock().unwrap().table.borrow_mut().next();
         Some(Action::Render)
     }
 

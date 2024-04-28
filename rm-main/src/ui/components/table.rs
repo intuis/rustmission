@@ -1,45 +1,40 @@
-use std::{
-    cell::RefCell,
-    sync::{Arc, Mutex},
-};
+use std::cell::RefCell;
 
 use ratatui::widgets::TableState;
 
 pub struct GenericTable<T: Clone> {
     pub state: RefCell<TableState>,
-    pub items: Arc<Mutex<Vec<T>>>,
-    pub overwritten_len: Option<usize>,
+    pub items: Vec<T>,
+    pub overwritten_len: RefCell<Option<usize>>,
 }
 
 impl<T: Clone> GenericTable<T> {
     pub fn new(items: Vec<T>) -> Self {
-        let items = Arc::new(Mutex::new(items));
-
         Self {
             state: RefCell::new(TableState::new().with_selected(Some(0))),
             items,
-            overwritten_len: None,
+            overwritten_len: RefCell::new(None),
         }
     }
 
     fn get_len(&self) -> usize {
-        if let Some(len) = self.overwritten_len {
+        if let Some(len) = *self.overwritten_len.borrow() {
             len
         } else {
-            self.items.lock().unwrap().len()
+            self.items.len()
         }
     }
 
-    pub fn overwrite_len(&mut self, len: usize) {
-        self.overwritten_len = Some(len);
+    pub fn overwrite_len(&self, len: usize) {
+        *self.overwritten_len.borrow_mut() = Some(len);
     }
 
     pub fn set_items(&mut self, items: Vec<T>) {
-        *self.items.lock().unwrap() = items;
+        self.items = items;
     }
 
     pub fn current_item(&self) -> Option<T> {
-        let items = self.items.lock().unwrap();
+        let items = &self.items;
         let selected = self.state.borrow().selected()?;
         items.get(selected).cloned()
     }
