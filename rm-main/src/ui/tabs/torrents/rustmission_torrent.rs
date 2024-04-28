@@ -1,4 +1,3 @@
-use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{
     style::{Style, Stylize},
     widgets::Row,
@@ -21,24 +20,16 @@ pub struct RustmissionTorrent {
 }
 
 impl RustmissionTorrent {
-    pub fn to_row(&self, filter: &Option<String>) -> Option<ratatui::widgets::Row> {
-        if let Some(filter) = filter {
-            let matcher = SkimMatcherV2::default();
-            if !matcher.fuzzy_match(&self.torrent_name, filter).is_some() {
-                return None;
-            }
-        }
-        Some(
-            Row::new([
-                self.torrent_name.as_str(),
-                self.size_when_done.as_str(),
-                self.progress.as_str(),
-                self.eta_secs.as_str(),
-                self.download_speed.as_str(),
-                self.upload_speed.as_str(),
-            ])
-            .style(self.style),
-        )
+    pub fn to_row(&self) -> ratatui::widgets::Row {
+        Row::new([
+            self.torrent_name.as_str(),
+            self.size_when_done.as_str(),
+            self.progress.as_str(),
+            self.eta_secs.as_str(),
+            self.download_speed.as_str(),
+            self.upload_speed.as_str(),
+        ])
+        .style(self.style)
     }
 }
 

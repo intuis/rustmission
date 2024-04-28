@@ -9,6 +9,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
 
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
 use ratatui_macros::constraints;
@@ -26,11 +28,11 @@ use self::table_manager::TableManager;
 use self::task_manager::TaskManager;
 
 pub struct TorrentsTab {
-    table_manager: Arc<Mutex<TableManager>>,
-    stats: StatsComponent,
-    task: TaskManager,
-    popup_manager: PopupManager,
     ctx: app::Ctx,
+    table_manager: Arc<Mutex<TableManager>>,
+    popup_manager: PopupManager,
+    task_manager: TaskManager,
+    stats: StatsComponent,
 }
 
 impl TorrentsTab {
@@ -52,7 +54,7 @@ impl TorrentsTab {
 
         Self {
             stats,
-            task: TaskManager::new(table_manager.clone(), ctx.clone()),
+            task_manager: TaskManager::new(table_manager.clone(), ctx.clone()),
             table_manager,
             popup_manager: PopupManager::new(),
             ctx,
@@ -65,41 +67,11 @@ impl Component for TorrentsTab {
         let [torrents_list_rect, stats_rect] =
             Layout::vertical(constraints![>=10, ==1]).areas(rect);
 
-        let table_manager_lock = &mut *self.table_manager.lock().unwrap();
-        let table_borrow = table_manager_lock.table.borrow();
-
-        let torrent_rows: Vec<_> = table_borrow
-            .items
-            .iter()
-            .map(|torrent| {
-                RustmissionTorrent::to_row(torrent, &table_manager_lock.filter.lock().unwrap())
-            })
-            .filter_map(|row| row)
-            .collect();
-        let torrents_len = torrent_rows.len();
-        table_borrow.overwrite_len(torrents_len);
-
-        let highlight_table_style = Style::default().on_black().bold().fg(self
-            .ctx
-            .config
-            .general
-            .accent_color
-            .as_ratatui());
-        let table = Table::new(torrent_rows, table_manager_lock.widths)
-            .header(Row::new(
-                table_manager_lock.header().iter().map(|s| s.as_str()),
-            ))
-            .highlight_style(highlight_table_style);
-
-        f.render_stateful_widget(
-            table,
-            torrents_list_rect,
-            &mut table_manager_lock.table.borrow().state.borrow_mut(),
-        );
+        self.render_table(f, torrents_list_rect);
 
         self.stats.render(f, stats_rect);
 
-        self.task.render(f, stats_rect);
+        self.task_manager.render(f, stats_rect);
 
         self.popup_manager.render(f, f.size());
     }
@@ -116,12 +88,58 @@ impl Component for TorrentsTab {
             A::Down => self.next_torrent(),
             A::ShowStats => self.show_statistics_popup(),
             A::Pause => self.pause_current_torrent(),
-            other => self.task.handle_actions(other),
+            other => self.task_manager.handle_actions(other),
         }
     }
 }
 
-impl TorrentsTab {
+impl<'a> TorrentsTab {
+    fn render_table(&mut self, f: &mut Frame, rect: Rect) {
+        let table_manager_lock = &mut *self.table_manager.lock().unwrap();
+        let table_borrow = table_manager_lock.table.borrow();
+
+        let torrents = &table_borrow.items;
+        let torrent_rows: Vec<_> = if let Some(filter) = &*table_manager_lock.filter.lock().unwrap()
+        {
+            let torrent_rows = Self::filtered_torrents_rows(torrents, filter);
+            table_borrow.overwrite_len(torrent_rows.len());
+            torrent_rows
+        } else {
+            torrents.iter().map(RustmissionTorrent::to_row).collect()
+        };
+
+        let highlight_table_style = Style::default().on_black().bold().fg(self
+            .ctx
+            .config
+            .general
+            .accent_color
+            .as_ratatui());
+
+        let table_widget = Table::new(torrent_rows, table_manager_lock.widths)
+            .header(Row::new(
+                table_manager_lock.header().iter().map(|s| s.as_str()),
+            ))
+            .highlight_style(highlight_table_style);
+
+        f.render_stateful_widget(
+            table_widget,
+            rect,
+            &mut table_manager_lock.table.borrow().state.borrow_mut(),
+        );
+    }
+
+    fn filtered_torrents_rows(
+        torrents: &'a Vec<RustmissionTorrent>,
+        filter: &str,
+    ) -> Vec<ratatui::widgets::Row<'a>> {
+        let matcher = SkimMatcherV2::default();
+        torrents
+            .iter()
+            .filter(|t| matcher.fuzzy_match(&t.torrent_name, filter).is_some())
+            .map(RustmissionTorrent::to_row)
+            .collect()
+    }
+
     fn show_statistics_popup(&mut self) -> Option<Action> {
         if let Some(stats) = &*self.stats.stats.lock().unwrap() {
             let popup = StatisticsPopup::new(self.ctx.clone(), stats.clone());

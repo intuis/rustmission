@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use tokio::sync::mpsc::UnboundedReceiver;
-use transmission_rpc::types::{SessionStats, Torrent, TorrentAddArgs, TorrentGetField};
+use transmission_rpc::types::{SessionStats, TorrentAddArgs, TorrentGetField};
 
 use transmission_rpc::types::TorrentAction as RPCAction;
 
@@ -57,8 +57,6 @@ pub async fn torrent_fetch(ctx: app::Ctx, table_manager: Arc<std::sync::Mutex<Ta
             let mut table_manager_lock = table_manager.lock().unwrap();
             table_manager_lock
                 .set_new_rows(new_torrents.iter().map(RustmissionTorrent::from).collect());
-            // If Rustmission is working as expected, remove this comment
-            // table_manager_lock.table.set_items(new_torrents);
         }
         ctx.send_action(Action::Render);
         tokio::time::sleep(Duration::from_secs(3)).await;
