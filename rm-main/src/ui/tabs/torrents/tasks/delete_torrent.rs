@@ -52,12 +52,12 @@ impl Component for DeleteBar {
                         let torrents_to_delete = self.torrents_to_delete.clone();
                         match self.mode {
                             Mode::WithFiles => self.ctx.send_torrent_action(
-                                TorrentAction::DeleteWithFiles(Box::new(torrents_to_delete)),
+                                TorrentAction::DeleteWithFiles(torrents_to_delete),
                             ),
                             Mode::WithoutFiles => {
                                 self.ctx
                                     .send_torrent_action(TorrentAction::DeleteWithoutFiles(
-                                        Box::new(torrents_to_delete),
+                                        torrents_to_delete,
                                     ))
                             }
                         }

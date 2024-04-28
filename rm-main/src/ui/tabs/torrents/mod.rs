@@ -129,7 +129,7 @@ impl<'a> TorrentsTab {
     }
 
     fn filtered_torrents_rows(
-        torrents: &'a Vec<RustmissionTorrent>,
+        torrents: &'a [RustmissionTorrent],
         filter: &str,
     ) -> Vec<ratatui::widgets::Row<'a>> {
         let matcher = SkimMatcherV2::default();
@@ -173,11 +173,11 @@ impl<'a> TorrentsTab {
             match torrent_status {
                 TorrentStatus::Stopped => {
                     self.ctx
-                        .send_torrent_action(TorrentAction::Start(Box::new(vec![torrent_id])));
+                        .send_torrent_action(TorrentAction::Start(vec![torrent_id]));
                 }
                 _ => {
                     self.ctx
-                        .send_torrent_action(TorrentAction::Stop(Box::new(vec![torrent_id])));
+                        .send_torrent_action(TorrentAction::Stop(vec![torrent_id]));
                 }
             }
         }

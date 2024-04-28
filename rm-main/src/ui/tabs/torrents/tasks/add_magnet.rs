@@ -29,7 +29,7 @@ impl Component for AddMagnetBar {
             Action::Input(input) => {
                 if input.code == KeyCode::Enter {
                     self.ctx
-                        .send_torrent_action(TorrentAction::Add(Box::new(self.input.text())));
+                        .send_torrent_action(TorrentAction::Add(self.input.text()));
                     return Some(Action::Quit);
                 }
                 if input.code == KeyCode::Esc {

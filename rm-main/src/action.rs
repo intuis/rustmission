@@ -5,11 +5,11 @@ use crate::{tui::Event, ui::popup::ErrorPopup};
 
 #[derive(Debug, Clone)]
 pub(crate) enum TorrentAction {
-    Add(Box<String>),
-    Stop(Box<Vec<Id>>),
-    Start(Box<Vec<Id>>),
-    DeleteWithoutFiles(Box<Vec<Id>>),
-    DeleteWithFiles(Box<Vec<Id>>),
+    Add(String),
+    Stop(Vec<Id>),
+    Start(Vec<Id>),
+    DeleteWithoutFiles(Vec<Id>),
+    DeleteWithFiles(Vec<Id>),
 }
 
 #[derive(Debug, Clone)]

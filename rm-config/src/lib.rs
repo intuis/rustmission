@@ -41,6 +41,7 @@ pub enum Color {
 }
 
 impl Color {
+    #[must_use]
     pub fn as_ratatui(&self) -> ratatui::style::Color {
         use ratatui::style::Color as RColor;
         use Color::*;
@@ -80,22 +81,19 @@ static CONFIG_PATH: OnceLock<PathBuf> = OnceLock::new();
 
 impl Config {
     pub fn init() -> Result<Self> {
-        let table = match Self::table_from_home() {
-            Ok(table) => table,
-            Err(_) => {
-                Self::put_default_conf_in_home()?;
-                // TODO: check if the user really changed the config.
-                println!(
-                    "Update {:?} and start rustmission again",
-                    Self::get_config_path()
-                );
-                std::process::exit(0);
-            }
+        let Ok(table) = Self::table_from_home() else {
+            Self::put_default_conf_in_home()?;
+            // TODO: check if the user really changed the config.
+            println!(
+                "Update {:?} and start rustmission again",
+                Self::get_config_path()
+            );
+            std::process::exit(0);
         };
 
         Self::table_config_verify(&table)?;
 
-        Self::table_to_config(table)
+        Self::table_to_config(&table)
     }
 
     fn table_from_home() -> Result<Table> {
@@ -117,7 +115,7 @@ impl Config {
         Ok(toml::from_str(DEFAULT_CONFIG)?)
     }
 
-    fn table_to_config(table: Table) -> Result<Self> {
+    fn table_to_config(table: &Table) -> Result<Self> {
         let config_string = table.to_string();
         let config: Config = toml::from_str(&config_string)?;
         Ok(config)

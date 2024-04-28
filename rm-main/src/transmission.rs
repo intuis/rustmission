@@ -68,7 +68,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
         match action {
             TorrentAction::Add(ref url) => {
                 let args = TorrentAddArgs {
-                    filename: Some(*url.clone()),
+                    filename: Some(url.clone()),
                     ..Default::default()
                 };
 
@@ -86,7 +86,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                 ctx.client
                     .lock()
                     .await
-                    .torrent_action(RPCAction::Stop, *ids.clone())
+                    .torrent_action(RPCAction::Stop, ids.clone())
                     .await
                     .unwrap();
             }
@@ -94,7 +94,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                 ctx.client
                     .lock()
                     .await
-                    .torrent_action(RPCAction::Start, *ids.clone())
+                    .torrent_action(RPCAction::Start, ids.clone())
                     .await
                     .unwrap();
             }
@@ -102,7 +102,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                 ctx.client
                     .lock()
                     .await
-                    .torrent_remove(*ids, true)
+                    .torrent_remove(ids, true)
                     .await
                     .unwrap();
             }
@@ -110,7 +110,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                 ctx.client
                     .lock()
                     .await
-                    .torrent_remove(*ids, false)
+                    .torrent_remove(ids, false)
                     .await
                     .unwrap();
             }

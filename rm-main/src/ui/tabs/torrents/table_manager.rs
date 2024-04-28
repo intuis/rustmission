@@ -53,20 +53,14 @@ impl TableManager {
 
     pub fn current_torrent(&self) -> Option<RustmissionTorrent> {
         let matcher = SkimMatcherV2::default();
-        let index = {
-            if let Some(index) = self.table.borrow().state.borrow().selected() {
-                index
-            } else {
-                return None;
-            }
-        };
+        let index = self.table.borrow().state.borrow().selected()?;
 
         if let Some(filter) = &*self.filter.lock().unwrap() {
             let table_borrow = self.table.borrow();
             let filtered_rows: Vec<_> = table_borrow
                 .items
                 .iter()
-                .filter(|row| matcher.fuzzy_match(&row.torrent_name, &filter).is_some())
+                .filter(|row| matcher.fuzzy_match(&row.torrent_name, filter).is_some())
                 .collect();
             return filtered_rows.get(index).cloned().cloned();
         }
