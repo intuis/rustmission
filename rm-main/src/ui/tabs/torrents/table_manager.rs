@@ -77,15 +77,7 @@ impl TableManager {
     }
 
     pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
-        let matcher = SkimMatcherV2::default();
-        if let Some(filter) = &*self.filter.lock().unwrap() {
-            self.rows = rows
-                .into_iter()
-                .filter(|row| matcher.fuzzy_match(&row.torrent_name, &filter).is_some())
-                .collect();
-        } else {
-            self.rows = rows;
-        };
+        self.rows = rows;
         self.widths = self.header_widths(&self.rows);
     }
 
