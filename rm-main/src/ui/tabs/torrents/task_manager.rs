@@ -12,7 +12,7 @@ use crate::{action::Action, app, ui::components::Component};
 use super::{
     tasks::{
         add_magnet::AddMagnetBar,
-        delete_torrent::{DeleteBar, Mode},
+        delete_torrent::{self, DeleteBar},
         filter::FilterBar,
     },
     TableManager,
@@ -34,52 +34,30 @@ impl TaskManager {
     }
 
     #[must_use]
-    fn handle_events_to_self(&mut self, action: &Action) -> Option<Action> {
+    fn handle_events_to_manager(&mut self, action: &Action) -> Option<Action> {
         match action {
             Action::AddMagnet => {
                 self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new(self.ctx.clone()));
                 Some(Action::SwitchToInputMode)
             }
-            Action::DeleteWithFiles => {
-                self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
-                    self.ctx.clone(),
-                    vec![
-                        self.table_manager
-                            .lock()
-                            .unwrap()
-                            .table
-                            .borrow()
-                            .current_item()
-                            .unwrap()
-                            .id,
-                    ],
-                    Mode::WithFiles,
-                ));
-                Some(Action::SwitchToInputMode)
-            }
-            Action::DeleteWithoutFiles => {
-                self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
-                    self.ctx.clone(),
-                    vec![
-                        self.table_manager
-                            .lock()
-                            .unwrap()
-                            .table
-                            .borrow()
-                            .current_item()
-                            .unwrap()
-                            .id,
-                    ],
-                    Mode::WithoutFiles,
-                ));
-                Some(Action::SwitchToInputMode)
-            }
+            Action::DeleteWithFiles => self.delete_torrent(delete_torrent::Mode::WithFiles),
+            Action::DeleteWithoutFiles => self.delete_torrent(delete_torrent::Mode::WithoutFiles),
             Action::Search => {
                 self.current_task =
                     CurrentTask::FilterBar(FilterBar::new(self.table_manager.clone()));
                 Some(Action::SwitchToInputMode)
             }
             _ => None,
+        }
+    }
+
+    fn delete_torrent(&mut self, mode: delete_torrent::Mode) -> Option<Action> {
+        if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
+            self.current_task =
+                CurrentTask::DeleteBar(DeleteBar::new(self.ctx.clone(), vec![torrent.id], mode));
+            Some(Action::SwitchToInputMode)
+        } else {
+            None
         }
     }
 
@@ -115,29 +93,23 @@ impl Component for TaskManager {
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
                 Some(Action::Quit) => self.finish_task(),
-
                 Some(Action::Render) => Some(Action::Render),
-
                 _ => None,
             },
 
             CurrentTask::DeleteBar(delete_bar) => match delete_bar.handle_actions(action) {
                 Some(Action::Quit) => self.finish_task(),
-
                 Some(Action::Render) => Some(Action::Render),
-
                 _ => None,
             },
 
             CurrentTask::FilterBar(filter_bar) => match filter_bar.handle_actions(action) {
                 Some(Action::Quit) => self.finish_task(),
-
                 Some(Action::Render) => Some(Action::Render),
-
                 _ => None,
             },
 
-            CurrentTask::None => self.handle_events_to_self(&action),
+            CurrentTask::None => self.handle_events_to_manager(&action),
         }
     }
 
