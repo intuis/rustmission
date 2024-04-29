@@ -1,11 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use ratatui::{
-    prelude::*,
-    widgets::{Clear, Paragraph},
-};
-
-use tui_input::{Input, InputRequest};
+use ratatui::prelude::*;
 
 use crate::{action::Action, app, ui::components::Component};
 
@@ -30,52 +25,6 @@ impl TaskManager {
             ctx,
             current_task: CurrentTask::None,
             table_manager,
-        }
-    }
-
-    #[must_use]
-    fn handle_events_to_manager(&mut self, action: &Action) -> Option<Action> {
-        match action {
-            Action::AddMagnet => {
-                self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new(self.ctx.clone()));
-                Some(Action::SwitchToInputMode)
-            }
-            Action::DeleteWithFiles => self.delete_torrent(delete_torrent::Mode::WithFiles),
-            Action::DeleteWithoutFiles => self.delete_torrent(delete_torrent::Mode::WithoutFiles),
-            Action::Search => {
-                self.current_task =
-                    CurrentTask::FilterBar(FilterBar::new(self.table_manager.clone()));
-                Some(Action::SwitchToInputMode)
-            }
-            _ => None,
-        }
-    }
-
-    fn delete_torrent(&mut self, mode: delete_torrent::Mode) -> Option<Action> {
-        if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
-            self.current_task =
-                CurrentTask::DeleteBar(DeleteBar::new(self.ctx.clone(), vec![torrent.id], mode));
-            Some(Action::SwitchToInputMode)
-        } else {
-            None
-        }
-    }
-
-    fn finish_task(&mut self) -> Option<Action> {
-        match self.current_task {
-            CurrentTask::AddMagnetBar(_) => {
-                self.current_task = CurrentTask::None;
-                Some(Action::SwitchToNormalMode)
-            }
-            CurrentTask::DeleteBar(_) => {
-                self.current_task = CurrentTask::None;
-                Some(Action::SwitchToNormalMode)
-            }
-            CurrentTask::FilterBar(_) => {
-                self.current_task = CurrentTask::None;
-                Some(Action::SwitchToNormalMode)
-            }
-            CurrentTask::None => None,
         }
     }
 }
@@ -123,52 +72,50 @@ impl Component for TaskManager {
     }
 }
 
-pub struct InputManager {
-    input: Input,
-    prompt: String,
-}
-
-impl InputManager {
-    pub fn new(prompt: String) -> Self {
-        Self {
-            prompt,
-            input: Input::default(),
+impl TaskManager {
+    #[must_use]
+    fn handle_events_to_manager(&mut self, action: &Action) -> Option<Action> {
+        match action {
+            Action::AddMagnet => {
+                self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new(self.ctx.clone()));
+                Some(Action::SwitchToInputMode)
+            }
+            Action::DeleteWithFiles => self.delete_torrent(delete_torrent::Mode::WithFiles),
+            Action::DeleteWithoutFiles => self.delete_torrent(delete_torrent::Mode::WithoutFiles),
+            Action::Search => {
+                self.current_task =
+                    CurrentTask::FilterBar(FilterBar::new(self.table_manager.clone()));
+                Some(Action::SwitchToInputMode)
+            }
+            _ => None,
         }
     }
 
-    pub fn new_with_value(prompt: String, value: String) -> Self {
-        Self {
-            prompt,
-            input: Input::default().with_value(value),
+    fn delete_torrent(&mut self, mode: delete_torrent::Mode) -> Option<Action> {
+        if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
+            self.current_task =
+                CurrentTask::DeleteBar(DeleteBar::new(self.ctx.clone(), vec![torrent.id], mode));
+            Some(Action::SwitchToInputMode)
+        } else {
+            None
         }
     }
 
-    pub fn text(&self) -> String {
-        self.input.to_string()
-    }
-
-    pub fn handle(&mut self, req: InputRequest) {
-        self.input.handle(req);
-    }
-}
-
-impl Component for InputManager {
-    fn handle_actions(&mut self, _action: Action) -> Option<Action> {
-        None
-    }
-
-    fn render(&mut self, f: &mut Frame, rect: Rect) {
-        f.render_widget(Clear, rect);
-
-        let paragraph_text = format!("{}{}", self.prompt, self.text());
-
-        let input = self.input.to_string();
-        let prefix_len = paragraph_text.len() - input.len();
-
-        let paragraph = Paragraph::new(paragraph_text);
-        f.render_widget(paragraph, rect);
-
-        let cursor_offset = self.input.visual_cursor() + prefix_len;
-        f.set_cursor(rect.x + u16::try_from(cursor_offset).unwrap(), rect.y);
+    fn finish_task(&mut self) -> Option<Action> {
+        match self.current_task {
+            CurrentTask::AddMagnetBar(_) => {
+                self.current_task = CurrentTask::None;
+                Some(Action::SwitchToNormalMode)
+            }
+            CurrentTask::DeleteBar(_) => {
+                self.current_task = CurrentTask::None;
+                Some(Action::SwitchToNormalMode)
+            }
+            CurrentTask::FilterBar(_) => {
+                self.current_task = CurrentTask::None;
+                Some(Action::SwitchToNormalMode)
+            }
+            CurrentTask::None => None,
+        }
     }
 }

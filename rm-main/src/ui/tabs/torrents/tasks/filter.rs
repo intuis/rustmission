@@ -7,7 +7,7 @@ use crate::{
     action::Action,
     ui::{
         components::Component,
-        tabs::torrents::{task_manager::InputManager, TableManager},
+        tabs::torrents::{input_manager::InputManager, TableManager},
         to_input_request,
     },
 };

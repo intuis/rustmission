@@ -5,7 +5,7 @@ use transmission_rpc::types::Id;
 use crate::{
     action::{Action, TorrentAction},
     app,
-    ui::{components::Component, tabs::torrents::task_manager::InputManager, to_input_request},
+    ui::{components::Component, tabs::torrents::input_manager::InputManager, to_input_request},
 };
 
 pub struct DeleteBar {

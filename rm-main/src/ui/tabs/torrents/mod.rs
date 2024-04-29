@@ -1,3 +1,4 @@
+mod input_manager;
 pub mod popups;
 pub mod rustmission_torrent;
 mod stats;
