@@ -55,8 +55,9 @@ impl Component for InfoPopup {
 
         let paragraph;
         if let Some(torrent_info) = self.torrent_info.get() {
+            let name = torrent_info.name.as_ref().expect("Requested");
             let download_dir = torrent_info.download_dir.as_ref().expect("Requested");
-            let info = format!("Download dir: {download_dir}");
+            let info = format!("{name}\n Download dir: {download_dir}");
             paragraph = Paragraph::new(info);
         } else {
             paragraph = Paragraph::new("Loading...");

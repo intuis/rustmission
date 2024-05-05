@@ -70,7 +70,7 @@ fn keycode_to_action(key: KeyEvent) -> Option<Action> {
         KeyCode::Char('t') => Some(Action::ShowStats),
         KeyCode::Char('i') => Some(Action::ShowInfo),
         KeyCode::Char('/') => Some(Action::Search),
-        KeyCode::Char('m') => Some(Action::AddMagnet),
+        KeyCode::Char('a') => Some(Action::AddMagnet),
         KeyCode::Char('p') => Some(Action::Pause),
         KeyCode::Char('d') => Some(Action::DeleteWithoutFiles),
         KeyCode::Char('D') => Some(Action::DeleteWithFiles),

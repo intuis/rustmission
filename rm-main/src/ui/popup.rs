@@ -142,7 +142,7 @@ impl Component for HelpPopup {
         add_line!(lines, "?", "show/hide help");
         add_line!(lines, "1", "switch to torrents tab");
         add_line!(lines, "2", "switch to search tab");
-        add_line!(lines, "/", "search");
+        add_line!(lines, "/", "search or filter");
         add_line!(lines, "q", "quit Rustmission");
         add_line!(lines, "TAB", "switch focus");
         add_line!(lines, "Enter", "confirm");
@@ -157,10 +157,12 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        add_line!(lines, "t", "show statistics");
-        add_line!(lines, "m", "add a magnet url/torrent path");
+        add_line!(lines, "i", "show info about a torrent");
         add_line!(lines, "p", "pause/unpause a torrent");
-        add_line!(lines, "d", "delete a torrent");
+        add_line!(lines, "m", "add a magnet url/torrent path");
+        add_line!(lines, "d", "delete a torrent without files");
+        add_line!(lines, "D", "delete a torrent with files");
+        add_line!(lines, "t", "show statistics");
 
         let help_text = Text::from(lines);
         let help_paragraph = Paragraph::new(help_text);
