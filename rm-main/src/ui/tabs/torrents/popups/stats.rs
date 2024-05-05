@@ -34,7 +34,7 @@ impl Component for StatisticsPopup {
         let popup_rect = centered_rect(rect, 50, 50);
         let block_rect = popup_rect.inner(&Margin::new(1, 1));
         let text_rect = block_rect.inner(&Margin::new(3, 2));
-        let button_rect = { Layout::vertical(constraints![==100%, ==1]).split(text_rect)[1] };
+        let button_rect = Layout::vertical(constraints![==100%, ==1]).split(text_rect)[1];
 
         let title_style = Style::default().fg(self.ctx.config.general.accent_color.as_ratatui());
         let block = Block::bordered()

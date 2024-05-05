@@ -22,6 +22,7 @@ use crate::ui::components::table::GenericTable;
 use crate::ui::components::Component;
 use crate::{app, transmission};
 
+use self::popups::info::InfoPopup;
 use self::popups::{CurrentPopup, PopupManager};
 use self::rustmission_torrent::RustmissionTorrent;
 use self::stats::StatsComponent;
@@ -88,6 +89,7 @@ impl Component for TorrentsTab {
             A::Up => self.previous_torrent(),
             A::Down => self.next_torrent(),
             A::ShowStats => self.show_statistics_popup(),
+            A::ShowInfo => self.show_info_popup(),
             A::Pause => self.pause_current_torrent(),
             other => self.task_manager.handle_actions(other),
         }
@@ -139,6 +141,16 @@ impl<'a> TorrentsTab {
             .filter(|t| matcher.fuzzy_match(&t.torrent_name, filter).is_some())
             .map(RustmissionTorrent::to_row)
             .collect()
+    }
+
+    fn show_info_popup(&mut self) -> Option<Action> {
+        if let Some(highlighted_torrent) = self.table_manager.lock().unwrap().current_torrent() {
+            let popup = InfoPopup::new(self.ctx.clone(), highlighted_torrent.id);
+            self.popup_manager.show_popup(CurrentPopup::Info(popup));
+            Some(Action::Render)
+        } else {
+            None
+        }
     }
 
     fn show_statistics_popup(&mut self) -> Option<Action> {

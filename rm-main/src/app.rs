@@ -112,7 +112,7 @@ impl App {
             tokio::select! {
                 event = tui_event => {
                     if let Some(action) = event_to_action(self.mode, event.unwrap()) {
-                        if let Some(action) = self.update(action) {
+                        if let Some(action) = self.update(action).await {
                             self.ctx.action_tx.send(action).unwrap();
                         }
                     };
@@ -122,7 +122,7 @@ impl App {
                     if let Some(action) = action {
                         if action.is_render() {
                             self.render(tui)?;
-                        } else if let Some(action) = self.update(action) {
+                        } else if let Some(action) = self.update(action).await {
                             self.ctx.action_tx.send(action).unwrap();
                         }
                     }
@@ -143,7 +143,7 @@ impl App {
     }
 
     #[must_use]
-    fn update(&mut self, action: Action) -> Option<Action> {
+    async fn update(&mut self, action: Action) -> Option<Action> {
         use Action as A;
         match &action {
             A::Render => Some(A::Render),

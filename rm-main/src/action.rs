@@ -1,15 +1,18 @@
+use std::sync::{Arc, OnceLock};
+
 use crossterm::event::{KeyCode, KeyEvent};
-use transmission_rpc::types::Id;
+use transmission_rpc::types::{Id, Torrent};
 
 use crate::{tui::Event, ui::popup::ErrorPopup};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) enum TorrentAction {
     Add(String),
     Stop(Vec<Id>),
     Start(Vec<Id>),
     DeleteWithoutFiles(Vec<Id>),
     DeleteWithFiles(Vec<Id>),
+    GetTorrentInfo(Id, Arc<OnceLock<Torrent>>),
 }
 
 #[derive(Debug, Clone)]
@@ -21,6 +24,7 @@ pub(crate) enum Action {
     Confirm,
     ShowHelp,
     ShowStats,
+    ShowInfo,
     Search,
     Pause,
     DeleteWithoutFiles,
@@ -64,6 +68,7 @@ fn keycode_to_action(key: KeyEvent) -> Option<Action> {
         KeyCode::Char('q') => Some(Action::Quit),
         KeyCode::Char('?') => Some(Action::ShowHelp),
         KeyCode::Char('t') => Some(Action::ShowStats),
+        KeyCode::Char('i') => Some(Action::ShowInfo),
         KeyCode::Char('/') => Some(Action::Search),
         KeyCode::Char('m') => Some(Action::AddMagnet),
         KeyCode::Char('p') => Some(Action::Pause),
