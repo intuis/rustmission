@@ -22,7 +22,7 @@ use crate::ui::components::table::GenericTable;
 use crate::ui::components::Component;
 use crate::{app, transmission};
 
-use self::popups::PopupManager;
+use self::popups::{CurrentPopup, PopupManager};
 use self::rustmission_torrent::RustmissionTorrent;
 use self::stats::StatsComponent;
 use self::table_manager::TableManager;
@@ -144,7 +144,7 @@ impl<'a> TorrentsTab {
     fn show_statistics_popup(&mut self) -> Option<Action> {
         if let Some(stats) = &*self.stats.stats.lock().unwrap() {
             let popup = StatisticsPopup::new(self.ctx.clone(), stats.clone());
-            self.popup_manager.show_popup(popup);
+            self.popup_manager.show_popup(CurrentPopup::Stats(popup));
             Some(Action::Render)
         } else {
             None
