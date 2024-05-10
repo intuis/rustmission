@@ -1,7 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use tokio::sync::mpsc::UnboundedReceiver;
-use transmission_rpc::types::{SessionStats, TorrentAddArgs, TorrentGetField};
+use transmission_rpc::types::{FreeSpace, SessionStats, TorrentAddArgs, TorrentGetField};
 
 use transmission_rpc::types::TorrentAction as RPCAction;
 
@@ -25,6 +25,33 @@ pub async fn stats_fetch(ctx: app::Ctx, stats: Arc<std::sync::Mutex<Option<Sessi
         *stats.lock().unwrap() = Some(new_stats);
         ctx.send_action(Action::Render);
         tokio::time::sleep(Duration::from_secs(3)).await;
+    }
+}
+
+pub async fn free_space_fetch(ctx: app::Ctx, free_space: Arc<std::sync::Mutex<Option<FreeSpace>>>) {
+    let download_dir = ctx
+        .client
+        .lock()
+        .await
+        .session_get()
+        .await
+        .unwrap()
+        .arguments
+        .download_dir
+        .leak();
+
+    loop {
+        let new_free_space = ctx
+            .client
+            .lock()
+            .await
+            .free_space(download_dir.to_string())
+            .await
+            .unwrap()
+            .arguments;
+        *free_space.lock().unwrap() = Some(new_free_space);
+        ctx.send_action(Action::Render);
+        tokio::time::sleep(Duration::from_secs(10)).await;
     }
 }
 

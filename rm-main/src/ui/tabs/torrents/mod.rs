@@ -54,6 +54,11 @@ impl TorrentsTab {
             Arc::clone(&table_manager),
         ));
 
+        tokio::spawn(transmission::free_space_fetch(
+            ctx.clone(),
+            Arc::clone(&stats.free_space),
+        ));
+
         Self {
             stats,
             task_manager: TaskManager::new(table_manager.clone(), ctx.clone()),
