@@ -47,9 +47,15 @@ impl Component for PopupManager {
                     };
                 }
                 CurrentPopup::Info(popup) => {
-                    if let Some(Action::Quit) = popup.handle_actions(action) {
-                        self.close_popup();
-                        return Some(Action::Render);
+                    if let Some(action) = popup.handle_actions(action) {
+                        match action {
+                            Action::Quit => {
+                                self.close_popup();
+                                return Some(Action::Render);
+                            }
+                            Action::Render => return Some(Action::Render),
+                            _ => (),
+                        }
                     }
                 }
             }

@@ -40,6 +40,7 @@ impl MainWindow {
 }
 
 impl Component for MainWindow {
+    // Rewrite this to one big match
     #[must_use]
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         if let Action::Error(e_popup) = action {
@@ -56,14 +57,14 @@ impl Component for MainWindow {
             return Some(Action::Render);
         }
 
-        if let Action::ChangeTab(_) = action {
-            self.tabs.handle_actions(action);
-            return Some(Action::Render);
-        }
-
         if self.popup.needs_action() {
             self.popup.handle_actions(action)
         } else {
+            if let Action::ChangeTab(_) = action {
+                self.tabs.handle_actions(action);
+                return Some(Action::Render);
+            }
+
             match self.tabs.current_tab {
                 CurrentTab::Torrents => self.torrents_tab.handle_actions(action),
                 CurrentTab::Search => self.search_tab.handle_actions(action),

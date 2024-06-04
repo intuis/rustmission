@@ -1,7 +1,7 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex};
 
 use crossterm::event::{KeyCode, KeyEvent};
-use transmission_rpc::types::{Id, Torrent};
+use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
 
 use crate::{tui::Event, ui::popup::ErrorPopup};
 
@@ -12,7 +12,8 @@ pub(crate) enum TorrentAction {
     Start(Vec<Id>),
     DeleteWithoutFiles(Vec<Id>),
     DeleteWithFiles(Vec<Id>),
-    GetTorrentInfo(Id, Arc<OnceLock<Torrent>>),
+    GetTorrentInfo(Id, Arc<Mutex<Option<Torrent>>>),
+    SetArgs(TorrentSetArgs, Option<Vec<Id>>),
 }
 
 #[derive(Debug, Clone)]
@@ -22,6 +23,7 @@ pub(crate) enum Action {
     Up,
     Down,
     Confirm,
+    Space,
     ShowHelp,
     ShowStats,
     ShowInfo,
@@ -74,6 +76,7 @@ fn keycode_to_action(key: KeyEvent) -> Option<Action> {
         KeyCode::Char('p') => Some(Action::Pause),
         KeyCode::Char('d') => Some(Action::DeleteWithoutFiles),
         KeyCode::Char('D') => Some(Action::DeleteWithFiles),
+        KeyCode::Char(' ') => Some(Action::Space),
         KeyCode::Char(n @ '1'..='9') => {
             Some(Action::ChangeTab(n.to_digit(10).expect("This is ok") as u8))
         }

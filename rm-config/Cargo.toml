@@ -13,4 +13,4 @@ toml = "0.8"
 serde = { version = "1", features = ["derive"] }
 anyhow = "1"
 url = "2.5"
-ratatui = "0.27.0-alpha.4"
+ratatui = "0.26"

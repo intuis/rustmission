@@ -153,7 +153,15 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .torrents
                     .pop()
                     .unwrap();
-                sender.set(new_torrent_info).unwrap();
+                *sender.lock().unwrap() = Some(new_torrent_info);
+            }
+            TorrentAction::SetArgs(args, ids) => {
+                ctx.client
+                    .lock()
+                    .await
+                    .torrent_set(args, ids)
+                    .await
+                    .unwrap();
             }
         }
     }

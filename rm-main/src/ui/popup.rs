@@ -1,6 +1,9 @@
 use ratatui::{
     prelude::*,
-    widgets::{Block, Clear, Paragraph, Wrap},
+    widgets::{
+        block::{Position, Title},
+        Block, Clear, Paragraph, Wrap,
+    },
 };
 use ratatui_macros::constraints;
 
@@ -116,10 +119,10 @@ impl HelpPopup {
 
 impl Component for HelpPopup {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
-        if let Action::Quit = action {
-            return Some(Action::Quit);
+        match action {
+            Action::Quit | Action::Confirm => Some(Action::Quit),
+            _ => None,
         }
-        None
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
@@ -130,8 +133,17 @@ impl Component for HelpPopup {
         let title_style = Style::new().fg(self.ctx.config.general.accent_color.as_ratatui());
         let block = Block::bordered()
             .border_set(symbols::border::ROUNDED)
-            .title_style(title_style)
-            .title(" Help ");
+            .title(
+                Title::from(
+                    " [ CLOSE ] "
+                        .fg(self.ctx.config.general.accent_color.as_ratatui())
+                        .bold(),
+                )
+                .alignment(Alignment::Right)
+                .position(Position::Bottom),
+            )
+            .title(" Help ")
+            .title_style(title_style);
 
         let mut lines = vec![Line::from(vec![Span::styled(
             "Global Keybindings",
