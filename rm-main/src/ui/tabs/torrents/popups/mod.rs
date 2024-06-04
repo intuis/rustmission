@@ -1,4 +1,4 @@
-use self::{info::InfoPopup, stats::StatisticsPopup};
+use self::{info::FilesPopup, stats::StatisticsPopup};
 use crate::{action::Action, ui::components::Component};
 
 use ratatui::prelude::*;
@@ -12,7 +12,7 @@ pub struct PopupManager {
 
 pub enum CurrentPopup {
     Stats(StatisticsPopup),
-    Info(InfoPopup),
+    Files(FilesPopup),
 }
 
 impl PopupManager {
@@ -46,7 +46,7 @@ impl Component for PopupManager {
                         return Some(Action::Render);
                     };
                 }
-                CurrentPopup::Info(popup) => {
+                CurrentPopup::Files(popup) => {
                     if let Some(action) = popup.handle_actions(action) {
                         match action {
                             Action::Quit => {
@@ -70,7 +70,7 @@ impl Component for PopupManager {
                 CurrentPopup::Stats(popup) => {
                     popup.render(f, rect);
                 }
-                CurrentPopup::Info(popup) => {
+                CurrentPopup::Files(popup) => {
                     popup.render(f, rect);
                 }
             }

@@ -76,6 +76,7 @@ impl Component for FilesPopup {
             Action::Space => {
                 if let Some(torrent) = &*self.torrent.lock().unwrap() {
                     let wanted_ids = torrent.wanted.as_ref().unwrap();
+
                     let selected_ids: Vec<_> = self
                         .tree_state
                         .selected()
@@ -220,46 +221,66 @@ impl Component for FilesPopup {
     }
 }
 
+struct TransmissionFile {
+    full_path: String,
+    id: usize,
+    wanted: bool,
+}
+
 #[derive(Debug)]
 struct TreeNode {
     id: String,
     name: String,
+    wanted: bool,
     children: BTreeMap<String, TreeNode>,
 }
 
 impl TreeNode {
-    fn new(name: &str, id: String) -> Self {
+    fn new(name: &str, id: String, wanted: bool) -> Self {
         Self {
             id,
             name: name.to_string(),
+            wanted,
             children: BTreeMap::new(),
         }
     }
 
     fn new_from_torrent(torrent: &Torrent) -> Self {
         let files = torrent.files.as_ref().unwrap();
-        let mut tree = Self::new("root", "root".to_string());
+        let mut tree = Self::new("root", "root".to_string(), false);
         for (index, file) in files.iter().enumerate() {
-            let mut path: Vec<String> = file.name.split('/').map(str::to_string).collect();
-            let path_len = path.len();
+            let full_path = file.name.clone();
+            let path: Vec<String> = file.name.split('/').map(str::to_string).collect();
+
+            let wanted;
             if torrent.wanted.as_ref().unwrap()[index] == 0 {
-                path[path_len - 1] = format!(" {}", path[path_len - 1]);
+                wanted = false;
             } else {
-                path[path_len - 1] = format!(" {}", path[path_len - 1]);
+                wanted = true;
             }
-            tree.add_path(&path, index);
+
+            let file = TransmissionFile {
+                full_path,
+                id: index,
+                wanted,
+            };
+
+            tree.add_transmission_file(&file, &path);
         }
         tree
     }
 
-    fn add_path(&mut self, path: &[String], id: usize) {
+    fn add_transmission_file(&mut self, transmission_file: &TransmissionFile, path: &[String]) {
         if let Some((first, rest)) = path.split_first() {
-            let child = self
-                .children
-                .entry(first.to_string())
-                .or_insert_with(|| TreeNode::new(first, id.to_string()));
+            let child = self.children.entry(first.to_string()).or_insert_with(|| {
+                TreeNode::new(
+                    first,
+                    transmission_file.id.to_string(),
+                    transmission_file.wanted,
+                )
+            });
             if !rest.is_empty() {
-                child.add_path(rest, id);
+                child.add_transmission_file(transmission_file, rest);
             }
         }
     }
@@ -273,9 +294,17 @@ impl TreeNode {
                 let inner_tree = value.make_tree();
                 let tree_item = {
                     if inner_tree.len() == 1 {
+                        let torrent_name = {
+                            if value.wanted {
+                                format!(" {}", value.name)
+                            } else {
+                                format!("󰄱 {}", value.name)
+                            }
+                        };
+
                         TreeItem::new_leaf(
                             value.id.parse::<usize>().unwrap().to_string(),
-                            key.clone(),
+                            torrent_name,
                         )
                     } else {
                         TreeItem::new(
