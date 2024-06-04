@@ -81,7 +81,7 @@ impl Component for FilesPopup {
                         .tree_state
                         .selected()
                         .iter()
-                        .map(|str_id| str_id.parse::<i32>().unwrap())
+                        .filter_map(|str_id| str_id.parse::<i32>().ok())
                         .collect();
                     let mut wanted_in_selection_no = 0;
                     for selected_id in &selected_ids {
@@ -197,7 +197,7 @@ impl Component for FilesPopup {
                         .position(Position::Bottom),
                 );
 
-            let tree = TreeNode::new_from_torrent(&torrent);
+            let tree = Node::new_from_torrent(&torrent);
             let tree_items = tree.make_tree();
 
             let tree_widget = Tree::new(&tree_items)
@@ -223,37 +223,34 @@ impl Component for FilesPopup {
 
 struct TransmissionFile {
     full_path: String,
+    name: String,
     id: usize,
     wanted: bool,
 }
 
-#[derive(Debug)]
-struct TreeNode {
-    id: String,
-    name: String,
-    wanted: bool,
-    children: BTreeMap<String, TreeNode>,
+struct Node {
+    items: Vec<TransmissionFile>,
+    directories: BTreeMap<String, Node>,
 }
 
-impl TreeNode {
-    fn new(name: &str, id: String, wanted: bool) -> Self {
+impl Node {
+    fn new() -> Self {
         Self {
-            id,
-            name: name.to_string(),
-            wanted,
-            children: BTreeMap::new(),
+            items: vec![],
+            directories: BTreeMap::new(),
         }
     }
 
     fn new_from_torrent(torrent: &Torrent) -> Self {
         let files = torrent.files.as_ref().unwrap();
-        let mut tree = Self::new("root", "root".to_string(), false);
-        for (index, file) in files.iter().enumerate() {
+        let mut root = Self::new();
+
+        for (id, file) in files.iter().enumerate() {
             let full_path = file.name.clone();
             let path: Vec<String> = file.name.split('/').map(str::to_string).collect();
 
             let wanted;
-            if torrent.wanted.as_ref().unwrap()[index] == 0 {
+            if torrent.wanted.as_ref().unwrap()[id] == 0 {
                 wanted = false;
             } else {
                 wanted = true;
@@ -261,65 +258,48 @@ impl TreeNode {
 
             let file = TransmissionFile {
                 full_path,
-                id: index,
+                id,
+                name: path[path.len() - 1].clone(),
                 wanted,
             };
 
-            tree.add_transmission_file(&file, &path);
+            root.add_transmission_file(file, &path);
         }
-        tree
+
+        root
     }
 
-    fn add_transmission_file(&mut self, transmission_file: &TransmissionFile, path: &[String]) {
-        if let Some((first, rest)) = path.split_first() {
-            let child = self.children.entry(first.to_string()).or_insert_with(|| {
-                TreeNode::new(
-                    first,
-                    transmission_file.id.to_string(),
-                    transmission_file.wanted,
-                )
-            });
-            if !rest.is_empty() {
-                child.add_transmission_file(transmission_file, rest);
+    fn add_transmission_file(&mut self, file: TransmissionFile, remaining_path: &[String]) {
+        if let Some((first, rest)) = remaining_path.split_first() {
+            if rest.is_empty() {
+                // We've found home for our TransmissionFile! :D
+                self.items.push(file);
+            } else {
+                let child = self
+                    .directories
+                    .entry(first.to_string())
+                    .or_insert_with(|| Node::new());
+                child.add_transmission_file(file, rest);
             }
         }
     }
 
     fn make_tree(&self) -> Vec<TreeItem<String>> {
-        if self.children.is_empty() {
-            return vec![TreeItem::new_leaf(self.id.to_string(), self.name.clone())];
-        } else {
-            let mut tree_items = vec![];
-            for (key, value) in &self.children {
-                let inner_tree = value.make_tree();
-                let tree_item = {
-                    if inner_tree.len() == 1 {
-                        let torrent_name = {
-                            if value.wanted {
-                                format!(" {}", value.name)
-                            } else {
-                                format!("󰄱 {}", value.name)
-                            }
-                        };
-
-                        TreeItem::new_leaf(
-                            value.id.parse::<usize>().unwrap().to_string(),
-                            torrent_name,
-                        )
-                    } else {
-                        TreeItem::new(
-                            // We care about Leafs identifiers, so set here whatever (though it has to be unique)
-                            (999999 + value.id.parse::<usize>().unwrap_or(999999)).to_string(),
-                            key.clone(),
-                            value.make_tree(),
-                        )
-                        .unwrap()
-                    }
-                };
-                tree_items.push(tree_item);
-            }
-
-            return tree_items;
+        let mut tree_items = vec![];
+        for transmission_file in &self.items {
+            let name = {
+                if transmission_file.wanted {
+                    format!("󰄲 {}", transmission_file.name)
+                } else {
+                    format!(" {}", transmission_file.name)
+                }
+            };
+            tree_items.push(TreeItem::new_leaf(transmission_file.id.to_string(), name));
         }
+
+        for (key, value) in &self.directories {
+            tree_items.push(TreeItem::new(key.clone(), key.clone(), value.make_tree()).unwrap());
+        }
+        tree_items
     }
 }
