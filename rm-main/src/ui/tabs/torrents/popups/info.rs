@@ -24,6 +24,7 @@ pub struct FilesPopup {
     torrent: Arc<Mutex<Option<Torrent>>>,
     torrent_id: Id,
     tree_state: TreeState<String>,
+    path_tree: Node,
     current_focus: CurrentFocus,
     switched_after_fetched_data: bool,
 }
@@ -47,6 +48,7 @@ impl FilesPopup {
             ctx,
             torrent,
             tree_state,
+            path_tree: Node::new(),
             current_focus: CurrentFocus::CloseButton,
             switched_after_fetched_data: false,
             torrent_id,
@@ -113,6 +115,7 @@ impl Component for FilesPopup {
                         Some(vec![self.torrent_id.clone()]),
                     ));
 
+                    // TODO: Move it to a fetcher that you can send requests to, and will update tree by itself.
                     self.ctx.send_torrent_action(TorrentAction::GetTorrentInfo(
                         self.torrent_id.clone(),
                         Arc::clone(&self.torrent),

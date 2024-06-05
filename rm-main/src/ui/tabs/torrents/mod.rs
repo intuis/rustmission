@@ -94,7 +94,7 @@ impl Component for TorrentsTab {
             A::Up => self.previous_torrent(),
             A::Down => self.next_torrent(),
             A::ShowStats => self.show_statistics_popup(),
-            A::ShowInfo => self.show_files_popup(),
+            A::ShowFiles => self.show_files_popup(),
             A::Pause => self.pause_current_torrent(),
             other => self.task_manager.handle_actions(other),
         }
