@@ -1,9 +1,9 @@
-use self::{info::FilesPopup, stats::StatisticsPopup};
+use self::{files::FilesPopup, stats::StatisticsPopup};
 use crate::{action::Action, ui::components::Component};
 
 use ratatui::prelude::*;
 
-pub mod info;
+pub mod files;
 pub mod stats;
 
 pub struct PopupManager {

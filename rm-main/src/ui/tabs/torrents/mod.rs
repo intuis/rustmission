@@ -22,7 +22,7 @@ use crate::ui::components::table::GenericTable;
 use crate::ui::components::Component;
 use crate::{app, transmission};
 
-use self::popups::info::FilesPopup;
+use self::popups::files::FilesPopup;
 use self::popups::{CurrentPopup, PopupManager};
 use self::rustmission_torrent::RustmissionTorrent;
 use self::stats::StatsComponent;
