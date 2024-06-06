@@ -1,6 +1,7 @@
 use std::{
     collections::BTreeMap,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use ratatui::{
@@ -24,9 +25,36 @@ pub struct FilesPopup {
     torrent: Arc<Mutex<Option<Torrent>>>,
     torrent_id: Id,
     tree_state: TreeState<String>,
-    path_tree: Node,
+    tree: Arc<Mutex<Node>>,
     current_focus: CurrentFocus,
     switched_after_fetched_data: bool,
+}
+
+async fn fetch_new_files(
+    tree: Arc<Mutex<Node>>,
+    torrent: Arc<Mutex<Option<Torrent>>>,
+    torrent_id: Id,
+    ctx: app::Ctx,
+) {
+    loop {
+        {
+            let new_torrent = ctx
+                .client
+                .lock()
+                .await
+                .torrent_get(None, Some(vec![torrent_id.clone()]))
+                .await
+                .unwrap()
+                .arguments
+                .torrents
+                .pop()
+                .unwrap();
+            let new_tree = Node::new_from_torrent(&new_torrent);
+            *torrent.lock().unwrap() = Some(new_torrent);
+            *tree.lock().unwrap() = new_tree;
+        }
+        tokio::time::sleep(Duration::from_secs(6)).await;
+    }
 }
 
 enum CurrentFocus {
@@ -38,17 +66,25 @@ impl FilesPopup {
     pub fn new(ctx: app::Ctx, torrent_id: Id) -> Self {
         let torrent = Arc::new(Mutex::new(None));
         let tree_state = TreeState::default();
+        let tree = Arc::new(Mutex::new(Node::new()));
 
         ctx.send_torrent_action(TorrentAction::GetTorrentInfo(
             torrent_id.clone(),
             Arc::clone(&torrent),
         ));
 
+        tokio::task::spawn(fetch_new_files(
+            Arc::clone(&tree),
+            Arc::clone(&torrent),
+            torrent_id.clone(),
+            ctx.clone(),
+        ));
+
         Self {
             ctx,
             torrent,
             tree_state,
-            path_tree: Node::new(),
+            tree,
             current_focus: CurrentFocus::CloseButton,
             switched_after_fetched_data: false,
             torrent_id,
@@ -76,8 +112,8 @@ impl Component for FilesPopup {
                 }
             }
             Action::Space => {
-                if let Some(torrent) = &*self.torrent.lock().unwrap() {
-                    let wanted_ids = torrent.wanted.as_ref().unwrap();
+                if let Some(torrent) = &mut *self.torrent.lock().unwrap() {
+                    let wanted_ids = torrent.wanted.as_mut().unwrap();
 
                     let selected_ids: Vec<_> = self
                         .tree_state
@@ -85,43 +121,57 @@ impl Component for FilesPopup {
                         .iter()
                         .filter_map(|str_id| str_id.parse::<i32>().ok())
                         .collect();
+
+                    if selected_ids.is_empty() {
+                        return None;
+                    }
+
                     let mut wanted_in_selection_no = 0;
                     for selected_id in &selected_ids {
-                        // If the index is out of bounds, that mean's we've got a branch.
-                        if let Some(is_wanted) = wanted_ids.get(*selected_id as usize) {
-                            if *is_wanted == 1 {
-                                wanted_in_selection_no += 1;
-                            } else {
-                                wanted_in_selection_no -= 1;
-                            }
+                        if wanted_ids[*selected_id as usize] == 1 {
+                            wanted_in_selection_no += 1;
+                        } else {
+                            wanted_in_selection_no -= 1;
                         }
                     }
-                    let args = {
-                        if wanted_in_selection_no > 0 {
-                            TorrentSetArgs {
-                                files_unwanted: Some(selected_ids),
-                                ..Default::default()
-                            }
-                        } else {
-                            TorrentSetArgs {
-                                files_wanted: Some(selected_ids),
-                                ..Default::default()
-                            }
+
+                    if wanted_in_selection_no > 0 {
+                        for selected_id in &selected_ids {
+                            wanted_ids[*selected_id as usize] = 0;
                         }
-                    };
+                    } else {
+                        for selected_id in &selected_ids {
+                            wanted_ids[*selected_id as usize] = 1;
+                        }
+                    }
+
+                    let args;
+                    if wanted_in_selection_no > 0 {
+                        for transmission_file in self.tree.lock().unwrap().get_by_ids(&selected_ids)
+                        {
+                            transmission_file.set_wanted(false);
+                        }
+                        args = TorrentSetArgs {
+                            files_unwanted: Some(selected_ids),
+                            ..Default::default()
+                        };
+                    } else {
+                        for transmission_file in self.tree.lock().unwrap().get_by_ids(&selected_ids)
+                        {
+                            transmission_file.set_wanted(true);
+                        }
+                        args = TorrentSetArgs {
+                            files_wanted: Some(selected_ids),
+                            ..Default::default()
+                        };
+                    }
 
                     self.ctx.send_torrent_action(TorrentAction::SetArgs(
                         Box::new(args),
                         Some(vec![self.torrent_id.clone()]),
                     ));
-
-                    // TODO: Move it to a fetcher that you can send requests to, and will update tree by itself.
-                    self.ctx.send_torrent_action(TorrentAction::GetTorrentInfo(
-                        self.torrent_id.clone(),
-                        Arc::clone(&self.torrent),
-                    ));
+                    return Some(Action::Render);
                 }
-
                 None
             }
 
@@ -200,8 +250,8 @@ impl Component for FilesPopup {
                         .position(Position::Bottom),
                 );
 
-            let tree = Node::new_from_torrent(torrent);
-            let tree_items = tree.make_tree();
+            let tree_lock = self.tree.lock().unwrap();
+            let tree_items = tree_lock.make_tree();
 
             let tree_widget = Tree::new(&tree_items)
                 .unwrap()
@@ -228,7 +278,14 @@ struct TransmissionFile {
     full_path: String,
     name: String,
     id: usize,
+    // TODO: Change to enum
     wanted: bool,
+}
+
+impl TransmissionFile {
+    fn set_wanted(&mut self, new_wanted: bool) {
+        self.wanted = new_wanted;
+    }
 }
 
 struct Node {
@@ -280,6 +337,19 @@ impl Node {
                 child.add_transmission_file(file, rest);
             }
         }
+    }
+
+    fn get_by_ids(&mut self, ids: &[i32]) -> Vec<&mut TransmissionFile> {
+        let mut transmission_files = vec![];
+        for file in &mut self.items {
+            if ids.contains(&(file.id as i32)) {
+                transmission_files.push(file);
+            }
+        }
+        for (_, node) in &mut self.directories {
+            transmission_files.extend(node.get_by_ids(ids))
+        }
+        transmission_files
     }
 
     fn make_tree(&self) -> Vec<TreeItem<String>> {
