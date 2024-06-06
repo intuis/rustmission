@@ -69,7 +69,7 @@ fn keycode_to_action(key: KeyEvent) -> Option<Action> {
         KeyCode::Char('k') | KeyCode::Up => Some(Action::Up),
         KeyCode::Char('q') => Some(Action::Quit),
         KeyCode::Char('?') => Some(Action::ShowHelp),
-        KeyCode::Char('t') => Some(Action::ShowStats),
+        KeyCode::Char('s') => Some(Action::ShowStats),
         KeyCode::Char('f') => Some(Action::ShowFiles),
         KeyCode::Char('/') => Some(Action::Search),
         KeyCode::Char('a') => Some(Action::AddMagnet),

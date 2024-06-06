@@ -1,7 +1,7 @@
+mod bottom_stats;
 mod input_manager;
 pub mod popups;
 pub mod rustmission_torrent;
-mod stats;
 pub mod table_manager;
 pub mod task_manager;
 pub mod tasks;
@@ -22,10 +22,10 @@ use crate::ui::components::table::GenericTable;
 use crate::ui::components::Component;
 use crate::{app, transmission};
 
+use self::bottom_stats::BottomStats;
 use self::popups::files::FilesPopup;
 use self::popups::{CurrentPopup, PopupManager};
 use self::rustmission_torrent::RustmissionTorrent;
-use self::stats::StatsComponent;
 use self::table_manager::TableManager;
 use self::task_manager::TaskManager;
 
@@ -34,12 +34,12 @@ pub struct TorrentsTab {
     table_manager: Arc<Mutex<TableManager>>,
     popup_manager: PopupManager,
     task_manager: TaskManager,
-    stats: StatsComponent,
+    stats: BottomStats,
 }
 
 impl TorrentsTab {
     pub fn new(ctx: app::Ctx) -> Self {
-        let stats = StatsComponent::default();
+        let stats = BottomStats::default();
         let table = GenericTable::new(vec![]);
 
         let table_manager = Arc::new(Mutex::new(TableManager::new(ctx.clone(), table)));

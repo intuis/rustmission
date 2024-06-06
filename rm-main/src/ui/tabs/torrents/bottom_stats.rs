@@ -10,19 +10,18 @@ use transmission_rpc::types::{FreeSpace, SessionStats};
 use crate::ui::{bytes_to_human_format, components::Component};
 
 #[derive(Default)]
-pub(super) struct StatsComponent {
+pub(super) struct BottomStats {
     // TODO: get rid of the Option
     pub(super) stats: Arc<Mutex<Option<SessionStats>>>,
     pub(super) free_space: Arc<Mutex<Option<FreeSpace>>>,
 }
 
-impl Component for StatsComponent {
+impl Component for BottomStats {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         if let Some(stats) = &*self.stats.lock().unwrap() {
-            let upload = bytes_to_human_format(stats.upload_speed);
-            let download = bytes_to_human_format(stats.download_speed);
             let all = stats.torrent_count;
-
+            let download = bytes_to_human_format(stats.download_speed);
+            let upload = bytes_to_human_format(stats.upload_speed);
             let mut text = format!(" {all} | ▼ {download} | ▲ {upload}");
 
             if let Some(free_space) = &*self.free_space.lock().unwrap() {

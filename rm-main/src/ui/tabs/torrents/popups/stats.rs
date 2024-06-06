@@ -1,6 +1,9 @@
 use ratatui::{
     prelude::*,
-    widgets::{Block, BorderType, Clear, Paragraph},
+    widgets::{
+        block::{Position, Title},
+        Block, BorderType, Clear, Paragraph,
+    },
 };
 use ratatui_macros::constraints;
 use transmission_rpc::types::SessionStats;
@@ -34,27 +37,27 @@ impl Component for StatisticsPopup {
         let popup_rect = centered_rect(rect, 50, 50);
         let block_rect = popup_rect.inner(&Margin::new(1, 1));
         let text_rect = block_rect.inner(&Margin::new(3, 2));
-        let button_rect = Layout::vertical(constraints![==100%, ==1]).split(text_rect)[1];
 
         let title_style = Style::default().fg(self.ctx.config.general.accent_color.as_ratatui());
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
-            .title(" Statistics ")
-            .title_style(title_style);
-
-        let button = Paragraph::new("[ OK ]").bold().right_aligned();
+            .title(Title::from(" Statistics ".set_style(title_style)))
+            .title(
+                Title::from(" [ CLOSE ] ".set_style(title_style.bold()))
+                    .alignment(Alignment::Right)
+                    .position(Position::Bottom),
+            );
 
         let uploaded_bytes = self.stats.cumulative_stats.uploaded_bytes;
         let downloaded_bytes = self.stats.cumulative_stats.downloaded_bytes;
         let uploaded = bytes_to_human_format(uploaded_bytes);
         let downloaded = bytes_to_human_format(downloaded_bytes);
-        let ratio = uploaded_bytes / downloaded_bytes;
-        let text = format!("Uploaded: {uploaded}\nDownloaded: {downloaded}\nRatio: {ratio}");
+        let ratio = uploaded_bytes as f64 / downloaded_bytes as f64;
+        let text = format!("Uploaded: {uploaded}\nDownloaded: {downloaded}\nRatio: {ratio:.2}");
         let paragraph = Paragraph::new(text);
 
         f.render_widget(Clear, popup_rect);
         f.render_widget(block, block_rect);
         f.render_widget(paragraph, text_rect);
-        f.render_widget(button, button_rect);
     }
 }

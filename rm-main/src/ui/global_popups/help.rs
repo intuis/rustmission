@@ -84,12 +84,12 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        add_line!(lines, "i", "show info about a torrent");
+        add_line!(lines, "a", "add a magnet url");
         add_line!(lines, "p", "pause/unpause a torrent");
-        add_line!(lines, "m", "add a magnet url/torrent path");
         add_line!(lines, "d", "delete a torrent without files");
         add_line!(lines, "D", "delete a torrent with files");
-        add_line!(lines, "t", "show statistics");
+        add_line!(lines, "f", "show files of a torrent");
+        add_line!(lines, "s", "show statistics");
 
         let help_text = Text::from(lines);
         let help_paragraph = Paragraph::new(help_text);
