@@ -104,16 +104,20 @@ impl Component for TorrentsTab {
 impl<'a> TorrentsTab {
     fn render_table(&mut self, f: &mut Frame, rect: Rect) {
         let table_manager_lock = &mut *self.table_manager.lock().unwrap();
-        let table_borrow = table_manager_lock.table.borrow();
 
-        let torrents = &table_borrow.items;
         let torrent_rows: Vec<_> = if let Some(filter) = &*table_manager_lock.filter.lock().unwrap()
         {
-            let torrent_rows = Self::filtered_torrents_rows(torrents, filter);
-            table_borrow.overwrite_len(torrent_rows.len());
+            let torrent_rows =
+                Self::filtered_torrents_rows(&table_manager_lock.table.items, filter);
+            table_manager_lock.table.overwrite_len(torrent_rows.len());
             torrent_rows
         } else {
-            torrents.iter().map(RustmissionTorrent::to_row).collect()
+            table_manager_lock
+                .table
+                .items
+                .iter()
+                .map(RustmissionTorrent::to_row)
+                .collect()
         };
 
         let highlight_table_style = Style::default().on_black().bold().fg(self
@@ -132,7 +136,7 @@ impl<'a> TorrentsTab {
         f.render_stateful_widget(
             table_widget,
             rect,
-            &mut table_manager_lock.table.borrow().state.borrow_mut(),
+            &mut table_manager_lock.table.state.borrow_mut(),
         );
     }
 
@@ -150,7 +154,7 @@ impl<'a> TorrentsTab {
 
     fn show_files_popup(&mut self) -> Option<Action> {
         if let Some(highlighted_torrent) = self.table_manager.lock().unwrap().current_torrent() {
-            let popup = FilesPopup::new(self.ctx.clone(), highlighted_torrent.id);
+            let popup = FilesPopup::new(self.ctx.clone(), highlighted_torrent.id.clone());
             self.popup_manager.show_popup(CurrentPopup::Files(popup));
             Some(Action::Render)
         } else {
@@ -169,22 +173,17 @@ impl<'a> TorrentsTab {
     }
 
     fn previous_torrent(&self) -> Option<Action> {
-        self.table_manager
-            .lock()
-            .unwrap()
-            .table
-            .borrow_mut()
-            .previous();
+        self.table_manager.lock().unwrap().table.previous();
         Some(Action::Render)
     }
 
     fn next_torrent(&self) -> Option<Action> {
-        self.table_manager.lock().unwrap().table.borrow_mut().next();
+        self.table_manager.lock().unwrap().table.next();
         Some(Action::Render)
     }
 
     fn pause_current_torrent(&mut self) -> Option<Action> {
-        let table_manager = self.table_manager.lock().unwrap();
+        let mut table_manager = self.table_manager.lock().unwrap();
         if let Some(torrent) = table_manager.current_torrent() {
             let torrent_id = torrent.id.clone();
             let torrent_status = torrent.status;

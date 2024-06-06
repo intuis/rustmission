@@ -93,8 +93,11 @@ impl TaskManager {
 
     fn delete_torrent(&mut self, mode: delete_torrent::Mode) -> Option<Action> {
         if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
-            self.current_task =
-                CurrentTask::DeleteBar(DeleteBar::new(self.ctx.clone(), vec![torrent.id], mode));
+            self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
+                self.ctx.clone(),
+                vec![torrent.id.clone()],
+                mode,
+            ));
             Some(Action::SwitchToInputMode)
         } else {
             None

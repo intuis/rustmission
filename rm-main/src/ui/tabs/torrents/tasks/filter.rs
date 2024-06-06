@@ -51,12 +51,7 @@ impl Component for FilterBar {
                         .lock()
                         .unwrap()
                         .replace(self.input.text());
-                    table_manager_lock
-                        .table
-                        .borrow()
-                        .state
-                        .borrow_mut()
-                        .select(Some(0));
+                    table_manager_lock.table.state.borrow_mut().select(Some(0));
                     return Some(Action::Render);
                 }
 

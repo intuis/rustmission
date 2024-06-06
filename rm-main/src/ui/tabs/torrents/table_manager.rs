@@ -11,7 +11,7 @@ use super::rustmission_torrent::RustmissionTorrent;
 
 pub struct TableManager {
     ctx: app::Ctx,
-    pub table: RefCell<GenericTable<RustmissionTorrent>>,
+    pub table: GenericTable<RustmissionTorrent>,
     pub widths: [Constraint; 6],
     pub filter: Arc<Mutex<Option<String>>>,
     header: Vec<String>,
@@ -51,25 +51,31 @@ impl TableManager {
         ]
     }
 
-    pub fn current_torrent(&self) -> Option<RustmissionTorrent> {
+    pub fn current_torrent(&mut self) -> Option<&mut RustmissionTorrent> {
         let matcher = SkimMatcherV2::default();
-        let index = self.table.borrow().state.borrow().selected()?;
+        let index = self.table.state.borrow().selected()?;
 
         if let Some(filter) = &*self.filter.lock().unwrap() {
-            let table_borrow = self.table.borrow();
-            let filtered_rows: Vec<_> = table_borrow
-                .items
-                .iter()
-                .filter(|row| matcher.fuzzy_match(&row.torrent_name, filter).is_some())
-                .collect();
-            return filtered_rows.get(index).cloned().cloned();
+            let mut loop_index = 0;
+            for rustmission_torrent in &mut self.table.items {
+                if matcher
+                    .fuzzy_match(&rustmission_torrent.torrent_name, filter)
+                    .is_some()
+                {
+                    if index == loop_index {
+                        return Some(rustmission_torrent);
+                    }
+                    loop_index += 1;
+                }
+            }
+            return None;
         }
-        self.table.borrow().items.get(index).cloned()
+        self.table.items.get_mut(index)
     }
 
     pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
-        self.table.borrow_mut().items = rows;
-        self.widths = self.header_widths(&self.table.borrow().items);
+        self.table.items = rows;
+        self.widths = self.header_widths(&self.table.items);
     }
 
     fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 6] {
