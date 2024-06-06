@@ -111,7 +111,7 @@ impl Component for FilesPopup {
                     };
 
                     self.ctx.send_torrent_action(TorrentAction::SetArgs(
-                        args,
+                        Box::new(args),
                         Some(vec![self.torrent_id.clone()]),
                     ));
 
@@ -200,7 +200,7 @@ impl Component for FilesPopup {
                         .position(Position::Bottom),
                 );
 
-            let tree = Node::new_from_torrent(&torrent);
+            let tree = Node::new_from_torrent(torrent);
             let tree_items = tree.make_tree();
 
             let tree_widget = Tree::new(&tree_items)
@@ -252,12 +252,7 @@ impl Node {
             let full_path = file.name.clone();
             let path: Vec<String> = file.name.split('/').map(str::to_string).collect();
 
-            let wanted;
-            if torrent.wanted.as_ref().unwrap()[id] == 0 {
-                wanted = false;
-            } else {
-                wanted = true;
-            }
+            let wanted = torrent.wanted.as_ref().unwrap()[id] != 0;
 
             let file = TransmissionFile {
                 full_path,
@@ -281,7 +276,7 @@ impl Node {
                 let child = self
                     .directories
                     .entry(first.to_string())
-                    .or_insert_with(|| Node::new());
+                    .or_insert_with(Node::new);
                 child.add_transmission_file(file, rest);
             }
         }

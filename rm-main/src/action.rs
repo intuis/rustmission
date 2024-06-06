@@ -13,7 +13,7 @@ pub(crate) enum TorrentAction {
     DeleteWithoutFiles(Vec<Id>),
     DeleteWithFiles(Vec<Id>),
     GetTorrentInfo(Id, Arc<Mutex<Option<Torrent>>>),
-    SetArgs(TorrentSetArgs, Option<Vec<Id>>),
+    SetArgs(Box<TorrentSetArgs>, Option<Vec<Id>>),
 }
 
 #[derive(Debug, Clone)]

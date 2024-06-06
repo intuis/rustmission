@@ -1,9 +1,6 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::prelude::*;
-use std::{
-    cell::RefCell,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use crate::{app, ui::components::table::GenericTable};
 
@@ -22,7 +19,7 @@ impl TableManager {
         let widths = Self::default_widths();
         TableManager {
             ctx,
-            table: table.into(),
+            table,
             widths,
             filter: Arc::new(Mutex::new(None)),
             header: vec![

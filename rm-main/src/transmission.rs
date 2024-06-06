@@ -159,7 +159,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                 ctx.client
                     .lock()
                     .await
-                    .torrent_set(args, ids)
+                    .torrent_set(*args, ids)
                     .await
                     .unwrap();
             }
