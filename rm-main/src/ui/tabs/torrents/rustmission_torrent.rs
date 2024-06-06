@@ -4,7 +4,7 @@ use ratatui::{
 };
 use transmission_rpc::types::{Id, Torrent, TorrentStatus};
 
-use crate::ui::bytes_to_human_format;
+use crate::ui::{bytes_to_human_format, seconds_to_human_format};
 
 #[derive(Clone)]
 pub struct RustmissionTorrent {
@@ -63,7 +63,7 @@ impl From<&Torrent> for RustmissionTorrent {
         let eta_secs = match t.eta.expect("field requested") {
             -2 => "∞".to_string(),
             -1 => String::default(),
-            eta_secs => eta_secs.to_string(),
+            eta_secs => seconds_to_human_format(eta_secs),
         };
 
         let download_speed = match t.rate_download.expect("field requested") {

@@ -122,6 +122,41 @@ pub fn bytes_to_human_format(bytes: i64) -> String {
     format!("{value:.1} {unit}")
 }
 
+pub fn seconds_to_human_format(seconds: i64) -> String {
+    const MINUTE: i64 = 60;
+    const HOUR: i64 = MINUTE * 60;
+    const DAY: i64 = HOUR * 24;
+
+    if seconds == 0 {
+        return "0s".to_string();
+    }
+
+    let mut curr_string = String::new();
+
+    let mut rest = seconds;
+    if seconds > DAY {
+        let days = rest / DAY;
+        rest = seconds % DAY;
+
+        curr_string = format!("{curr_string}{days}d");
+    }
+
+    if seconds > HOUR {
+        let hours = rest / HOUR;
+        rest = rest % HOUR;
+        curr_string = format!("{curr_string}{hours}h");
+    }
+
+    if seconds > MINUTE {
+        let minutes = rest / MINUTE;
+        rest = rest % MINUTE;
+        curr_string = format!("{curr_string}{minutes}m");
+    }
+
+    curr_string = format!("{curr_string}{rest}s");
+    curr_string
+}
+
 fn centered_rect(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
     let popup_layout = Layout::vertical(
         constraints![==((100 - percent_y) / 2)%, ==percent_y%, ==((100 - percent_y) / 2)%],
