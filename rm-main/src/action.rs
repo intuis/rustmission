@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use crossterm::event::{KeyCode, KeyEvent};
 use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
 
-use crate::{tui::Event, ui::popup::ErrorPopup};
+use crate::{tui::Event, ui::global_popups::ErrorPopup};
 
 #[derive(Debug)]
 pub(crate) enum TorrentAction {

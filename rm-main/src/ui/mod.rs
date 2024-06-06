@@ -1,5 +1,5 @@
 pub mod components;
-pub mod popup;
+pub mod global_popups;
 pub mod tabs;
 
 use crate::ui::tabs::torrents::TorrentsTab;
@@ -16,7 +16,7 @@ use crate::{
 
 use self::{
     components::{tabs::CurrentTab, Component, TabComponent},
-    popup::{HelpPopup, Popup},
+    global_popups::{GlobalPopupManager, HelpPopup},
 };
 
 pub struct MainWindow {
@@ -24,7 +24,7 @@ pub struct MainWindow {
     tabs: TabComponent,
     torrents_tab: TorrentsTab,
     search_tab: tabs::search::SearchTab,
-    popup: Popup,
+    global_popup_manager: GlobalPopupManager,
 }
 
 impl MainWindow {
@@ -34,7 +34,7 @@ impl MainWindow {
             tabs: TabComponent::new(ctx.clone()),
             torrents_tab: TorrentsTab::new(ctx.clone()),
             search_tab: tabs::search::SearchTab::new(ctx.clone()),
-            popup: Popup::default(),
+            global_popup_manager: GlobalPopupManager::default(),
         }
     }
 }
@@ -44,21 +44,21 @@ impl Component for MainWindow {
     #[must_use]
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         if let Action::Error(e_popup) = action {
-            self.popup.error_popup = Some(*e_popup);
+            self.global_popup_manager.error_popup = Some(*e_popup);
             return Some(Action::Render);
         }
 
         if let Action::ShowHelp = action {
-            if self.popup.help_popup.is_some() {
-                self.popup.help_popup = None;
+            if self.global_popup_manager.help_popup.is_some() {
+                self.global_popup_manager.help_popup = None;
             } else {
-                self.popup.help_popup = Some(HelpPopup::new(self.ctx.clone()));
+                self.global_popup_manager.help_popup = Some(HelpPopup::new(self.ctx.clone()));
             }
             return Some(Action::Render);
         }
 
-        if self.popup.needs_action() {
-            self.popup.handle_actions(action)
+        if self.global_popup_manager.needs_action() {
+            self.global_popup_manager.handle_actions(action)
         } else {
             if let Action::ChangeTab(_) = action {
                 self.tabs.handle_actions(action);
@@ -82,7 +82,7 @@ impl Component for MainWindow {
             CurrentTab::Search => self.search_tab.render(f, main_window),
         }
 
-        self.popup.render(f, f.size());
+        self.global_popup_manager.render(f, f.size());
     }
 }
 

@@ -9,7 +9,7 @@ use crate::ui::tabs::torrents::rustmission_torrent::RustmissionTorrent;
 use crate::{
     action::{Action, TorrentAction},
     app,
-    ui::{popup::ErrorPopup, tabs::torrents::table_manager::TableManager},
+    ui::{global_popups::ErrorPopup, tabs::torrents::table_manager::TableManager},
 };
 
 pub async fn stats_fetch(ctx: app::Ctx, stats: Arc<std::sync::Mutex<Option<SessionStats>>>) {
