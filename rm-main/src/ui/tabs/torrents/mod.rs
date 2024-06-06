@@ -186,15 +186,18 @@ impl<'a> TorrentsTab {
         let mut table_manager = self.table_manager.lock().unwrap();
         if let Some(torrent) = table_manager.current_torrent() {
             let torrent_id = torrent.id.clone();
-            let torrent_status = torrent.status;
-            match torrent_status {
+            match torrent.status() {
                 TorrentStatus::Stopped => {
                     self.ctx
                         .send_torrent_action(TorrentAction::Start(vec![torrent_id]));
+                    torrent.update_status(TorrentStatus::Downloading);
+                    return Some(Action::Render);
                 }
                 _ => {
                     self.ctx
                         .send_torrent_action(TorrentAction::Stop(vec![torrent_id]));
+                    torrent.update_status(TorrentStatus::Stopped);
+                    return Some(Action::Render);
                 }
             }
         }

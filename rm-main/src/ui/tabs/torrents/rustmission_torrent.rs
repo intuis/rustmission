@@ -14,7 +14,7 @@ pub struct RustmissionTorrent {
     pub eta_secs: String,
     pub download_speed: String,
     pub upload_speed: String,
-    pub status: TorrentStatus,
+    status: TorrentStatus,
     pub style: Style,
     pub id: Id,
 }
@@ -30,6 +30,20 @@ impl RustmissionTorrent {
             self.upload_speed.as_str(),
         ])
         .style(self.style)
+    }
+
+    pub fn status(&self) -> TorrentStatus {
+        self.status
+    }
+
+    pub fn update_status(&mut self, new_status: TorrentStatus) {
+        if let TorrentStatus::Stopped = new_status {
+            self.style = Style::default().dark_gray().italic();
+        } else {
+            self.style = Style::default();
+        }
+
+        self.status = new_status;
     }
 }
 
