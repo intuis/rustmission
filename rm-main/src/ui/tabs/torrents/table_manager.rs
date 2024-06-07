@@ -48,6 +48,26 @@ impl TableManager {
         ]
     }
 
+    pub fn filtered_torrents_rows<'a>(
+        &self,
+        torrents: &'a [RustmissionTorrent],
+        filter: &str,
+    ) -> Vec<ratatui::widgets::Row<'a>> {
+        let matcher = SkimMatcherV2::default();
+        let mut rows = vec![];
+
+        let highlight_style =
+            Style::default().fg(self.ctx.config.general.accent_color.as_ratatui());
+
+        for torrent in torrents {
+            if let Some((_, indices)) = matcher.fuzzy_indices(&torrent.torrent_name, filter) {
+                rows.push(torrent.to_row_with_higlighted_indices(indices, highlight_style))
+            }
+        }
+
+        rows
+    }
+
     pub fn current_torrent(&mut self) -> Option<&mut RustmissionTorrent> {
         let matcher = SkimMatcherV2::default();
         let index = self.table.state.borrow().selected()?;

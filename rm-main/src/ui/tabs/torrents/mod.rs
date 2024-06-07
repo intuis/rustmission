@@ -10,8 +10,6 @@ use std::sync::{Arc, Mutex};
 
 use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
 
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
 use ratatui_macros::constraints;
@@ -108,7 +106,7 @@ impl<'a> TorrentsTab {
         let torrent_rows: Vec<_> = if let Some(filter) = &*table_manager_lock.filter.lock().unwrap()
         {
             let torrent_rows =
-                Self::filtered_torrents_rows(&table_manager_lock.table.items, filter);
+                table_manager_lock.filtered_torrents_rows(&table_manager_lock.table.items, filter);
             table_manager_lock.table.overwrite_len(torrent_rows.len());
             torrent_rows
         } else {
@@ -138,18 +136,6 @@ impl<'a> TorrentsTab {
             rect,
             &mut table_manager_lock.table.state.borrow_mut(),
         );
-    }
-
-    fn filtered_torrents_rows(
-        torrents: &'a [RustmissionTorrent],
-        filter: &str,
-    ) -> Vec<ratatui::widgets::Row<'a>> {
-        let matcher = SkimMatcherV2::default();
-        torrents
-            .iter()
-            .filter(|t| matcher.fuzzy_match(&t.torrent_name, filter).is_some())
-            .map(RustmissionTorrent::to_row)
-            .collect()
     }
 
     fn show_files_popup(&mut self) -> Option<Action> {

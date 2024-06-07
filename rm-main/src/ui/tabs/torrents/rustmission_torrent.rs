@@ -1,5 +1,6 @@
 use ratatui::{
     style::{Style, Stylize},
+    text::{Line, Span},
     widgets::Row,
 };
 use transmission_rpc::types::{Id, Torrent, TorrentStatus};
@@ -30,6 +31,31 @@ impl RustmissionTorrent {
             self.upload_speed.as_str(),
         ])
         .style(self.style)
+    }
+
+    pub fn to_row_with_higlighted_indices(
+        &self,
+        highlighted_indices: Vec<usize>,
+        highlight_style: Style,
+    ) -> ratatui::widgets::Row {
+        let mut torrent_name_line = Line::default();
+
+        for (index, char) in self.torrent_name.char_indices() {
+            if highlighted_indices.contains(&index) {
+                torrent_name_line.push_span(Span::styled(char.to_string(), highlight_style));
+            } else {
+                torrent_name_line.push_span(Span::raw(char.to_string()))
+            }
+        }
+
+        Row::new([
+            torrent_name_line,
+            Line::from(self.size_when_done.as_str()),
+            Line::from(self.progress.as_str()),
+            Line::from(self.eta_secs.as_str()),
+            Line::from(self.download_speed.as_str()),
+            Line::from(self.upload_speed.as_str()),
+        ])
     }
 
     pub fn status(&self) -> TorrentStatus {
