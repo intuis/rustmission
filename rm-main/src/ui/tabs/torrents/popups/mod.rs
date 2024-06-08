@@ -16,13 +16,13 @@ pub enum CurrentPopup {
 }
 
 impl PopupManager {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             current_popup: None,
         }
     }
 
-    pub fn is_showing_popup(&self) -> bool {
+    pub const fn is_showing_popup(&self) -> bool {
         self.current_popup.is_some()
     }
 
@@ -41,7 +41,7 @@ impl Component for PopupManager {
         if let Some(current_popup) = &mut self.current_popup {
             match current_popup {
                 CurrentPopup::Stats(popup) => {
-                    if let Some(Action::Quit) = popup.handle_actions(action) {
+                    if popup.handle_actions(action) == Some(Action::Quit) {
                         self.close_popup();
                         return Some(Action::Render);
                     };

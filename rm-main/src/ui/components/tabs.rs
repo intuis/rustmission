@@ -16,7 +16,7 @@ pub struct TabComponent {
 }
 
 impl TabComponent {
-    pub fn new(ctx: app::Ctx) -> Self {
+    pub const fn new(ctx: app::Ctx) -> Self {
         Self {
             ctx,
             tabs_list: ["Torrents", "Search"],

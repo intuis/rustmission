@@ -17,7 +17,7 @@ pub(super) struct GlobalPopupManager {
 }
 
 impl GlobalPopupManager {
-    pub fn needs_action(&self) -> bool {
+    pub const fn needs_action(&self) -> bool {
         self.error_popup.is_some() || self.help_popup.is_some()
     }
 }
@@ -25,20 +25,17 @@ impl GlobalPopupManager {
 impl Component for GlobalPopupManager {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         if let Some(popup) = &mut self.error_popup {
-            if let Some(Action::Quit) = popup.handle_actions(action) {
+            if popup.handle_actions(action) == Some(Action::Quit) {
                 self.error_popup = None;
                 return Some(Action::Render);
             }
-            None
         } else if let Some(popup) = &mut self.help_popup {
-            if let Some(Action::Quit) = popup.handle_actions(action) {
+            if popup.handle_actions(action) == Some(Action::Quit) {
                 self.help_popup = None;
                 return Some(Action::Render);
             }
-            None
-        } else {
-            None
         }
+        None
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {

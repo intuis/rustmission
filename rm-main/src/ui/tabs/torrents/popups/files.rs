@@ -57,6 +57,7 @@ async fn fetch_new_files(
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum CurrentFocus {
     CloseButton,
     Files,
@@ -102,16 +103,19 @@ impl FilesPopup {
 impl Component for FilesPopup {
     #[must_use]
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
-        match action {
-            Action::Confirm => {
-                if let CurrentFocus::Files = self.current_focus {
-                    self.tree_state.toggle_selected();
-                    Some(Action::Render)
-                } else {
-                    Some(Action::Quit)
-                }
+        match (action, self.current_focus) {
+            (Action::Quit, _) => Some(Action::Quit),
+            (Action::ChangeFocus, _) => {
+                self.switch_focus();
+                Some(Action::Render)
             }
-            Action::Space => {
+            (Action::Confirm, CurrentFocus::CloseButton) => Some(Action::Quit),
+
+            (Action::Confirm, CurrentFocus::Files) => {
+                self.tree_state.toggle_selected();
+                Some(Action::Render)
+            }
+            (Action::Space, CurrentFocus::Files) => {
                 if let Some(torrent) = &mut *self.torrent.lock().unwrap() {
                     let wanted_ids = torrent.wanted.as_mut().unwrap();
 
@@ -145,26 +149,29 @@ impl Component for FilesPopup {
                         }
                     }
 
-                    let args;
-                    if wanted_in_selection_no > 0 {
-                        for transmission_file in self.tree.lock().unwrap().get_by_ids(&selected_ids)
-                        {
-                            transmission_file.set_wanted(false);
+                    let args = {
+                        if wanted_in_selection_no > 0 {
+                            for transmission_file in
+                                self.tree.lock().unwrap().get_by_ids(&selected_ids)
+                            {
+                                transmission_file.set_wanted(false);
+                            }
+                            TorrentSetArgs {
+                                files_unwanted: Some(selected_ids),
+                                ..Default::default()
+                            }
+                        } else {
+                            for transmission_file in
+                                self.tree.lock().unwrap().get_by_ids(&selected_ids)
+                            {
+                                transmission_file.set_wanted(true);
+                            }
+                            TorrentSetArgs {
+                                files_wanted: Some(selected_ids),
+                                ..Default::default()
+                            }
                         }
-                        args = TorrentSetArgs {
-                            files_unwanted: Some(selected_ids),
-                            ..Default::default()
-                        };
-                    } else {
-                        for transmission_file in self.tree.lock().unwrap().get_by_ids(&selected_ids)
-                        {
-                            transmission_file.set_wanted(true);
-                        }
-                        args = TorrentSetArgs {
-                            files_wanted: Some(selected_ids),
-                            ..Default::default()
-                        };
-                    }
+                    };
 
                     self.ctx.send_torrent_action(TorrentAction::SetArgs(
                         Box::new(args),
@@ -175,29 +182,15 @@ impl Component for FilesPopup {
                 None
             }
 
-            Action::ChangeFocus => {
-                self.switch_focus();
+            (Action::Up, CurrentFocus::Files) => {
+                self.tree_state.key_up();
+                Some(Action::Render)
+            }
+            (Action::Down, CurrentFocus::Files) => {
+                self.tree_state.key_down();
                 Some(Action::Render)
             }
 
-            Action::Up => {
-                if let CurrentFocus::Files = self.current_focus {
-                    self.tree_state.key_up();
-                    Some(Action::Render)
-                } else {
-                    None
-                }
-            }
-            Action::Down => {
-                if let CurrentFocus::Files = self.current_focus {
-                    self.tree_state.key_down();
-                    Some(Action::Render)
-                } else {
-                    None
-                }
-            }
-
-            Action::Quit => Some(Action::Quit),
             _ => None,
         }
     }
@@ -234,7 +227,7 @@ impl Component for FilesPopup {
             };
 
             let tree_highlight_style = {
-                if let CurrentFocus::Files = self.current_focus {
+                if self.current_focus == CurrentFocus::Files {
                     bold_highlight_style
                 } else {
                     Style::default()
@@ -275,7 +268,6 @@ impl Component for FilesPopup {
 }
 
 struct TransmissionFile {
-    full_path: String,
     name: String,
     id: usize,
     // TODO: Change to enum
@@ -306,13 +298,11 @@ impl Node {
         let mut root = Self::new();
 
         for (id, file) in files.iter().enumerate() {
-            let full_path = file.name.clone();
             let path: Vec<String> = file.name.split('/').map(str::to_string).collect();
 
             let wanted = torrent.wanted.as_ref().unwrap()[id] != 0;
 
             let file = TransmissionFile {
-                full_path,
                 id,
                 name: path[path.len() - 1].clone(),
                 wanted,
@@ -333,7 +323,7 @@ impl Node {
                 let child = self
                     .directories
                     .entry(first.to_string())
-                    .or_insert_with(Node::new);
+                    .or_insert_with(Self::new);
                 child.add_transmission_file(file, rest);
             }
         }
@@ -346,7 +336,7 @@ impl Node {
                 transmission_files.push(file);
             }
         }
-        for (_, node) in &mut self.directories {
+        for node in self.directories.values_mut() {
             transmission_files.extend(node.get_by_ids(ids))
         }
         transmission_files

@@ -2,14 +2,13 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Clear, Paragraph, Wrap},
 };
-use ratatui_macros::constraints;
 
 use crate::{
     action::Action,
     ui::{centered_rect, components::Component},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorPopup {
     // TODO: make sure that title always has padding
     title: String,
@@ -27,7 +26,7 @@ impl ErrorPopup {
 
 impl Component for ErrorPopup {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
-        if let Action::Confirm = action {
+        if action == Action::Confirm {
             return Some(Action::Quit);
         }
         None
@@ -37,7 +36,8 @@ impl Component for ErrorPopup {
         let centered_rect = centered_rect(f.size(), 50, 50);
         let popup_rect = centered_rect.inner(&Margin::new(1, 1));
         let text_rect = popup_rect.inner(&Margin::new(3, 2));
-        let button_rect = { Layout::vertical(constraints![==100%, ==1]).split(text_rect)[1] };
+        let button_rect = Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)])
+            .split(text_rect)[1];
 
         let button = Paragraph::new("[ OK ]").bold().right_aligned();
 

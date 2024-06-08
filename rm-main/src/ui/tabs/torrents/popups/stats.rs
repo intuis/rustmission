@@ -5,7 +5,6 @@ use ratatui::{
         Block, BorderType, Clear, Paragraph,
     },
 };
-use ratatui_macros::constraints;
 use transmission_rpc::types::SessionStats;
 
 use crate::{
@@ -20,17 +19,18 @@ pub struct StatisticsPopup {
 }
 
 impl StatisticsPopup {
-    pub fn new(ctx: app::Ctx, stats: SessionStats) -> Self {
+    pub const fn new(ctx: app::Ctx, stats: SessionStats) -> Self {
         Self { ctx, stats }
     }
 }
 
 impl Component for StatisticsPopup {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
-        if let Action::Confirm = action {
-            return Some(Action::Quit);
+        use Action as A;
+        match action {
+            A::Confirm => Some(A::Quit),
+            _ => None,
         }
-        None
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {

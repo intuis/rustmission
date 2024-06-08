@@ -22,7 +22,7 @@ impl FilterBar {
         let current_filter = table_manager.lock().unwrap().filter.lock().unwrap().clone();
         let input = InputManager::new_with_value(
             "Search: ".to_string(),
-            current_filter.unwrap_or("".to_string()),
+            current_filter.unwrap_or_default(),
         );
         Self {
             input,
@@ -44,14 +44,15 @@ impl Component for FilterBar {
 
                 if let Some(req) = to_input_request(input.code) {
                     self.input.handle(req);
-                    let table_manager_lock = self.table_manager.lock().unwrap();
-
-                    table_manager_lock
-                        .filter
-                        .lock()
-                        .unwrap()
-                        .replace(self.input.text());
-                    table_manager_lock.table.state.borrow_mut().select(Some(0));
+                    {
+                        let table_manager_lock = self.table_manager.lock().unwrap();
+                        table_manager_lock
+                            .filter
+                            .lock()
+                            .unwrap()
+                            .replace(self.input.text());
+                        table_manager_lock.table.state.borrow_mut().select(Some(0));
+                    }
                     return Some(Action::Render);
                 }
 

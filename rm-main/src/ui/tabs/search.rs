@@ -10,7 +10,6 @@ use ratatui::{
     prelude::*,
     widgets::{Cell, Paragraph, Row, Table},
 };
-use ratatui_macros::constraints;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::Input;
 
@@ -24,6 +23,7 @@ use crate::{
     },
 };
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum SearchFocus {
     Search,
     List,
@@ -72,7 +72,7 @@ impl SearchTab {
     }
 
     fn change_focus(&mut self) {
-        if let SearchFocus::Search = self.search_focus {
+        if self.search_focus == SearchFocus::Search {
             self.search_focus = SearchFocus::List;
         } else {
             self.search_focus = SearchFocus::Search;
@@ -123,7 +123,7 @@ impl Component for SearchTab {
                     .lock()
                     .unwrap()
                     .current_item()
-                    .map(|magnet| magnet.url.clone());
+                    .map(|magnet| magnet.url);
                 if let Some(magnet_url) = magnet_url {
                     self.ctx.send_torrent_action(TorrentAction::Add(magnet_url));
                 }
@@ -135,14 +135,19 @@ impl Component for SearchTab {
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let [top_line, rest] = Layout::vertical(constraints![==1, ==100%]).areas(rect);
+        let [top_line, rest] =
+            Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)]).areas(rect);
 
-        let search_rect = Layout::horizontal(constraints!(==25%, ==50%, ==25%))
-            .flex(Flex::Center)
-            .split(top_line)[1];
+        let search_rect = Layout::horizontal([
+            Constraint::Percentage(25),
+            Constraint::Percentage(50),
+            Constraint::Percentage(25),
+        ])
+        .flex(Flex::Center)
+        .split(top_line)[1];
 
         let input = {
-            if self.input.value().is_empty() && !matches!(self.search_focus, SearchFocus::Search) {
+            if self.input.value().is_empty() && self.search_focus != SearchFocus::Search {
                 "press / to search"
             } else {
                 self.input.value()
@@ -150,7 +155,7 @@ impl Component for SearchTab {
         };
 
         let search_style = {
-            if let SearchFocus::Search = self.search_focus {
+            if self.search_focus == SearchFocus::Search {
                 Style::default()
                     .underlined()
                     .fg(self.ctx.config.general.accent_color.as_ratatui())

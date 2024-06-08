@@ -27,7 +27,7 @@ pub struct HelpPopup {
 }
 
 impl HelpPopup {
-    pub fn new(ctx: app::Ctx) -> Self {
+    pub const fn new(ctx: app::Ctx) -> Self {
         Self { ctx }
     }
 }

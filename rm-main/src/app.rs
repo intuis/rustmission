@@ -30,7 +30,7 @@ impl Ctx {
         action_tx: UnboundedSender<Action>,
         trans_tx: UnboundedSender<TorrentAction>,
     ) -> Self {
-        Ctx {
+        Self {
             client,
             config: Arc::new(config),
             action_tx,

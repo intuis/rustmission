@@ -58,12 +58,12 @@ impl RustmissionTorrent {
         ])
     }
 
-    pub fn status(&self) -> TorrentStatus {
+    pub const fn status(&self) -> TorrentStatus {
         self.status
     }
 
     pub fn update_status(&mut self, new_status: TorrentStatus) {
-        if let TorrentStatus::Stopped = new_status {
+        if new_status == TorrentStatus::Stopped {
             self.style = Style::default().dark_gray().italic();
         } else {
             self.style = Style::default();
@@ -75,9 +75,9 @@ impl RustmissionTorrent {
 
 impl From<&Torrent> for RustmissionTorrent {
     fn from(t: &Torrent) -> Self {
-        let id = t.id().unwrap();
+        let id = t.id().expect("id requested");
 
-        let torrent_name = t.name.clone().unwrap();
+        let torrent_name = t.name.clone().expect("name requested");
 
         let size_when_done = bytes_to_human_format(t.size_when_done.expect("field requested"));
 
@@ -109,7 +109,7 @@ impl From<&Torrent> for RustmissionTorrent {
             _ => Style::default(),
         };
 
-        RustmissionTorrent {
+        Self {
             torrent_name,
             size_when_done,
             progress,

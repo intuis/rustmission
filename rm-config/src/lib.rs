@@ -42,7 +42,7 @@ pub enum Color {
 
 impl Color {
     #[must_use]
-    pub fn as_ratatui(&self) -> ratatui::style::Color {
+    pub const fn as_ratatui(&self) -> ratatui::style::Color {
         use ratatui::style::Color as RColor;
         use Color::*;
         match self {
@@ -117,7 +117,7 @@ impl Config {
 
     fn table_to_config(table: &Table) -> Result<Self> {
         let config_string = table.to_string();
-        let config: Config = toml::from_str(&config_string)?;
+        let config: Self = toml::from_str(&config_string)?;
         Ok(config)
     }
 

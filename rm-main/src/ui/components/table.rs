@@ -18,11 +18,9 @@ impl<T: Clone> GenericTable<T> {
     }
 
     fn get_len(&self) -> usize {
-        if let Some(len) = *self.overwritten_len.borrow() {
-            len
-        } else {
-            self.items.len()
-        }
+        self.overwritten_len
+            .borrow()
+            .map_or(self.items.len(), |len| len)
     }
 
     pub fn overwrite_len(&self, len: usize) {

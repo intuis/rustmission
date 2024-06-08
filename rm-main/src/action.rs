@@ -16,7 +16,7 @@ pub(crate) enum TorrentAction {
     SetArgs(Box<TorrentSetArgs>, Option<Vec<Id>>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Action {
     Quit,
     Render,
@@ -41,12 +41,12 @@ pub(crate) enum Action {
 }
 
 impl Action {
-    pub const fn is_render(&self) -> bool {
-        matches!(self, Self::Render)
+    pub fn is_render(&self) -> bool {
+        *self == Self::Render
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     Input,
     Normal,
@@ -57,7 +57,7 @@ pub fn event_to_action(mode: Mode, event: Event) -> Option<Action> {
         Event::Quit => Some(Action::Quit),
         Event::Error => todo!(),
         Event::Render => Some(Action::Render),
-        Event::Key(key) if matches!(mode, Mode::Input) => Some(Action::Input(key)),
+        Event::Key(key) if mode == Mode::Input => Some(Action::Input(key)),
         Event::Key(key) => keycode_to_action(key),
     }
 }

@@ -17,7 +17,7 @@ pub struct TableManager {
 impl TableManager {
     pub fn new(ctx: app::Ctx, table: GenericTable<RustmissionTorrent>) -> Self {
         let widths = Self::default_widths();
-        TableManager {
+        Self {
             ctx,
             table,
             widths,
@@ -33,11 +33,11 @@ impl TableManager {
         }
     }
 
-    pub fn header(&self) -> &Vec<String> {
+    pub const fn header(&self) -> &Vec<String> {
         &self.header
     }
 
-    fn default_widths() -> [Constraint; 6] {
+    const fn default_widths() -> [Constraint; 6] {
         [
             Constraint::Max(70),    // Name
             Constraint::Length(10), // Size

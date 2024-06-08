@@ -12,7 +12,6 @@ use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
 
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
-use ratatui_macros::constraints;
 use transmission_rpc::types::TorrentStatus;
 
 use crate::action::{Action, TorrentAction};
@@ -70,7 +69,7 @@ impl TorrentsTab {
 impl Component for TorrentsTab {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         let [torrents_list_rect, stats_rect] =
-            Layout::vertical(constraints![>=10, ==1]).areas(rect);
+            Layout::vertical([Constraint::Min(10), Constraint::Length(1)]).areas(rect);
 
         self.render_table(f, torrents_list_rect);
 
@@ -99,7 +98,7 @@ impl Component for TorrentsTab {
     }
 }
 
-impl<'a> TorrentsTab {
+impl TorrentsTab {
     fn render_table(&mut self, f: &mut Frame, rect: Rect) {
         let table_manager_lock = &mut *self.table_manager.lock().unwrap();
 
@@ -169,8 +168,7 @@ impl<'a> TorrentsTab {
     }
 
     fn pause_current_torrent(&mut self) -> Option<Action> {
-        let mut table_manager = self.table_manager.lock().unwrap();
-        if let Some(torrent) = table_manager.current_torrent() {
+        if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
             let torrent_id = torrent.id.clone();
             match torrent.status() {
                 TorrentStatus::Stopped => {
