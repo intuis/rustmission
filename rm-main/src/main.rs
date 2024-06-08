@@ -1,6 +1,6 @@
 mod action;
 pub mod app;
-mod transmission;
+pub mod transmission;
 pub mod tui;
 mod ui;
 mod utils;
@@ -9,7 +9,6 @@ use std::{fs::File, io::Read};
 
 use app::App;
 use rm_config::Config;
-use utils::trans_client_from_config;
 
 use anyhow::Result;
 use base64::Engine;
@@ -46,7 +45,7 @@ async fn main() -> Result<()> {
 }
 
 async fn add_torrent(config: &Config, torrent: String) -> Result<()> {
-    let mut transclient = trans_client_from_config(&config);
+    let mut transclient = transmission::utils::client_from_config(&config);
     let args = {
         if torrent.starts_with("magnet:")
             || torrent.starts_with("http:")

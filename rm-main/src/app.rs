@@ -2,11 +2,10 @@ use rm_config::Config;
 use std::sync::Arc;
 
 use crate::{
-    action::{event_to_action, Action, Mode, TorrentAction},
-    transmission,
+    action::{event_to_action, Action, Mode},
+    transmission::{self, TorrentAction},
     tui::Tui,
     ui::{components::Component, MainWindow},
-    utils::trans_client_from_config,
 };
 
 use anyhow::Result;
@@ -17,9 +16,9 @@ use tokio::sync::{
 use transmission_rpc::TransClient;
 
 #[derive(Clone)]
-pub(crate) struct Ctx {
-    pub(crate) client: Arc<Mutex<TransClient>>,
-    pub(crate) config: Arc<Config>,
+pub struct Ctx {
+    pub client: Arc<Mutex<TransClient>>,
+    pub config: Arc<Config>,
     action_tx: UnboundedSender<Action>,
     trans_tx: UnboundedSender<TorrentAction>,
 }
@@ -60,7 +59,7 @@ impl App {
     pub fn new(config: Config) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
 
-        let client = Arc::new(Mutex::new(trans_client_from_config(&config)));
+        let client = Arc::new(Mutex::new(transmission::utils::client_from_config(&config)));
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
         let ctx = Ctx::new(client, config, action_tx, trans_tx);

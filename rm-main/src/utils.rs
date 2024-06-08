@@ -1,25 +1,3 @@
-use rm_config::Config;
-use transmission_rpc::{types::BasicAuth, TransClient};
-
-pub fn trans_client_from_config(config: &Config) -> TransClient {
-    let user = config
-        .connection
-        .username
-        .as_ref()
-        .unwrap_or(&"".to_string())
-        .clone();
-    let password = config
-        .connection
-        .password
-        .as_ref()
-        .unwrap_or(&"".to_string())
-        .clone();
-    let url = config.connection.url.parse().unwrap();
-
-    let auth = BasicAuth { user, password };
-
-    TransClient::with_auth(url, auth)
-}
 pub fn bytes_to_human_format(bytes: i64) -> String {
     const KB: f64 = 1024.0;
     const MB: f64 = KB * 1024.0;

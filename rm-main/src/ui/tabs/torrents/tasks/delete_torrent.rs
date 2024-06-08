@@ -3,8 +3,9 @@ use ratatui::prelude::*;
 use transmission_rpc::types::Id;
 
 use crate::{
-    action::{Action, TorrentAction},
+    action::Action,
     app,
+    transmission::TorrentAction,
     ui::{components::Component, tabs::torrents::input_manager::InputManager, to_input_request},
 };
 

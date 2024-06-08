@@ -1,20 +1,6 @@
-use std::sync::{Arc, Mutex};
-
 use crossterm::event::{KeyCode, KeyEvent};
-use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
 
 use crate::{tui::Event, ui::global_popups::ErrorPopup};
-
-#[derive(Debug)]
-pub(crate) enum TorrentAction {
-    Add(String),
-    Stop(Vec<Id>),
-    Start(Vec<Id>),
-    DeleteWithoutFiles(Vec<Id>),
-    DeleteWithFiles(Vec<Id>),
-    GetTorrentInfo(Id, Arc<Mutex<Option<Torrent>>>),
-    SetArgs(Box<TorrentSetArgs>, Option<Vec<Id>>),
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Action {

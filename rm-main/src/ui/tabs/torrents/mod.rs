@@ -8,13 +8,14 @@ pub mod tasks;
 
 use std::sync::{Arc, Mutex};
 
+use crate::transmission::TorrentAction;
 use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
 
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
 use transmission_rpc::types::TorrentStatus;
 
-use crate::action::{Action, TorrentAction};
+use crate::action::Action;
 use crate::ui::components::table::GenericTable;
 use crate::ui::components::Component;
 use crate::{app, transmission};
@@ -41,17 +42,17 @@ impl TorrentsTab {
 
         let table_manager = Arc::new(Mutex::new(TableManager::new(ctx.clone(), table)));
 
-        tokio::spawn(transmission::stats_fetch(
+        tokio::spawn(transmission::fetchers::stats(
             ctx.clone(),
             Arc::clone(&stats.stats),
         ));
 
-        tokio::spawn(transmission::torrent_fetch(
+        tokio::spawn(transmission::fetchers::torrents(
             ctx.clone(),
             Arc::clone(&table_manager),
         ));
 
-        tokio::spawn(transmission::free_space_fetch(
+        tokio::spawn(transmission::fetchers::free_space(
             ctx.clone(),
             Arc::clone(&stats.free_space),
         ));

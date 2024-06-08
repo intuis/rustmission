@@ -14,8 +14,9 @@ use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::Input;
 
 use crate::{
-    action::{Action, TorrentAction},
+    action::Action,
     app,
+    transmission::TorrentAction,
     ui::{
         components::{table::GenericTable, Component},
         to_input_request,
