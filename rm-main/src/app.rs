@@ -6,6 +6,7 @@ use crate::{
     transmission,
     tui::Tui,
     ui::{components::Component, MainWindow},
+    utils::trans_client_from_config,
 };
 
 use anyhow::Result;
@@ -13,7 +14,7 @@ use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     Mutex,
 };
-use transmission_rpc::{types::BasicAuth, TransClient};
+use transmission_rpc::TransClient;
 
 #[derive(Clone)]
 pub(crate) struct Ctx {
@@ -57,25 +58,9 @@ pub struct App {
 
 impl App {
     pub fn new(config: Config) -> Self {
-        let user = config
-            .connection
-            .username
-            .as_ref()
-            .unwrap_or(&"".to_string())
-            .clone();
-        let password = config
-            .connection
-            .password
-            .as_ref()
-            .unwrap_or(&"".to_string())
-            .clone();
-        let url = config.connection.url.parse().unwrap();
-
-        let auth = BasicAuth { user, password };
-
         let (action_tx, action_rx) = mpsc::unbounded_channel();
 
-        let client = Arc::new(Mutex::new(TransClient::with_auth(url, auth)));
+        let client = Arc::new(Mutex::new(trans_client_from_config(&config)));
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
         let ctx = Ctx::new(client, config, action_tx, trans_tx);

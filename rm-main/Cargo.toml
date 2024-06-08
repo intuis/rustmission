@@ -15,6 +15,8 @@ anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 transmission-rpc = "0.4.2"
 fuzzy-matcher = "0.3.7"
+clap = { version = "4.5.6", features = ["derive"] }
+base64 = "0.22"
 
 # Async
 tokio = { version = "1", features = ["macros", "sync"] }

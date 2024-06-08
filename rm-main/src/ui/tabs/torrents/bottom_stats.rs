@@ -7,7 +7,7 @@ use ratatui::{
 };
 use transmission_rpc::types::{FreeSpace, SessionStats};
 
-use crate::ui::{bytes_to_human_format, components::Component};
+use crate::{ui::components::Component, utils::bytes_to_human_format};
 
 #[derive(Default)]
 pub(super) struct BottomStats {

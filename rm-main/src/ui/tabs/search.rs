@@ -17,10 +17,10 @@ use crate::{
     action::{Action, TorrentAction},
     app,
     ui::{
-        bytes_to_human_format,
         components::{table::GenericTable, Component},
         to_input_request,
     },
+    utils::bytes_to_human_format,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]

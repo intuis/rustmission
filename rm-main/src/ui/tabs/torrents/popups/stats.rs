@@ -10,7 +10,8 @@ use transmission_rpc::types::SessionStats;
 use crate::{
     action::Action,
     app,
-    ui::{bytes_to_human_format, centered_rect, components::Component},
+    ui::{centered_rect, components::Component},
+    utils::bytes_to_human_format,
 };
 
 pub struct StatisticsPopup {

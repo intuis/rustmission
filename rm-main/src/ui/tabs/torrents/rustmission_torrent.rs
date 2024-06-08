@@ -5,7 +5,7 @@ use ratatui::{
 };
 use transmission_rpc::types::{Id, Torrent, TorrentStatus};
 
-use crate::ui::{bytes_to_human_format, seconds_to_human_format};
+use crate::utils::{bytes_to_human_format, seconds_to_human_format};
 
 #[derive(Clone)]
 pub struct RustmissionTorrent {
