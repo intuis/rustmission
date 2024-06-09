@@ -38,22 +38,21 @@ async fn fetch_new_files(
     ctx: app::Ctx,
 ) {
     loop {
-        {
-            let new_torrent = ctx
-                .client
-                .lock()
-                .await
-                .torrent_get(None, Some(vec![torrent_id.clone()]))
-                .await
-                .unwrap()
-                .arguments
-                .torrents
-                .pop()
-                .unwrap();
-            let new_tree = Node::new_from_torrent(&new_torrent);
-            *torrent.lock().unwrap() = Some(new_torrent);
-            *tree.lock().unwrap() = new_tree;
-        }
+        let new_torrent = ctx
+            .client
+            .lock()
+            .await
+            .torrent_get(None, Some(vec![torrent_id.clone()]))
+            .await
+            .unwrap()
+            .arguments
+            .torrents
+            .pop()
+            .unwrap();
+        let new_tree = Node::new_from_torrent(&new_torrent);
+        *torrent.lock().unwrap() = Some(new_torrent);
+        *tree.lock().unwrap() = new_tree;
+        ctx.send_action(Action::Render);
         tokio::time::sleep(Duration::from_secs(6)).await;
     }
 }
@@ -210,14 +209,14 @@ impl Component for FilesPopup {
             .border_type(BorderType::Rounded)
             .title(Title::from(" Files ".set_style(highlight_style)).alignment(Alignment::Left));
 
+        if self.tree_state.selected().is_empty() {
+            self.tree_state.select_first();
+        }
+
         if let Some(torrent) = &*self.torrent.lock().unwrap() {
             if !self.switched_after_fetched_data {
                 self.current_focus = CurrentFocus::Files;
                 self.switched_after_fetched_data = true;
-            }
-
-            if self.tree_state.selected().is_empty() {
-                self.tree_state.select_first();
             }
 
             let close_button_style = {
