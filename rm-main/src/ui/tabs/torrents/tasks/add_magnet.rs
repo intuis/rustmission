@@ -36,7 +36,7 @@ impl Component for AddMagnetBar {
                     return Some(Action::Quit);
                 }
 
-                if let Some(req) = to_input_request(input.code) {
+                if let Some(req) = to_input_request(input) {
                     self.input_manager.handle(req);
                     return Some(Action::Render);
                 }

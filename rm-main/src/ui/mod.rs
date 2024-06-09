@@ -4,7 +4,7 @@ pub mod tabs;
 
 use crate::ui::tabs::torrents::TorrentsTab;
 
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::prelude::*;
 use tui_input::InputRequest;
 
@@ -87,13 +87,14 @@ impl Component for MainWindow {
     }
 }
 
-const fn to_input_request(keycode: KeyCode) -> Option<InputRequest> {
+const fn to_input_request(key_event: KeyEvent) -> Option<InputRequest> {
     use InputRequest as R;
 
-    match keycode {
-        KeyCode::Backspace => Some(R::DeletePrevChar),
-        KeyCode::Delete => Some(R::DeleteNextChar),
-        KeyCode::Char(char) => Some(R::InsertChar(char)),
+    match (key_event.code, key_event.modifiers) {
+        (KeyCode::Backspace, KeyModifiers::ALT) => Some(R::DeletePrevWord),
+        (KeyCode::Backspace, _) => Some(R::DeletePrevChar),
+        (KeyCode::Delete, _) => Some(R::DeleteNextChar),
+        (KeyCode::Char(char), _) => Some(R::InsertChar(char)),
         _ => None,
     }
 }

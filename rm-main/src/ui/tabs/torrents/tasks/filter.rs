@@ -42,7 +42,7 @@ impl Component for FilterBar {
                     return Some(Action::Quit);
                 }
 
-                if let Some(req) = to_input_request(input.code) {
+                if let Some(req) = to_input_request(input) {
                     self.input.handle(req);
                     {
                         let table_manager_lock = self.table_manager.lock().unwrap();

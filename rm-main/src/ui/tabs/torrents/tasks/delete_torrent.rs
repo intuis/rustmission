@@ -68,7 +68,7 @@ impl Component for DeleteBar {
                     }
                 }
 
-                if let Some(req) = to_input_request(input.code) {
+                if let Some(req) = to_input_request(input) {
                     self.input_mgr.handle(req);
                     return Some(Action::Render);
                 }

@@ -103,7 +103,7 @@ impl Component for SearchTab {
                     return Some(Action::SwitchToNormalMode);
                 }
 
-                if let Some(req) = to_input_request(input.code) {
+                if let Some(req) = to_input_request(input) {
                     self.input.handle(req);
                     return Some(Action::Render);
                 }
