@@ -53,7 +53,7 @@ fn keycode_to_action(key: KeyEvent) -> Option<Action> {
         KeyCode::Tab => Some(Action::ChangeFocus),
         KeyCode::Char('j') | KeyCode::Down => Some(Action::Down),
         KeyCode::Char('k') | KeyCode::Up => Some(Action::Up),
-        KeyCode::Char('q') => Some(Action::Quit),
+        KeyCode::Char('q') | KeyCode::Char('Q') => Some(Action::Quit),
         KeyCode::Char('?') => Some(Action::ShowHelp),
         KeyCode::Char('s') => Some(Action::ShowStats),
         KeyCode::Char('f') => Some(Action::ShowFiles),
