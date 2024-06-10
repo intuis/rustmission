@@ -35,6 +35,8 @@ pub(crate) struct SearchTab {
     input: Input,
     req_sender: UnboundedSender<String>,
     table: Arc<Mutex<GenericTable<Magnet>>>,
+    // TODO: Change it to enum, and combine table with search_result_info, to be behind one mutex
+    search_result_info: Arc<Mutex<SearchResultState>>,
     ctx: app::Ctx,
 }
 
@@ -42,13 +44,24 @@ impl SearchTab {
     pub(crate) fn new(ctx: app::Ctx) -> Self {
         let (tx, mut rx) = mpsc::unbounded_channel::<String>();
         let table = Arc::new(Mutex::new(GenericTable::new(vec![])));
-        let table_clone = Arc::clone(&table);
+        let search_result_info = Arc::new(Mutex::new(SearchResultState::new()));
 
         let ctx_clone = ctx.clone();
+        let table_clone = Arc::clone(&table);
+        let search_result_info_clone = Arc::clone(&search_result_info);
         tokio::task::spawn(async move {
             let magnetease = Magnetease::new();
             while let Some(search_phrase) = rx.recv().await {
+                search_result_info_clone.lock().unwrap().searching();
+                ctx_clone.send_action(Action::Render);
                 let res = magnetease.search(&search_phrase).await;
+                if res.is_empty() {
+                    search_result_info_clone.lock().unwrap().not_found();
+                } else {
+                    search_result_info_clone.lock().unwrap().found(res.len());
+                }
+
+                // TODO: add an X icon if no results, else V when results
                 table_clone.lock().unwrap().set_items(res);
                 ctx_clone.send_action(Action::Render);
             }
@@ -58,6 +71,7 @@ impl SearchTab {
             search_focus: SearchFocus::List,
             input: Input::default(),
             table,
+            search_result_info,
             req_sender: tx,
             ctx,
         }
@@ -136,8 +150,12 @@ impl Component for SearchTab {
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let [top_line, rest] =
-            Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)]).areas(rect);
+        let [top_line, rest, bottom_line] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Percentage(100),
+            Constraint::Length(1),
+        ])
+        .areas(rect);
 
         let search_rect = Layout::horizontal([
             Constraint::Percentage(25),
@@ -161,7 +179,7 @@ impl Component for SearchTab {
                     .underlined()
                     .fg(self.ctx.config.general.accent_color.as_ratatui())
             } else {
-                Style::default().gray().underlined()
+                Style::default().underlined().gray()
             }
         };
 
@@ -202,5 +220,61 @@ impl Component for SearchTab {
             .highlight_style(table_higlight_style);
 
         f.render_stateful_widget(table, rest, &mut *table_lock.state.borrow_mut());
+
+        self.search_result_info
+            .lock()
+            .unwrap()
+            .render(f, bottom_line);
+    }
+}
+
+#[derive(Clone, Copy)]
+enum SearchResultState {
+    Nothing,
+    NoResults,
+    Searching,
+    Found(usize),
+}
+
+impl SearchResultState {
+    fn new() -> Self {
+        Self::Nothing
+    }
+
+    fn searching(&mut self) {
+        *self = Self::Searching;
+    }
+
+    fn not_found(&mut self) {
+        *self = Self::NoResults;
+    }
+
+    fn found(&mut self, count: usize) {
+        *self = Self::Found(count);
+    }
+}
+
+impl Component for SearchResultState {
+    fn render(&mut self, f: &mut Frame, rect: Rect) {
+        match self {
+            SearchResultState::Nothing => return,
+            SearchResultState::Searching => {
+                f.render_widget("󱗼 Searching...", rect);
+            }
+            SearchResultState::NoResults => {
+                let mut line = Line::default();
+                line.push_span(Span::styled("", Style::default().red()));
+                line.push_span(Span::raw(" No results"));
+                let paragraph = Paragraph::new(line);
+                f.render_widget(paragraph, rect);
+            }
+            SearchResultState::Found(count) => {
+                let mut line = Line::default();
+                line.push_span(Span::styled("", Style::default().green()));
+                line.push_span(Span::raw(format!(" Found {count}")));
+                let paragraph = Paragraph::new(line);
+                f.render_widget(paragraph, rect);
+            }
+        }
     }
 }
