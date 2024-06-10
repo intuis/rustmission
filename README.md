@@ -31,7 +31,7 @@ nix run .
 
 ## Usage
 
-Launch Rustmission in your terminal to initialize the configuration and make adjustments as needed. Subsequently, run Rustmission again. For list of keybindings, press '?'.
+Launch Rustmission in your terminal to initialize the configuration and make adjustments as needed. Subsequently, run Rustmission again. For a list of keybindings, press '?'.
 
 ## Configuration
 
