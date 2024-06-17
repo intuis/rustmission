@@ -10,6 +10,10 @@ pub(crate) enum Action {
     Render,
     Up,
     Down,
+    ScrollDownPage,
+    ScrollUpPage,
+    Home,
+    End,
     Confirm,
     Space,
     ShowHelp,
@@ -49,50 +53,61 @@ pub enum Mode {
 }
 
 pub fn event_to_action(mode: Mode, event: Event) -> Option<Action> {
+    use Action as A;
+
     // Handle CTRL+C first
     if let Event::Key(key_event) = event {
         if key_event.modifiers == KeyModifiers::CONTROL
             && (key_event.code == KeyCode::Char('c') || key_event.code == KeyCode::Char('C'))
         {
-            return Some(Action::HardQuit);
+            return Some(A::HardQuit);
         }
     }
 
     match event {
-        Event::Quit => Some(Action::Quit),
+        Event::Quit => Some(A::Quit),
         Event::Error => todo!(),
-        Event::Render => Some(Action::Render),
-        Event::Key(key) if mode == Mode::Input => Some(Action::Input(key)),
+        Event::Render => Some(A::Render),
+        Event::Key(key) if mode == Mode::Input => Some(A::Input(key)),
         Event::Key(key) => key_event_to_action(key),
     }
 }
 
 fn key_event_to_action(key: KeyEvent) -> Option<Action> {
+    use Action as A;
+
     match (key.modifiers, key.code) {
+        (KeyModifiers::CONTROL, KeyCode::Char('d')) => Some(A::ScrollDownPage),
+        (KeyModifiers::CONTROL, KeyCode::Char('u')) => Some(A::ScrollUpPage),
         (_, keycode) => keycode_to_action(keycode),
     }
 }
 
 fn keycode_to_action(key: KeyCode) -> Option<Action> {
+    use Action as A;
     match key {
-        KeyCode::Char('q') | KeyCode::Char('Q') => Some(Action::Quit),
-        KeyCode::Esc => Some(Action::SoftQuit),
-        KeyCode::Tab => Some(Action::ChangeFocus),
-        KeyCode::Char('j') | KeyCode::Down => Some(Action::Down),
-        KeyCode::Char('k') | KeyCode::Up => Some(Action::Up),
-        KeyCode::Char('?') | KeyCode::F(1) => Some(Action::ShowHelp),
-        KeyCode::Char('s') => Some(Action::ShowStats),
-        KeyCode::Char('f') => Some(Action::ShowFiles),
-        KeyCode::Char('/') => Some(Action::Search),
-        KeyCode::Char('a') => Some(Action::AddMagnet),
-        KeyCode::Char('p') => Some(Action::Pause),
-        KeyCode::Char('d') => Some(Action::DeleteWithoutFiles),
-        KeyCode::Char('D') => Some(Action::DeleteWithFiles),
-        KeyCode::Char(' ') => Some(Action::Space),
+        KeyCode::Char('q') | KeyCode::Char('Q') => Some(A::Quit),
+        KeyCode::Esc => Some(A::SoftQuit),
+        KeyCode::Tab => Some(A::ChangeFocus),
+        KeyCode::Home => Some(A::Home),
+        KeyCode::End => Some(A::End),
+        KeyCode::PageUp => Some(A::ScrollUpPage),
+        KeyCode::PageDown => Some(A::ScrollDownPage),
+        KeyCode::Char('j') | KeyCode::Down => Some(A::Down),
+        KeyCode::Char('k') | KeyCode::Up => Some(A::Up),
+        KeyCode::Char('?') | KeyCode::F(1) => Some(A::ShowHelp),
+        KeyCode::Char('s') => Some(A::ShowStats),
+        KeyCode::Char('f') => Some(A::ShowFiles),
+        KeyCode::Char('/') => Some(A::Search),
+        KeyCode::Char('a') => Some(A::AddMagnet),
+        KeyCode::Char('p') => Some(A::Pause),
+        KeyCode::Char('d') => Some(A::DeleteWithoutFiles),
+        KeyCode::Char('D') => Some(A::DeleteWithFiles),
+        KeyCode::Char(' ') => Some(A::Space),
         KeyCode::Char(n @ '1'..='9') => {
-            Some(Action::ChangeTab(n.to_digit(10).expect("This is ok") as u8))
+            Some(A::ChangeTab(n.to_digit(10).expect("This is ok") as u8))
         }
-        KeyCode::Enter => Some(Action::Confirm),
+        KeyCode::Enter => Some(A::Confirm),
         _ => None,
     }
 }

@@ -95,6 +95,10 @@ impl Component for TorrentsTab {
         match action {
             A::Up => self.previous_torrent(),
             A::Down => self.next_torrent(),
+            A::ScrollUpPage => self.scroll_page_up(),
+            A::ScrollDownPage => self.scroll_page_down(),
+            A::Home => self.scroll_to_home(),
+            A::End => self.scroll_to_end(),
             A::ShowStats => self.show_statistics_popup(),
             A::ShowFiles => self.show_files_popup(),
             A::Pause => self.pause_current_torrent(),
@@ -106,6 +110,7 @@ impl Component for TorrentsTab {
 impl TorrentsTab {
     fn render_table(&mut self, f: &mut Frame, rect: Rect) {
         let table_manager_lock = &mut *self.table_manager.lock().unwrap();
+        table_manager_lock.torrents_displaying_no = rect.height;
 
         let torrent_rows: Vec<_> = if let Some(filter) = &*table_manager_lock.filter.lock().unwrap()
         {
@@ -169,6 +174,32 @@ impl TorrentsTab {
 
     fn next_torrent(&self) -> Option<Action> {
         self.table_manager.lock().unwrap().table.next();
+        Some(Action::Render)
+    }
+
+    fn scroll_page_down(&self) -> Option<Action> {
+        let table_manager = &mut self.table_manager.lock().unwrap();
+        let scroll_by = table_manager.torrents_displaying_no;
+        table_manager.table.scroll_down_by(scroll_by as usize);
+        Some(Action::Render)
+    }
+
+    fn scroll_page_up(&self) -> Option<Action> {
+        let table_manager = &mut self.table_manager.lock().unwrap();
+        let scroll_by = table_manager.torrents_displaying_no;
+        table_manager.table.scroll_up_by(scroll_by as usize);
+        Some(Action::Render)
+    }
+
+    fn scroll_to_home(&self) -> Option<Action> {
+        let table_manager = &mut self.table_manager.lock().unwrap();
+        table_manager.table.scroll_to_home();
+        Some(Action::Render)
+    }
+
+    fn scroll_to_end(&self) -> Option<Action> {
+        let table_manager = &mut self.table_manager.lock().unwrap();
+        table_manager.table.scroll_to_end();
         Some(Action::Render)
     }
 

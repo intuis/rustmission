@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEvent};
 use magnetease::{magnetease::Magnetease, Magnet};
 use ratatui::{
     layout::Flex,
@@ -37,6 +37,7 @@ pub(crate) struct SearchTab {
     table: Arc<Mutex<GenericTable<Magnet>>>,
     // TODO: Change it to enum, and combine table with search_result_info, to be behind one mutex
     search_result_info: Arc<Mutex<SearchResultState>>,
+    currently_displaying_no: u16,
     ctx: app::Ctx,
 }
 
@@ -73,6 +74,7 @@ impl SearchTab {
             table,
             search_result_info,
             req_sender: tx,
+            currently_displaying_no: 0,
             ctx,
         }
     }
@@ -86,12 +88,92 @@ impl SearchTab {
         ])
     }
 
-    fn change_focus(&mut self) {
+    #[must_use]
+    fn change_focus(&mut self) -> Option<Action> {
         if self.search_focus == SearchFocus::Search {
             self.search_focus = SearchFocus::List;
         } else {
             self.search_focus = SearchFocus::Search;
         }
+        Some(Action::Render)
+    }
+
+    fn add_torrent(&mut self) -> Option<Action> {
+        let magnet_url = self
+            .table
+            .lock()
+            .unwrap()
+            .current_item()
+            .map(|magnet| magnet.url);
+        if let Some(magnet_url) = magnet_url {
+            self.ctx.send_torrent_action(TorrentAction::Add(magnet_url));
+        }
+        None
+    }
+
+    fn handle_input(&mut self, input: KeyEvent) -> Option<Action> {
+        use Action as A;
+
+        match input.code {
+            KeyCode::Enter => {
+                self.req_sender.send(self.input.to_string()).unwrap();
+                self.search_focus = SearchFocus::List;
+                Some(A::SwitchToNormalMode)
+            }
+            KeyCode::Esc => {
+                self.search_focus = SearchFocus::List;
+                Some(A::SwitchToNormalMode)
+            }
+            _ => {
+                if let Some(req) = to_input_request(input) {
+                    self.input.handle(req);
+                    Some(A::Render)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    fn start_search(&mut self) -> Option<Action> {
+        self.search_focus = SearchFocus::Search;
+        Some(Action::SwitchToInputMode)
+    }
+
+    fn next_torrent(&mut self) -> Option<Action> {
+        self.table.lock().unwrap().next();
+        Some(Action::Render)
+    }
+
+    fn previous_torrent(&mut self) -> Option<Action> {
+        self.table.lock().unwrap().previous();
+        Some(Action::Render)
+    }
+
+    fn scroll_down_page(&mut self) -> Option<Action> {
+        self.table
+            .lock()
+            .unwrap()
+            .scroll_down_by(self.currently_displaying_no as usize);
+        Some(Action::Render)
+    }
+
+    fn scroll_up_page(&mut self) -> Option<Action> {
+        self.table
+            .lock()
+            .unwrap()
+            .scroll_up_by(self.currently_displaying_no as usize);
+        Some(Action::Render)
+    }
+
+    fn scroll_to_end(&mut self) -> Option<Action> {
+        self.table.lock().unwrap().scroll_to_end();
+        Some(Action::Render)
+    }
+
+    fn scroll_to_home(&mut self) -> Option<Action> {
+        self.table.lock().unwrap().scroll_to_home();
+        Some(Action::Render)
     }
 }
 
@@ -100,52 +182,16 @@ impl Component for SearchTab {
         use Action as A;
         match action {
             A::Quit => Some(A::Quit),
-            A::Search => {
-                self.search_focus = SearchFocus::Search;
-                Some(A::SwitchToInputMode)
-            }
-            A::ChangeFocus => {
-                self.change_focus();
-                Some(A::Render)
-            }
-            A::Input(input) => {
-                if input.code == KeyCode::Enter {
-                    self.req_sender.send(self.input.to_string()).unwrap();
-                    self.search_focus = SearchFocus::List;
-                    return Some(A::SwitchToNormalMode);
-                }
-                if input.code == KeyCode::Esc {
-                    self.search_focus = SearchFocus::List;
-                    return Some(A::SwitchToNormalMode);
-                }
-
-                if let Some(req) = to_input_request(input) {
-                    self.input.handle(req);
-                    return Some(A::Render);
-                }
-
-                None
-            }
-            A::Down => {
-                self.table.lock().unwrap().next();
-                Some(A::Render)
-            }
-            A::Up => {
-                self.table.lock().unwrap().previous();
-                Some(A::Render)
-            }
-            A::Confirm => {
-                let magnet_url = self
-                    .table
-                    .lock()
-                    .unwrap()
-                    .current_item()
-                    .map(|magnet| magnet.url);
-                if let Some(magnet_url) = magnet_url {
-                    self.ctx.send_torrent_action(TorrentAction::Add(magnet_url));
-                }
-                None
-            }
+            A::Search => self.start_search(),
+            A::ChangeFocus => self.change_focus(),
+            A::Input(input) => self.handle_input(input),
+            A::Down => self.next_torrent(),
+            A::Up => self.previous_torrent(),
+            A::ScrollDownPage => self.scroll_down_page(),
+            A::ScrollUpPage => self.scroll_up_page(),
+            A::Home => self.scroll_to_home(),
+            A::End => self.scroll_to_end(),
+            A::Confirm => self.add_torrent(),
 
             _ => None,
         }
@@ -158,6 +204,8 @@ impl Component for SearchTab {
             Constraint::Length(1),
         ])
         .areas(rect);
+
+        self.currently_displaying_no = rest.height;
 
         let search_rect = Layout::horizontal([
             Constraint::Percentage(25),

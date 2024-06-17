@@ -75,6 +75,10 @@ impl Component for HelpPopup {
         add_line!(lines, "/", "search or filter");
         add_line!(lines, "TAB", "switch focus");
         add_line!(lines, "Enter", "confirm");
+        add_line!(lines, "CTRL-d", "scroll page down");
+        add_line!(lines, "CTRL-u", "scroll page up");
+        add_line!(lines, "Home", "scroll to the beginning");
+        add_line!(lines, "End", "scroll to the end");
         add_line!(lines, "j / ↓", "move down");
         add_line!(lines, "k / ↑", "move up");
 

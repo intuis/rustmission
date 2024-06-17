@@ -11,6 +11,7 @@ pub struct TableManager {
     pub table: GenericTable<RustmissionTorrent>,
     pub widths: [Constraint; 6],
     pub filter: Arc<Mutex<Option<String>>>,
+    pub torrents_displaying_no: u16,
     header: Vec<String>,
 }
 
@@ -22,6 +23,7 @@ impl TableManager {
             table,
             widths,
             filter: Arc::new(Mutex::new(None)),
+            torrents_displaying_no: 0,
             header: vec![
                 "Name".to_owned(),
                 "Size".to_owned(),
