@@ -105,7 +105,7 @@ impl Tui {
         self.stop();
         if crossterm::terminal::is_raw_mode_enabled()? {
             self.terminal.flush()?;
-            crossterm::execute!(std::io::stderr(), LeaveAlternateScreen, cursor::Show)?;
+            crossterm::execute!(std::io::stdout(), LeaveAlternateScreen, cursor::Show)?;
             crossterm::terminal::disable_raw_mode()?;
         }
         Ok(())

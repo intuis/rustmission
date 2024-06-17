@@ -26,10 +26,11 @@ impl ErrorPopup {
 
 impl Component for ErrorPopup {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
-        if action == Action::Confirm {
-            return Some(Action::Quit);
+        match action {
+            _ if action.is_soft_quit() => Some(action),
+            Action::Confirm => Some(Action::SoftQuit),
+            _ => None,
         }
-        None
     }
 
     fn render(&mut self, f: &mut Frame, _rect: Rect) {

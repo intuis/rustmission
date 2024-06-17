@@ -29,7 +29,8 @@ impl Component for StatisticsPopup {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         use Action as A;
         match action {
-            A::Confirm => Some(A::Quit),
+            _ if action.is_soft_quit() => Some(action),
+            A::Confirm => Some(Action::SoftQuit),
             _ => None,
         }
     }

@@ -88,6 +88,10 @@ impl Component for TorrentsTab {
             return self.popup_manager.handle_actions(action);
         }
 
+        if action.is_quit() {
+            return Some(Action::Quit);
+        }
+
         match action {
             A::Up => self.previous_torrent(),
             A::Down => self.next_torrent(),

@@ -106,6 +106,8 @@ impl App {
                     if let Some(action) = action {
                         if action.is_render() {
                             self.render(tui)?;
+                        } else if action.is_quit() {
+                            self.should_quit = true;
                         } else if let Some(action) = self.update(action).await {
                             self.ctx.action_tx.send(action).unwrap();
                         }
@@ -132,7 +134,7 @@ impl App {
         match &action {
             A::Render => Some(A::Render),
 
-            A::Quit => {
+            A::HardQuit => {
                 self.should_quit = true;
                 None
             }

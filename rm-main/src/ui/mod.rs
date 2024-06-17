@@ -21,6 +21,7 @@ use self::{
 
 pub struct MainWindow {
     ctx: app::Ctx,
+    // TODO: make tabs hold torrents_tab and search_tab
     tabs: TabComponent,
     torrents_tab: TorrentsTab,
     search_tab: SearchTab,
@@ -43,32 +44,35 @@ impl Component for MainWindow {
     // Rewrite this to one big match
     #[must_use]
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
-        if let Action::Error(e_popup) = action {
-            self.global_popup_manager.error_popup = Some(*e_popup);
-            return Some(Action::Render);
-        }
+        use Action as A;
 
-        if action == Action::ShowHelp {
-            if self.global_popup_manager.help_popup.is_some() {
-                self.global_popup_manager.help_popup = None;
-            } else {
-                self.global_popup_manager.help_popup = Some(HelpPopup::new(self.ctx.clone()));
+        match action {
+            A::Error(e_popup) => {
+                self.global_popup_manager.error_popup = Some(*e_popup);
+                return Some(A::Render);
             }
-            return Some(Action::Render);
-        }
-
-        if self.global_popup_manager.needs_action() {
-            self.global_popup_manager.handle_actions(action)
-        } else {
-            if let Action::ChangeTab(_) = action {
+            A::ShowHelp => {
+                if self.global_popup_manager.help_popup.is_some() {
+                    self.global_popup_manager.help_popup = None;
+                } else {
+                    self.global_popup_manager.help_popup = Some(HelpPopup::new(self.ctx.clone()));
+                }
+                return Some(A::Render);
+            }
+            _ if self.global_popup_manager.needs_action() => {
+                self.global_popup_manager.handle_actions(action)
+            }
+            Action::ChangeTab(_) => {
                 self.tabs.handle_actions(action);
-                return Some(Action::Render);
+                Some(A::Render)
             }
-
-            match self.tabs.current_tab {
-                CurrentTab::Torrents => self.torrents_tab.handle_actions(action),
-                CurrentTab::Search => self.search_tab.handle_actions(action),
+            _ if self.tabs.current_tab == CurrentTab::Torrents => {
+                self.torrents_tab.handle_actions(action)
             }
+            _ if self.tabs.current_tab == CurrentTab::Search => {
+                self.search_tab.handle_actions(action)
+            }
+            _ => unreachable!(),
         }
     }
 

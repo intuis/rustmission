@@ -41,7 +41,10 @@ impl Component for PopupManager {
         if let Some(current_popup) = &mut self.current_popup {
             match current_popup {
                 CurrentPopup::Stats(popup) => {
-                    if popup.handle_actions(action) == Some(Action::Quit) {
+                    if popup
+                        .handle_actions(action)
+                        .is_some_and(|a| a.is_soft_quit())
+                    {
                         self.close_popup();
                         return Some(Action::Render);
                     };
@@ -49,7 +52,7 @@ impl Component for PopupManager {
                 CurrentPopup::Files(popup) => {
                     if let Some(action) = popup.handle_actions(action) {
                         match action {
-                            Action::Quit => {
+                            _ if action.is_soft_quit() => {
                                 self.close_popup();
                                 return Some(Action::Render);
                             }

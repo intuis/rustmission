@@ -1,10 +1,12 @@
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{tui::Event, ui::global_popups::ErrorPopup};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Action {
+    HardQuit,
     Quit,
+    SoftQuit,
     Render,
     Up,
     Down,
@@ -30,6 +32,14 @@ impl Action {
     pub fn is_render(&self) -> bool {
         *self == Self::Render
     }
+
+    pub fn is_quit(&self) -> bool {
+        *self == Self::HardQuit || *self == Self::Quit
+    }
+
+    pub fn is_soft_quit(&self) -> bool {
+        self.is_quit() || *self == Self::SoftQuit
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -39,21 +49,37 @@ pub enum Mode {
 }
 
 pub fn event_to_action(mode: Mode, event: Event) -> Option<Action> {
+    // Handle CTRL+C first
+    if let Event::Key(key_event) = event {
+        if key_event.modifiers == KeyModifiers::CONTROL
+            && (key_event.code == KeyCode::Char('c') || key_event.code == KeyCode::Char('C'))
+        {
+            return Some(Action::HardQuit);
+        }
+    }
+
     match event {
         Event::Quit => Some(Action::Quit),
         Event::Error => todo!(),
         Event::Render => Some(Action::Render),
         Event::Key(key) if mode == Mode::Input => Some(Action::Input(key)),
-        Event::Key(key) => keycode_to_action(key),
+        Event::Key(key) => key_event_to_action(key),
     }
 }
 
-fn keycode_to_action(key: KeyEvent) -> Option<Action> {
-    match key.code {
+fn key_event_to_action(key: KeyEvent) -> Option<Action> {
+    match (key.modifiers, key.code) {
+        (_, keycode) => keycode_to_action(keycode),
+    }
+}
+
+fn keycode_to_action(key: KeyCode) -> Option<Action> {
+    match key {
+        KeyCode::Char('q') | KeyCode::Char('Q') => Some(Action::Quit),
+        KeyCode::Esc => Some(Action::SoftQuit),
         KeyCode::Tab => Some(Action::ChangeFocus),
         KeyCode::Char('j') | KeyCode::Down => Some(Action::Down),
         KeyCode::Char('k') | KeyCode::Up => Some(Action::Up),
-        KeyCode::Char('q') | KeyCode::Char('Q') => Some(Action::Quit),
         KeyCode::Char('?') => Some(Action::ShowHelp),
         KeyCode::Char('s') => Some(Action::ShowStats),
         KeyCode::Char('f') => Some(Action::ShowFiles),

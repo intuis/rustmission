@@ -97,42 +97,44 @@ impl SearchTab {
 
 impl Component for SearchTab {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
+        use Action as A;
         match action {
-            Action::Search => {
+            A::Quit => Some(A::Quit),
+            A::Search => {
                 self.search_focus = SearchFocus::Search;
-                Some(Action::SwitchToInputMode)
+                Some(A::SwitchToInputMode)
             }
-            Action::ChangeFocus => {
+            A::ChangeFocus => {
                 self.change_focus();
-                Some(Action::Render)
+                Some(A::Render)
             }
-            Action::Input(input) => {
+            A::Input(input) => {
                 if input.code == KeyCode::Enter {
                     self.req_sender.send(self.input.to_string()).unwrap();
                     self.search_focus = SearchFocus::List;
-                    return Some(Action::SwitchToNormalMode);
+                    return Some(A::SwitchToNormalMode);
                 }
                 if input.code == KeyCode::Esc {
                     self.search_focus = SearchFocus::List;
-                    return Some(Action::SwitchToNormalMode);
+                    return Some(A::SwitchToNormalMode);
                 }
 
                 if let Some(req) = to_input_request(input) {
                     self.input.handle(req);
-                    return Some(Action::Render);
+                    return Some(A::Render);
                 }
 
                 None
             }
-            Action::Down => {
+            A::Down => {
                 self.table.lock().unwrap().next();
-                Some(Action::Render)
+                Some(A::Render)
             }
-            Action::Up => {
+            A::Up => {
                 self.table.lock().unwrap().previous();
-                Some(Action::Render)
+                Some(A::Render)
             }
-            Action::Confirm => {
+            A::Confirm => {
                 let magnet_url = self
                     .table
                     .lock()

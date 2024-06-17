@@ -103,19 +103,20 @@ impl FilesPopup {
 impl Component for FilesPopup {
     #[must_use]
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
+        use Action as A;
         match (action, self.current_focus) {
-            (Action::Quit, _) => Some(Action::Quit),
-            (Action::ChangeFocus, _) => {
+            (action, _) if action.is_soft_quit() => Some(A::Quit),
+            (A::ChangeFocus, _) => {
                 self.switch_focus();
-                Some(Action::Render)
+                Some(A::Render)
             }
-            (Action::Confirm, CurrentFocus::CloseButton) => Some(Action::Quit),
+            (A::Confirm, CurrentFocus::CloseButton) => Some(A::Quit),
 
-            (Action::Confirm, CurrentFocus::Files) => {
+            (A::Confirm, CurrentFocus::Files) => {
                 self.tree_state.toggle_selected();
-                Some(Action::Render)
+                Some(A::Render)
             }
-            (Action::Space, CurrentFocus::Files) => {
+            (A::Space, CurrentFocus::Files) => {
                 if let Some(torrent) = &mut *self.torrent.lock().unwrap() {
                     let wanted_ids = torrent.wanted.as_mut().unwrap();
 
@@ -177,16 +178,16 @@ impl Component for FilesPopup {
                         Box::new(args),
                         Some(vec![self.torrent_id.clone()]),
                     ));
-                    return Some(Action::Render);
+                    return Some(A::Render);
                 }
                 None
             }
 
-            (Action::Up, CurrentFocus::Files) => {
+            (A::Up, CurrentFocus::Files) => {
                 self.tree_state.key_up();
                 Some(Action::Render)
             }
-            (Action::Down, CurrentFocus::Files) => {
+            (A::Down, CurrentFocus::Files) => {
                 self.tree_state.key_down();
                 Some(Action::Render)
             }

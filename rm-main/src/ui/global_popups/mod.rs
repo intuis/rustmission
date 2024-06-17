@@ -25,12 +25,18 @@ impl GlobalPopupManager {
 impl Component for GlobalPopupManager {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         if let Some(popup) = &mut self.error_popup {
-            if popup.handle_actions(action) == Some(Action::Quit) {
+            if popup
+                .handle_actions(action)
+                .is_some_and(|a| a.is_soft_quit())
+            {
                 self.error_popup = None;
                 return Some(Action::Render);
             }
         } else if let Some(popup) = &mut self.help_popup {
-            if popup.handle_actions(action) == Some(Action::Quit) {
+            if popup
+                .handle_actions(action)
+                .is_some_and(|a| a.is_soft_quit())
+            {
                 self.help_popup = None;
                 return Some(Action::Render);
             }

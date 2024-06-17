@@ -3,7 +3,7 @@ use crate::{action::Action, app};
 use super::Component;
 use ratatui::{layout::Flex, prelude::*, widgets::Tabs};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CurrentTab {
     Torrents = 0,
     Search,
