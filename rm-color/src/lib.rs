@@ -173,6 +173,14 @@ mod tests {
     }
 
     #[test]
+    fn serialize_name() {
+        let color: Color = Color::LightGreen;
+        let t = Test { c: color };
+        let color_string = serde_json::to_string(&t).unwrap();
+        assert_eq!(color_string, r###"{"c":"LightGreen"}"###);
+    }
+
+    #[test]
     fn serialize_index() {
         let color: Color = Color::Indexed(123);
         let t = Test { c: color };
@@ -186,6 +194,14 @@ mod tests {
         let t = Test { c: color };
         let color_string = serde_json::to_string(&t).unwrap();
         assert_eq!(color_string, r###"{"c":"#12FC1C"}"###);
+    }
+
+    #[test]
+    fn deserialize_name() {
+        let color: Color = Color::LightGreen;
+        let color_text = r###"{ "c": "LightGreen" }"###;
+        let t: Test = serde_json::from_str::<Test>(color_text).unwrap();
+        assert_eq!(t, Test { c: color });
     }
 
     #[test]
