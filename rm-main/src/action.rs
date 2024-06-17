@@ -80,7 +80,7 @@ fn keycode_to_action(key: KeyCode) -> Option<Action> {
         KeyCode::Tab => Some(Action::ChangeFocus),
         KeyCode::Char('j') | KeyCode::Down => Some(Action::Down),
         KeyCode::Char('k') | KeyCode::Up => Some(Action::Up),
-        KeyCode::Char('?') => Some(Action::ShowHelp),
+        KeyCode::Char('?') | KeyCode::F(1) => Some(Action::ShowHelp),
         KeyCode::Char('s') => Some(Action::ShowStats),
         KeyCode::Char('f') => Some(Action::ShowFiles),
         KeyCode::Char('/') => Some(Action::Search),

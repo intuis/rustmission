@@ -15,12 +15,11 @@ use crate::{
 
 use self::{
     components::{tabs::CurrentTab, Component, TabComponent},
-    global_popups::{GlobalPopupManager, HelpPopup},
+    global_popups::GlobalPopupManager,
     tabs::search::SearchTab,
 };
 
 pub struct MainWindow {
-    ctx: app::Ctx,
     // TODO: make tabs hold torrents_tab and search_tab
     tabs: TabComponent,
     torrents_tab: TorrentsTab,
@@ -31,11 +30,10 @@ pub struct MainWindow {
 impl MainWindow {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
-            ctx: ctx.clone(),
             tabs: TabComponent::new(ctx.clone()),
             torrents_tab: TorrentsTab::new(ctx.clone()),
-            search_tab: SearchTab::new(ctx),
-            global_popup_manager: GlobalPopupManager::default(),
+            search_tab: SearchTab::new(ctx.clone()),
+            global_popup_manager: GlobalPopupManager::new(ctx),
         }
     }
 }
@@ -49,20 +47,13 @@ impl Component for MainWindow {
         match action {
             A::Error(e_popup) => {
                 self.global_popup_manager.error_popup = Some(*e_popup);
-                return Some(A::Render);
+                Some(A::Render)
             }
-            A::ShowHelp => {
-                if self.global_popup_manager.help_popup.is_some() {
-                    self.global_popup_manager.help_popup = None;
-                } else {
-                    self.global_popup_manager.help_popup = Some(HelpPopup::new(self.ctx.clone()));
-                }
-                return Some(A::Render);
-            }
+            A::ShowHelp => self.global_popup_manager.handle_actions(action),
             _ if self.global_popup_manager.needs_action() => {
                 self.global_popup_manager.handle_actions(action)
             }
-            Action::ChangeTab(_) => {
+            A::ChangeTab(_) => {
                 self.tabs.handle_actions(action);
                 Some(A::Render)
             }

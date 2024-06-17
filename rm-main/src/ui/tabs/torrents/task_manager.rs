@@ -7,6 +7,7 @@ use crate::{action::Action, app, ui::components::Component};
 use super::{
     tasks::{
         add_magnet::AddMagnetBar,
+        default::DefaultBar,
         delete_torrent::{self, DeleteBar},
         filter::FilterBar,
     },
@@ -23,7 +24,7 @@ impl TaskManager {
     pub const fn new(table_manager: Arc<Mutex<TableManager>>, ctx: app::Ctx) -> Self {
         Self {
             ctx,
-            current_task: CurrentTask::None,
+            current_task: CurrentTask::Default(DefaultBar::new()),
             table_manager,
         }
     }
@@ -33,32 +34,33 @@ enum CurrentTask {
     AddMagnetBar(AddMagnetBar),
     DeleteBar(DeleteBar),
     FilterBar(FilterBar),
-    None,
+    Default(DefaultBar),
 }
 
 impl Component for TaskManager {
     #[must_use]
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
+        use Action as A;
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
-                Some(Action::Quit) => self.finish_task(),
-                Some(Action::Render) => Some(Action::Render),
+                Some(A::Quit) => self.finish_task(),
+                Some(A::Render) => Some(A::Render),
                 _ => None,
             },
 
             CurrentTask::DeleteBar(delete_bar) => match delete_bar.handle_actions(action) {
-                Some(Action::Quit) => self.finish_task(),
-                Some(Action::Render) => Some(Action::Render),
+                Some(A::Quit) => self.finish_task(),
+                Some(A::Render) => Some(A::Render),
                 _ => None,
             },
 
             CurrentTask::FilterBar(filter_bar) => match filter_bar.handle_actions(action) {
-                Some(Action::Quit) => self.finish_task(),
-                Some(Action::Render) => Some(Action::Render),
+                Some(A::Quit) => self.finish_task(),
+                Some(A::Render) => Some(A::Render),
                 _ => None,
             },
 
-            CurrentTask::None => self.handle_events_to_manager(&action),
+            CurrentTask::Default(_) => self.handle_events_to_manager(&action),
         }
     }
 
@@ -67,7 +69,7 @@ impl Component for TaskManager {
             CurrentTask::AddMagnetBar(magnet_bar) => magnet_bar.render(f, rect),
             CurrentTask::DeleteBar(delete_bar) => delete_bar.render(f, rect),
             CurrentTask::FilterBar(filter_bar) => filter_bar.render(f, rect),
-            CurrentTask::None => (),
+            CurrentTask::Default(default_bar) => default_bar.render(f, rect),
         }
     }
 }
@@ -107,18 +109,18 @@ impl TaskManager {
     fn finish_task(&mut self) -> Option<Action> {
         match self.current_task {
             CurrentTask::AddMagnetBar(_) => {
-                self.current_task = CurrentTask::None;
+                self.current_task = CurrentTask::Default(DefaultBar::new());
                 Some(Action::SwitchToNormalMode)
             }
             CurrentTask::DeleteBar(_) => {
-                self.current_task = CurrentTask::None;
+                self.current_task = CurrentTask::Default(DefaultBar::new());
                 Some(Action::SwitchToNormalMode)
             }
             CurrentTask::FilterBar(_) => {
-                self.current_task = CurrentTask::None;
+                self.current_task = CurrentTask::Default(DefaultBar::new());
                 Some(Action::SwitchToNormalMode)
             }
-            CurrentTask::None => None,
+            CurrentTask::Default(_) => None,
         }
     }
 }

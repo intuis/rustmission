@@ -36,7 +36,7 @@ impl Component for HelpPopup {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         match action {
             action if action.is_soft_quit() => Some(Action::SoftQuit),
-            Action::Confirm => Some(Action::SoftQuit),
+            Action::Confirm | Action::ShowHelp => Some(Action::SoftQuit),
             _ => None,
         }
     }
@@ -67,11 +67,12 @@ impl Component for HelpPopup {
         )])
         .centered()];
 
-        add_line!(lines, "?", "show/hide help");
+        add_line!(lines, "? / F1", "show/hide help");
+        add_line!(lines, "q", "quit Rustmission / a popup");
+        add_line!(lines, "ESC", "close a popup / task");
         add_line!(lines, "1", "switch to torrents tab");
         add_line!(lines, "2", "switch to search tab");
         add_line!(lines, "/", "search or filter");
-        add_line!(lines, "q", "quit Rustmission");
         add_line!(lines, "TAB", "switch focus");
         add_line!(lines, "Enter", "confirm");
         add_line!(lines, "j / ↓", "move down");
