@@ -1,17 +1,21 @@
-use crate::ui::components::Component;
+use crate::{app, ui::components::Component};
 
 use ratatui::prelude::*;
 
-pub struct DefaultBar;
+pub struct DefaultBar {
+    ctx: app::Ctx,
+}
 
 impl DefaultBar {
-    pub const fn new() -> Self {
-        Self
+    pub const fn new(ctx: app::Ctx) -> Self {
+        Self { ctx }
     }
 }
 
 impl Component for DefaultBar {
     fn render(&mut self, f: &mut ratatui::Frame<'_>, rect: Rect) {
-        f.render_widget("F1 - help", rect)
+        if self.ctx.config.general.beginner_mode {
+            f.render_widget("F1 - help", rect)
+        }
     }
 }

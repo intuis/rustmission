@@ -7,6 +7,10 @@ auto_hide = false
 # It can also be a hex, e.g. "#3cb371"
 accent_color = "LightMagenta"
 
+# If enabled, shows various keybindings throughout the program in cost of a
+# little bit cluttered interface.
+beginner_mode = true
+
 [connection]
 url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 

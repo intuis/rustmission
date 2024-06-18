@@ -23,6 +23,12 @@ pub struct General {
     pub auto_hide: bool,
     #[serde(default, with = "rm_color")]
     pub accent_color: Color,
+    #[serde(default = "default_beginner_mode")]
+    pub beginner_mode: bool,
+}
+
+fn default_beginner_mode() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize, Deserialize)]

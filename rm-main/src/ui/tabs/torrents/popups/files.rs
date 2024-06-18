@@ -111,12 +111,7 @@ impl Component for FilesPopup {
                 Some(A::Render)
             }
             (A::Confirm, CurrentFocus::CloseButton) => Some(A::Quit),
-
-            (A::Confirm, CurrentFocus::Files) => {
-                self.tree_state.toggle_selected();
-                Some(A::Render)
-            }
-            (A::Space, CurrentFocus::Files) => {
+            (A::Space | A::Confirm, CurrentFocus::Files) => {
                 if let Some(torrent) = &mut *self.torrent.lock().unwrap() {
                     let wanted_ids = torrent.wanted.as_mut().unwrap();
 
@@ -128,7 +123,8 @@ impl Component for FilesPopup {
                         .collect();
 
                     if selected_ids.is_empty() {
-                        return None;
+                        self.tree_state.toggle_selected();
+                        return Some(A::Render);
                     }
 
                     let mut wanted_in_selection_no = 0;
@@ -178,9 +174,11 @@ impl Component for FilesPopup {
                         Box::new(args),
                         Some(vec![self.torrent_id.clone()]),
                     ));
-                    return Some(A::Render);
+
+                    Some(A::Render)
+                } else {
+                    None
                 }
-                None
             }
 
             (A::Up, CurrentFocus::Files) => {
@@ -236,11 +234,23 @@ impl Component for FilesPopup {
             };
 
             let download_dir = torrent.download_dir.as_ref().expect("Requested");
+            let keybinding_tip = {
+                if self.ctx.config.general.beginner_mode {
+                    "[SPACE] - select"
+                } else {
+                    ""
+                }
+            };
             let block = block
                 .title(Title::from(format!(" {} ", download_dir)).alignment(Alignment::Right))
                 .title(
                     Title::from(" [ CLOSE ] ".set_style(close_button_style))
                         .alignment(Alignment::Right)
+                        .position(Position::Bottom),
+                )
+                .title(
+                    Title::from(keybinding_tip)
+                        .alignment(Alignment::Left)
                         .position(Position::Bottom),
                 );
 

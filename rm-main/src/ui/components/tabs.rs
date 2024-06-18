@@ -16,10 +16,18 @@ pub struct TabComponent {
 }
 
 impl TabComponent {
-    pub const fn new(ctx: app::Ctx) -> Self {
+    pub fn new(ctx: app::Ctx) -> Self {
+        let tabs_list = {
+            if ctx.config.general.beginner_mode {
+                ["1. Torrents", "2. Search"]
+            } else {
+                ["Torrents", "Search"]
+            }
+        };
+
         Self {
             ctx,
-            tabs_list: ["Torrents", "Search"],
+            tabs_list,
             current_tab: CurrentTab::Torrents,
         }
     }
@@ -27,7 +35,12 @@ impl TabComponent {
 
 impl Component for TabComponent {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let center_rect = Layout::horizontal([Constraint::Length(18)])
+        let divider = symbols::DOT;
+
+        let tabs_length =
+            self.tabs_list.concat().chars().count() + divider.len() + self.tabs_list.len();
+
+        let center_rect = Layout::horizontal([Constraint::Length(tabs_length.try_into().unwrap())])
             .flex(Flex::Center)
             .split(rect)[0];
 

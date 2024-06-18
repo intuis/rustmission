@@ -21,10 +21,10 @@ pub struct TaskManager {
 }
 
 impl TaskManager {
-    pub const fn new(table_manager: Arc<Mutex<TableManager>>, ctx: app::Ctx) -> Self {
+    pub fn new(table_manager: Arc<Mutex<TableManager>>, ctx: app::Ctx) -> Self {
         Self {
+            current_task: CurrentTask::Default(DefaultBar::new(ctx.clone())),
             ctx,
-            current_task: CurrentTask::Default(DefaultBar::new()),
             table_manager,
         }
     }
@@ -109,20 +109,11 @@ impl TaskManager {
     }
 
     fn finish_task(&mut self) -> Option<Action> {
-        match self.current_task {
-            CurrentTask::AddMagnetBar(_) => {
-                self.current_task = CurrentTask::Default(DefaultBar::new());
-                Some(Action::SwitchToNormalMode)
-            }
-            CurrentTask::DeleteBar(_) => {
-                self.current_task = CurrentTask::Default(DefaultBar::new());
-                Some(Action::SwitchToNormalMode)
-            }
-            CurrentTask::FilterBar(_) => {
-                self.current_task = CurrentTask::Default(DefaultBar::new());
-                Some(Action::SwitchToNormalMode)
-            }
-            CurrentTask::Default(_) => None,
+        if !matches!(self.current_task, CurrentTask::Default(_)) {
+            self.current_task = CurrentTask::Default(DefaultBar::new(self.ctx.clone()));
+            Some(Action::SwitchToNormalMode)
+        } else {
+            None
         }
     }
 }
