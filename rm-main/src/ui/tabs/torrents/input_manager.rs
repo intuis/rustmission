@@ -4,23 +4,26 @@ use ratatui::{
 };
 use tui_input::{Input, InputRequest};
 
-use crate::{action::Action, ui::components::Component};
+use crate::{action::Action, app, ui::components::Component};
 
 pub struct InputManager {
     input: Input,
     prompt: String,
+    ctx: app::Ctx,
 }
 
 impl InputManager {
-    pub fn new(prompt: String) -> Self {
+    pub fn new(ctx: app::Ctx, prompt: String) -> Self {
         Self {
+            ctx,
             prompt,
             input: Input::default(),
         }
     }
 
-    pub fn new_with_value(prompt: String, value: String) -> Self {
+    pub fn new_with_value(ctx: app::Ctx, prompt: String, value: String) -> Self {
         Self {
+            ctx,
             prompt,
             input: Input::default().with_value(value),
         }
@@ -43,12 +46,19 @@ impl Component for InputManager {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         f.render_widget(Clear, rect);
 
-        let paragraph_text = format!("{}{}", self.prompt, self.text());
+        let mut spans = vec![];
+
+        spans.push(Span::styled(
+            self.prompt.as_str(),
+            Style::default().fg(self.ctx.config.general.accent_color.as_ratatui()),
+        ));
+
+        spans.push(Span::raw(self.text()));
 
         let input = self.input.to_string();
-        let prefix_len = paragraph_text.len() - input.len();
+        let prefix_len = self.prompt.len() + self.text().len() - input.len();
 
-        let paragraph = Paragraph::new(paragraph_text);
+        let paragraph = Paragraph::new(Line::from(spans));
         f.render_widget(paragraph, rect);
 
         let cursor_offset = self.input.visual_cursor() + prefix_len;

@@ -85,8 +85,10 @@ impl TaskManager {
             Action::DeleteWithFiles => self.delete_torrent(delete_torrent::Mode::WithFiles),
             Action::DeleteWithoutFiles => self.delete_torrent(delete_torrent::Mode::WithoutFiles),
             Action::Search => {
-                self.current_task =
-                    CurrentTask::FilterBar(FilterBar::new(self.table_manager.clone()));
+                self.current_task = CurrentTask::FilterBar(FilterBar::new(
+                    self.ctx.clone(),
+                    self.table_manager.clone(),
+                ));
                 Some(Action::SwitchToInputMode)
             }
             _ => None,

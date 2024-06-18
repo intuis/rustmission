@@ -32,8 +32,8 @@ impl DeleteBar {
 
         Self {
             torrents_to_delete: to_delete,
+            input_mgr: InputManager::new(ctx.clone(), prompt),
             ctx,
-            input_mgr: InputManager::new(prompt),
             mode,
         }
     }

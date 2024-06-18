@@ -5,6 +5,7 @@ use ratatui::prelude::*;
 
 use crate::{
     action::Action,
+    app,
     ui::{
         components::Component,
         tabs::torrents::{input_manager::InputManager, TableManager},
@@ -18,9 +19,10 @@ pub struct FilterBar {
 }
 
 impl FilterBar {
-    pub fn new(table_manager: Arc<Mutex<TableManager>>) -> Self {
+    pub fn new(ctx: app::Ctx, table_manager: Arc<Mutex<TableManager>>) -> Self {
         let current_filter = table_manager.lock().unwrap().filter.lock().unwrap().clone();
         let input = InputManager::new_with_value(
+            ctx,
             "Search: ".to_string(),
             current_filter.unwrap_or_default(),
         );
