@@ -28,7 +28,7 @@ async fn main() -> Result<()> {
 }
 
 async fn run_tui(config: Config) -> Result<()> {
-    let mut app = App::new(config);
+    let mut app = App::new(config).await;
     app.run().await?;
     Ok(())
 }

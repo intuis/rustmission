@@ -1,29 +1,33 @@
 use std::sync::{Arc, Mutex};
 
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::{mpsc::UnboundedReceiver, oneshot};
 use transmission_rpc::types::{
-    Id, Torrent, TorrentAction as RPCAction, TorrentAddArgs, TorrentSetArgs,
+    Id, SessionGet, Torrent, TorrentAction as RPCAction, TorrentAddArgs, TorrentSetArgs,
 };
 
 use crate::{action::Action, app, ui::global_popups::ErrorPopup};
 
 #[derive(Debug)]
 pub enum TorrentAction {
-    Add(String),
+    // Magnet/URL, Directory
+    Add(String, Option<String>),
     Stop(Vec<Id>),
     Start(Vec<Id>),
     DeleteWithoutFiles(Vec<Id>),
     DeleteWithFiles(Vec<Id>),
     GetTorrentInfo(Id, Arc<Mutex<Option<Torrent>>>),
+    GetSessionGet(oneshot::Sender<SessionGet>),
     SetArgs(Box<TorrentSetArgs>, Option<Vec<Id>>),
 }
 
+// TODO: make all the options use the same type of interface. Probably use a sender everywhere
 pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<TorrentAction>) {
     while let Some(action) = trans_rx.recv().await {
         match action {
-            TorrentAction::Add(ref url) => {
+            TorrentAction::Add(ref url, directory) => {
                 let args = TorrentAddArgs {
                     filename: Some(url.clone()),
+                    download_dir: directory,
                     ..Default::default()
                 };
 
@@ -69,7 +73,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .await
                     .unwrap();
             }
-            TorrentAction::GetTorrentInfo(id, sender) => {
+            TorrentAction::GetTorrentInfo(id, torrent_info) => {
                 let new_torrent_info = ctx
                     .client
                     .lock()
@@ -81,7 +85,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .torrents
                     .pop()
                     .unwrap();
-                *sender.lock().unwrap() = Some(new_torrent_info);
+                *torrent_info.lock().unwrap() = Some(new_torrent_info);
             }
             TorrentAction::SetArgs(args, ids) => {
                 ctx.client
@@ -90,6 +94,17 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .torrent_set(*args, ids)
                     .await
                     .unwrap();
+            }
+            TorrentAction::GetSessionGet(sender) => {
+                let session_get = ctx
+                    .client
+                    .lock()
+                    .await
+                    .session_get()
+                    .await
+                    .unwrap()
+                    .arguments;
+                sender.send(session_get).unwrap();
             }
         }
     }

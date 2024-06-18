@@ -13,28 +13,32 @@ use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     Mutex,
 };
-use transmission_rpc::TransClient;
+use transmission_rpc::{types::SessionGet, TransClient};
 
 #[derive(Clone)]
 pub struct Ctx {
     pub client: Arc<Mutex<TransClient>>,
     pub config: Arc<Config>,
+    pub session_info: Arc<SessionGet>,
     action_tx: UnboundedSender<Action>,
     trans_tx: UnboundedSender<TorrentAction>,
 }
 
 impl Ctx {
-    fn new(
+    async fn new(
         client: Arc<Mutex<TransClient>>,
         config: Config,
         action_tx: UnboundedSender<Action>,
         trans_tx: UnboundedSender<TorrentAction>,
     ) -> Self {
+        let session_info = Arc::new(client.lock().await.session_get().await.unwrap().arguments);
+
         Self {
             client,
             config: Arc::new(config),
             action_tx,
             trans_tx,
+            session_info,
         }
     }
 
@@ -56,13 +60,13 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(config: Config) -> Self {
+    pub async fn new(config: Config) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
 
         let client = Arc::new(Mutex::new(transmission::utils::client_from_config(&config)));
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
-        let ctx = Ctx::new(client, config, action_tx, trans_tx);
+        let ctx = Ctx::new(client, config, action_tx, trans_tx).await;
 
         tokio::spawn(transmission::action_handler(ctx.clone(), trans_rx));
 
