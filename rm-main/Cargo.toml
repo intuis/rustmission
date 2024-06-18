@@ -3,7 +3,13 @@ name = "rustmission"
 version = "0.3.0"
 edition = "2021"
 description = "TUI for Transmission daemon"
+repository = "https://github.com/rustmission/rustmission"
+homepage = "https://github.com/rustmission/rustmission"
 license = "GPL-3.0-or-later"
+
+[[bin]]
+name = "rustmission"
+path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
