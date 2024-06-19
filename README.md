@@ -3,7 +3,7 @@
     <p>
 	    <strong>TUI for the Transmission daemon</strong>
     </p>
-    <img src="https://codeberg.org/micielski/rustmission/raw/branch/main/imgs/preview.png" />
+    <img src="https://raw.githubusercontent.com/intuis/rustmission/main/imgs/preview.png" />
     <p>
         <small>⚠️ I DO NOT PIRATE MOVIES. THE TORRENTS YOU SEE IN THIS IMAGE ARE SAMPLE DATA FABRICATED BY ARTIFICIAL INTELLIGENCE. I DO NOT CONDONE PIRACY, AND I WOULD NEVER, EVER DO SUCH THING</small>
     </p>
