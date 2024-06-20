@@ -17,7 +17,7 @@ impl<T: Clone> GenericTable<T> {
         }
     }
 
-    fn get_len(&self) -> usize {
+    pub fn get_len(&self) -> usize {
         self.overwritten_len
             .borrow()
             .map_or(self.items.len(), |len| len)
