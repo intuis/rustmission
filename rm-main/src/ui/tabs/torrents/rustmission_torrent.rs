@@ -44,7 +44,7 @@ impl RustmissionTorrent {
             if highlighted_indices.contains(&index) {
                 torrent_name_line.push_span(Span::styled(char.to_string(), highlight_style));
             } else {
-                torrent_name_line.push_span(Span::raw(char.to_string()))
+                torrent_name_line.push_span(Span::styled(char.to_string(), self.style))
             }
         }
 
