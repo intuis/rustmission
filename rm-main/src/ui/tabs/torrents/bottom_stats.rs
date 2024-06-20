@@ -53,6 +53,8 @@ impl Component for BottomStats {
             if let Some(current) = table.state.borrow().selected() {
                 let current_idx = current + 1;
                 text = format!(" {current_idx}/{all} | {text}");
+            } else {
+                text = format!(" {all} | {text}");
             }
 
             let paragraph = Paragraph::new(text).alignment(Alignment::Right);
