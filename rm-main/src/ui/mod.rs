@@ -53,7 +53,7 @@ impl Component for MainWindow {
             _ if self.global_popup_manager.needs_action() => {
                 self.global_popup_manager.handle_actions(action)
             }
-            A::ChangeTab(_) => {
+            A::ChangeTab(_) | A::Left | A::Right => {
                 self.tabs.handle_actions(action);
                 Some(A::Render)
             }

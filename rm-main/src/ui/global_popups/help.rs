@@ -72,6 +72,10 @@ impl Component for HelpPopup {
         add_line!(lines, "ESC", "close a popup / task");
         add_line!(lines, "1", "switch to torrents tab");
         add_line!(lines, "2", "switch to search tab");
+        add_line!(lines, "h / ←", "switch to tab left of current tab");
+        add_line!(lines, "l / →", "switch to tab right of current tab");
+        add_line!(lines, "j / ↓", "move down");
+        add_line!(lines, "k / ↑", "move up");
         add_line!(lines, "/", "search or filter");
         add_line!(lines, "TAB", "switch focus");
         add_line!(lines, "Enter", "confirm");
@@ -79,8 +83,6 @@ impl Component for HelpPopup {
         add_line!(lines, "CTRL-u", "scroll page up");
         add_line!(lines, "Home", "scroll to the beginning");
         add_line!(lines, "End", "scroll to the end");
-        add_line!(lines, "j / ↓", "move down");
-        add_line!(lines, "k / ↑", "move up");
 
         lines.push(
             Line::from(vec![Span::styled(
