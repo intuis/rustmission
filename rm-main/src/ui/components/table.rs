@@ -40,7 +40,8 @@ impl<T: Clone> GenericTable<T> {
     pub fn next(&mut self) {
         let mut state = self.state.borrow_mut();
         if let Some(curr) = state.selected() {
-            if curr == self.get_len() {
+            let last_idx = self.get_len() - 1;
+            if curr == last_idx {
                 state.select(Some(0));
             } else {
                 state.select(Some(curr + 1));
@@ -52,8 +53,9 @@ impl<T: Clone> GenericTable<T> {
         let mut state = self.state.borrow_mut();
 
         if let Some(curr) = state.selected() {
+            let last_idx = self.get_len() - 1;
             if curr == 0 {
-                state.select(Some(self.get_len()));
+                state.select(Some(last_idx));
             } else {
                 state.select(Some(curr - 1));
             }
