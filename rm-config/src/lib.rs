@@ -113,7 +113,7 @@ impl Config {
         XDG_DIRS.get_or_init(|| xdg::BaseDirectories::with_prefix("rustmission").unwrap())
     }
 
-    fn get_config_path() -> &'static PathBuf {
+    pub fn get_config_path() -> &'static PathBuf {
         CONFIG_PATH.get_or_init(|| {
             Self::get_xdg_dirs()
                 .place_config_file("config.toml")

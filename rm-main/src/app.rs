@@ -44,9 +44,9 @@ impl Ctx {
                 });
             }
             Err(e) => {
-                let url = config.connection.url;
+                let config_path = Config::get_config_path().to_str().unwrap();
                 return Err(Error::msg(format!(
-                    "{e}\nIs the connection info in {url} correct?"
+                    "{e}\nIs the connection info in {config_path} correct?"
                 )));
             }
         }
