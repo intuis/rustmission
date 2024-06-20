@@ -8,7 +8,7 @@ use crate::{
     ui::{components::Component, MainWindow},
 };
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     Mutex,
@@ -30,15 +30,22 @@ impl Ctx {
         config: Config,
         action_tx: UnboundedSender<Action>,
         trans_tx: UnboundedSender<TorrentAction>,
-    ) -> Self {
-        let session_info = Arc::new(client.lock().await.session_get().await.unwrap().arguments);
-
-        Self {
-            client,
-            config: Arc::new(config),
-            action_tx,
-            trans_tx,
-            session_info,
+    ) -> Result<Self> {
+        let response = client.lock().await.session_get().await;
+        match response {
+            Ok(res) => {
+                let session_info = Arc::new(res.arguments);
+                return Ok(Self {
+                    client,
+                    config: Arc::new(config),
+                    action_tx,
+                    trans_tx,
+                    session_info,
+                });
+            }
+            Err(_) => {
+                return Err(Error::msg("Failed to connect to transmission client, please verify connection with remote transmission client"));
+            }
         }
     }
 
@@ -60,23 +67,22 @@ pub struct App {
 }
 
 impl App {
-    pub async fn new(config: Config) -> Self {
+    pub async fn new(config: Config) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
 
         let client = Arc::new(Mutex::new(transmission::utils::client_from_config(&config)));
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
-        let ctx = Ctx::new(client, config, action_tx, trans_tx).await;
+        let ctx = Ctx::new(client, config, action_tx, trans_tx).await?;
 
         tokio::spawn(transmission::action_handler(ctx.clone(), trans_rx));
-
-        Self {
+        Ok(Self {
             should_quit: false,
             main_window: MainWindow::new(ctx.clone()),
             action_rx,
             ctx,
             mode: Mode::Normal,
-        }
+        })
     }
 
     pub async fn run(&mut self) -> Result<()> {
