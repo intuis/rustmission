@@ -32,7 +32,7 @@ pub struct TorrentsTab {
     table_manager: Arc<Mutex<TableManager>>,
     popup_manager: PopupManager,
     task_manager: TaskManager,
-    stats: BottomStats,
+    bottom_stats: BottomStats,
 }
 
 impl TorrentsTab {
@@ -50,7 +50,7 @@ impl TorrentsTab {
 
         tokio::spawn(transmission::fetchers::torrents(
             ctx.clone(),
-            Arc::clone(&bottom_stats.table_manager.clone()),
+            Arc::clone(&bottom_stats.table_manager),
         ));
 
         tokio::spawn(transmission::fetchers::free_space(
@@ -59,7 +59,7 @@ impl TorrentsTab {
         ));
 
         Self {
-            stats: bottom_stats,
+            bottom_stats,
             task_manager: TaskManager::new(table_manager.clone(), ctx.clone()),
             table_manager,
             popup_manager: PopupManager::new(),
@@ -75,7 +75,7 @@ impl Component for TorrentsTab {
 
         self.render_table(f, torrents_list_rect);
 
-        self.stats.render(f, stats_rect);
+        self.bottom_stats.render(f, stats_rect);
 
         self.task_manager.render(f, stats_rect);
 
@@ -159,7 +159,7 @@ impl TorrentsTab {
     }
 
     fn show_statistics_popup(&mut self) -> Option<Action> {
-        if let Some(stats) = &*self.stats.stats.lock().unwrap() {
+        if let Some(stats) = &*self.bottom_stats.stats.lock().unwrap() {
             let popup = StatisticsPopup::new(self.ctx.clone(), stats.clone());
             self.popup_manager.show_popup(CurrentPopup::Stats(popup));
             Some(Action::Render)
