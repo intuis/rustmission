@@ -41,18 +41,18 @@ impl Component for BottomStats {
             let download = bytes_to_human_format(stats.download_speed);
             let upload = bytes_to_human_format(stats.upload_speed);
 
-            let mut text = format!(" {all} | ▼ {download} | ▲ {upload}");
+            let mut text = format!("▼ {download} | ▲ {upload}");
+
+            if let Some(free_space) = &*self.free_space.lock().unwrap() {
+                let free_space = bytes_to_human_format(free_space.size_bytes);
+                text = format!("󰋊 {free_space} | {text}")
+            }
 
             let table_manager = &*self.table_manager.lock().unwrap();
             let table = table_manager.table.borrow();
             if let Some(current) = table.state.borrow().selected() {
                 let current_idx = current + 1;
-                text = format!(" {current_idx}/{all} | ▼ {download} | ▲ {upload}");
-            }
-
-            if let Some(free_space) = &*self.free_space.lock().unwrap() {
-                let free_space = bytes_to_human_format(free_space.size_bytes);
-                text = format!("󰋊 {free_space} | {text}")
+                text = format!(" {current_idx}/{all} | {text}");
             }
 
             let paragraph = Paragraph::new(text).alignment(Alignment::Right);
