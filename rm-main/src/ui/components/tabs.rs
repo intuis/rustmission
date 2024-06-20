@@ -56,12 +56,23 @@ impl Component for TabComponent {
     }
 
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
-        if let Action::ChangeTab(tab) = action {
-            match tab {
+        match action {
+            Action::ChangeTab(tab) => match tab {
                 1 => self.current_tab = CurrentTab::Torrents,
                 2 => self.current_tab = CurrentTab::Search,
                 _ => (),
-            }
+            },
+            // left only works on right-most tab (search)
+            Action::Left => match self.current_tab {
+                CurrentTab::Search => self.current_tab = CurrentTab::Torrents,
+                _ => (),
+            },
+            // right only works on left-most tab (torrents)
+            Action::Right => match self.current_tab {
+                CurrentTab::Torrents => self.current_tab = CurrentTab::Search,
+                _ => (),
+            },
+            _ => (),
         }
         None
     }
