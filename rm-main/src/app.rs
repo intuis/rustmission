@@ -43,9 +43,11 @@ impl Ctx {
                     session_info,
                 });
             }
-            Err(_) => {
+            Err(e) => {
                 let url = config.connection.url;
-                return Err(Error::msg(format!("Connection to transmission failed!\nPlease verify connection and credentials to {url}")));
+                return Err(Error::msg(format!(
+                    "{e}\nIs the connection info in {url} correct?"
+                )));
             }
         }
     }
