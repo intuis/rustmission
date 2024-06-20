@@ -44,7 +44,8 @@ impl Ctx {
                 });
             }
             Err(_) => {
-                return Err(Error::msg("Failed to connect to transmission client, please verify connection with remote transmission client"));
+                let url = config.connection.url;
+                return Err(Error::msg(format!("Failed to connect to remote transmission client!\nPlease verify connection and authentication to {url}")));
             }
         }
     }
