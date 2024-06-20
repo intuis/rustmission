@@ -32,33 +32,34 @@ pub struct TorrentsTab {
     table_manager: Arc<Mutex<TableManager>>,
     popup_manager: PopupManager,
     task_manager: TaskManager,
-    stats: BottomStats,
+    bottom_stats: BottomStats,
 }
 
 impl TorrentsTab {
     pub fn new(ctx: app::Ctx) -> Self {
-        let stats = BottomStats::default();
         let table = GenericTable::new(vec![]);
-
         let table_manager = Arc::new(Mutex::new(TableManager::new(ctx.clone(), table)));
+        let stats = Arc::new(Mutex::new(None));
+        let free_space = Arc::new(Mutex::new(None));
+        let bottom_stats = BottomStats::new(stats, free_space, table_manager.clone());
 
         tokio::spawn(transmission::fetchers::stats(
             ctx.clone(),
-            Arc::clone(&stats.stats),
+            Arc::clone(&bottom_stats.stats),
         ));
 
         tokio::spawn(transmission::fetchers::torrents(
             ctx.clone(),
-            Arc::clone(&table_manager),
+            Arc::clone(&bottom_stats.table_manager),
         ));
 
         tokio::spawn(transmission::fetchers::free_space(
             ctx.clone(),
-            Arc::clone(&stats.free_space),
+            Arc::clone(&bottom_stats.free_space),
         ));
 
         Self {
-            stats,
+            bottom_stats,
             task_manager: TaskManager::new(table_manager.clone(), ctx.clone()),
             table_manager,
             popup_manager: PopupManager::new(),
@@ -74,7 +75,7 @@ impl Component for TorrentsTab {
 
         self.render_table(f, torrents_list_rect);
 
-        self.stats.render(f, stats_rect);
+        self.bottom_stats.render(f, stats_rect);
 
         self.task_manager.render(f, stats_rect);
 
@@ -158,7 +159,7 @@ impl TorrentsTab {
     }
 
     fn show_statistics_popup(&mut self) -> Option<Action> {
-        if let Some(stats) = &*self.stats.stats.lock().unwrap() {
+        if let Some(stats) = &*self.bottom_stats.stats.lock().unwrap() {
             let popup = StatisticsPopup::new(self.ctx.clone(), stats.clone());
             self.popup_manager.show_popup(CurrentPopup::Stats(popup));
             Some(Action::Render)
