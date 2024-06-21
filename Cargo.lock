@@ -1157,6 +1157,7 @@ dependencies = [
  "anyhow",
  "ratatui",
  "serde",
+ "serde_json",
  "toml",
  "url",
  "xdg",
