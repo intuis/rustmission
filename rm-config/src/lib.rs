@@ -1,3 +1,5 @@
+mod color;
+
 use std::{
     fs::File,
     io::{Read, Write},
@@ -6,7 +8,7 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
-use rm_color::Color;
+use color::Color;
 use serde::{Deserialize, Serialize};
 use toml::Table;
 use xdg::BaseDirectories;
@@ -21,7 +23,7 @@ pub struct Config {
 pub struct General {
     #[serde(default)]
     pub auto_hide: bool,
-    #[serde(default, with = "rm_color")]
+    #[serde(default, with = "color")]
     pub accent_color: Color,
     #[serde(default = "default_beginner_mode")]
     pub beginner_mode: bool,
