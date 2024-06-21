@@ -37,7 +37,6 @@ impl BottomStats {
 impl Component for BottomStats {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         if let Some(stats) = &*self.stats.lock().unwrap() {
-            let all = stats.torrent_count;
             let download = bytes_to_human_format(stats.download_speed);
             let upload = bytes_to_human_format(stats.upload_speed);
 
@@ -50,6 +49,7 @@ impl Component for BottomStats {
 
             let table_manager = &*self.table_manager.lock().unwrap();
             let table = table_manager.table.borrow();
+            let all = table.get_len();
             if let Some(current) = table.state.borrow().selected() {
                 let current_idx = current + 1;
                 text = format!(" {current_idx}/{all} | {text}");
