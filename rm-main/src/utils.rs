@@ -37,14 +37,19 @@ pub fn seconds_to_human_format(seconds: i64) -> String {
     let mut rest = seconds;
     if seconds > DAY {
         let days = rest / DAY;
-        curr_string = format!("{days}d");
-        return curr_string;
+        rest %= DAY;
+
+        curr_string = format!("{curr_string}{days}d");
     }
 
     if seconds > HOUR {
         let hours = rest / HOUR;
         rest %= HOUR;
         curr_string = format!("{curr_string}{hours}h");
+        // skip minutes & seconds for multi-day durations
+        if seconds > DAY {
+            return curr_string;
+        }
     }
 
     if seconds > MINUTE {
