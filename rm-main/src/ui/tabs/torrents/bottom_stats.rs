@@ -50,9 +50,15 @@ impl Component for BottomStats {
             let table_manager = &*self.table_manager.lock().unwrap();
             let table = table_manager.table.borrow();
             let all = table.get_len();
+
             if let Some(current) = table.state.borrow().selected() {
-                let current_idx = current + 1;
-                text = format!(" {current_idx}/{all} | {text}");
+                if all > 0 {
+                    let current_idx = current + 1;
+                    text = format!(" {current_idx}/{all} | {text}");
+                } else {
+                    // dont display index if no items in table
+                    text = format!(" {all} | {text}");
+                }
             } else {
                 text = format!(" {all} | {text}");
             }
