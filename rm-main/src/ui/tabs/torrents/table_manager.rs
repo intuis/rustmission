@@ -1,5 +1,5 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
-use ratatui::prelude::*;
+use ratatui::{prelude::*, widgets::Row};
 use std::sync::{Arc, Mutex};
 
 use crate::{app, ui::components::table::GenericTable};
@@ -35,39 +35,22 @@ impl TableManager {
         }
     }
 
+    pub fn rows(&self) -> Vec<Row<'_>> {
+        if let Some(filter) = &*self.filter.lock().unwrap() {
+            let rows = self.filtered_torrents_rows(&self.table.items, filter);
+            self.table.overwrite_len(rows.len());
+            rows
+        } else {
+            self.table
+                .items
+                .iter()
+                .map(RustmissionTorrent::to_row)
+                .collect()
+        }
+    }
+
     pub const fn header(&self) -> &Vec<String> {
         &self.header
-    }
-
-    const fn default_widths() -> [Constraint; 6] {
-        [
-            Constraint::Max(70),    // Name
-            Constraint::Length(10), // Size
-            Constraint::Length(10), // Progress
-            Constraint::Length(10), // ETA
-            Constraint::Length(10), // Download
-            Constraint::Length(10), // Upload
-        ]
-    }
-
-    pub fn filtered_torrents_rows<'a>(
-        &self,
-        torrents: &'a [RustmissionTorrent],
-        filter: &str,
-    ) -> Vec<ratatui::widgets::Row<'a>> {
-        let matcher = SkimMatcherV2::default();
-        let mut rows = vec![];
-
-        let highlight_style =
-            Style::default().fg(self.ctx.config.general.accent_color.as_ratatui());
-
-        for torrent in torrents {
-            if let Some((_, indices)) = matcher.fuzzy_indices(&torrent.torrent_name, filter) {
-                rows.push(torrent.to_row_with_higlighted_indices(indices, highlight_style))
-            }
-        }
-
-        rows
     }
 
     pub fn current_torrent(&mut self) -> Option<&mut RustmissionTorrent> {
@@ -95,6 +78,37 @@ impl TableManager {
     pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
         self.table.items = rows;
         self.widths = self.header_widths(&self.table.items);
+    }
+
+    fn filtered_torrents_rows<'a>(
+        &self,
+        torrents: &'a [RustmissionTorrent],
+        filter: &str,
+    ) -> Vec<Row<'a>> {
+        let matcher = SkimMatcherV2::default();
+        let mut rows = vec![];
+
+        let highlight_style =
+            Style::default().fg(self.ctx.config.general.accent_color.as_ratatui());
+
+        for torrent in torrents {
+            if let Some((_, indices)) = matcher.fuzzy_indices(&torrent.torrent_name, filter) {
+                rows.push(torrent.to_row_with_higlighted_indices(indices, highlight_style))
+            }
+        }
+
+        rows
+    }
+
+    const fn default_widths() -> [Constraint; 6] {
+        [
+            Constraint::Max(70),    // Name
+            Constraint::Length(10), // Size
+            Constraint::Length(10), // Progress
+            Constraint::Length(10), // ETA
+            Constraint::Length(10), // Download
+            Constraint::Length(10), // Upload
+        ]
     }
 
     fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 6] {

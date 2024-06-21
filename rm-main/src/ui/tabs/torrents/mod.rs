@@ -23,7 +23,6 @@ use crate::{app, transmission};
 use self::bottom_stats::BottomStats;
 use self::popups::files::FilesPopup;
 use self::popups::{CurrentPopup, PopupManager};
-use self::rustmission_torrent::RustmissionTorrent;
 use self::table_manager::TableManager;
 use self::task_manager::TaskManager;
 
@@ -41,7 +40,7 @@ impl TorrentsTab {
         let table_manager = Arc::new(Mutex::new(TableManager::new(ctx.clone(), table)));
         let stats = Arc::new(Mutex::new(None));
         let free_space = Arc::new(Mutex::new(None));
-        let bottom_stats = BottomStats::new(stats, free_space, table_manager.clone());
+        let bottom_stats = BottomStats::new(stats, free_space, Arc::clone(&table_manager));
 
         tokio::spawn(transmission::fetchers::stats(
             ctx.clone(),
@@ -113,20 +112,7 @@ impl TorrentsTab {
         let table_manager_lock = &mut *self.table_manager.lock().unwrap();
         table_manager_lock.torrents_displaying_no = rect.height;
 
-        let torrent_rows: Vec<_> = if let Some(filter) = &*table_manager_lock.filter.lock().unwrap()
-        {
-            let torrent_rows =
-                table_manager_lock.filtered_torrents_rows(&table_manager_lock.table.items, filter);
-            table_manager_lock.table.overwrite_len(torrent_rows.len());
-            torrent_rows
-        } else {
-            table_manager_lock
-                .table
-                .items
-                .iter()
-                .map(RustmissionTorrent::to_row)
-                .collect()
-        };
+        let torrent_rows = table_manager_lock.rows();
 
         let highlight_table_style = Style::default().on_black().bold().fg(self
             .ctx
