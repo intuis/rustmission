@@ -1151,22 +1151,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "rm-color"
-version = "0.1.0"
-dependencies = [
- "ratatui",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "rm-config"
 version = "0.3.0"
 dependencies = [
  "anyhow",
  "ratatui",
- "rm-color",
  "serde",
+ "serde_json",
  "toml",
  "url",
  "xdg",
