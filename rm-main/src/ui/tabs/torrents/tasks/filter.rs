@@ -37,10 +37,10 @@ impl Component for FilterBar {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::Input(input) => {
-                if input.code == KeyCode::Enter {
-                    return Some(Action::Quit);
-                }
-                if input.code == KeyCode::Esc {
+                if matches!(input.code, KeyCode::Enter | KeyCode::Esc) {
+                    if self.input.text().is_empty() {
+                        *self.table_manager.lock().unwrap().filter.lock().unwrap() = None;
+                    }
                     return Some(Action::Quit);
                 }
 
