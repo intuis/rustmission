@@ -40,7 +40,7 @@ impl Component for StatisticsPopup {
         let block_rect = popup_rect.inner(&Margin::new(1, 1));
         let text_rect = block_rect.inner(&Margin::new(3, 2));
 
-        let title_style = Style::default().fg(self.ctx.config.general.accent_color.as_ratatui());
+        let title_style = Style::default().fg(self.ctx.config.general.accent_color);
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
             .title(Title::from(" Statistics ".set_style(title_style)))

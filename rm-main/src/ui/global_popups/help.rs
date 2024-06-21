@@ -46,13 +46,13 @@ impl Component for HelpPopup {
         let popup_rect = centered_rect.inner(&Margin::new(1, 1));
         let text_rect = popup_rect.inner(&Margin::new(3, 2));
 
-        let title_style = Style::new().fg(self.ctx.config.general.accent_color.as_ratatui());
+        let title_style = Style::new().fg(self.ctx.config.general.accent_color);
         let block = Block::bordered()
             .border_set(symbols::border::ROUNDED)
             .title(
                 Title::from(
                     " [ CLOSE ] "
-                        .fg(self.ctx.config.general.accent_color.as_ratatui())
+                        .fg(self.ctx.config.general.accent_color)
                         .bold(),
                 )
                 .alignment(Alignment::Right)

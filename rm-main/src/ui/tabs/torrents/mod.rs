@@ -118,8 +118,7 @@ impl TorrentsTab {
             .ctx
             .config
             .general
-            .accent_color
-            .as_ratatui());
+            .accent_color);
 
         let table_widget = Table::new(torrent_rows, table_manager_lock.widths)
             .header(Row::new(

@@ -200,8 +200,7 @@ impl Component for FilesPopup {
 
         let info_text_rect = block_rect.inner(&Margin::new(3, 2));
 
-        let highlight_style =
-            Style::default().fg(self.ctx.config.general.accent_color.as_ratatui());
+        let highlight_style = Style::default().fg(self.ctx.config.general.accent_color);
         let bold_highlight_style = highlight_style.on_black().bold();
 
         let block = Block::bordered()
