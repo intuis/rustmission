@@ -14,23 +14,18 @@ path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rm-config = { version = "0.3", path = "../rm-config" }
-
-magnetease = "0.1"
-anyhow = "1"
-serde = { version = "1", features = ["derive"] }
-transmission-rpc = "0.4.2"
-fuzzy-matcher = "0.3.7"
-clap = { version = "4.5.6", features = ["derive"] }
-base64 = "0.22"
-
-# Async
-tokio = { version = "1", features = ["macros", "sync"] }
-tokio-util = "0.7"
-futures = "0.3"
-
-# TUI
-crossterm = { version = "0.27", features = ["event-stream"] }
-ratatui = "0.26.3"
-tui-input = "0.8"
-tui-tree-widget = "0.20"
+rm-config.workspace = true
+magnetease.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+transmission-rpc.workspace = true
+fuzzy-matcher.workspace = true
+clap.workspace = true
+base64.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+futures.workspace = true
+crossterm.workspace = true
+ratatui.workspace = true
+tui-input.workspace = true
+tui-tree-widget.workspace = true

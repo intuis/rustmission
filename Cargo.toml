@@ -5,6 +5,39 @@ members = [
   "rm-config",
 ]
 
+[workspace.package]
+version = "0.3.3"
+edition = "2021"
+authors = ["Remigiusz Micielski <rmicielski@purelymail.com>"]
+repository = "https://github.com/intuis/rustmission"
+homepage = "https://github.com/intuis/rustmission"
+license = "GPL-3.0-or-later"
+
+[workspace.dependencies]
+rm-config = { version = "0.3", path = "rm-config" }
+
+magnetease = "0.1"
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+transmission-rpc = "0.4.2"
+fuzzy-matcher = "0.3.7"
+clap = { version = "4.5.6", features = ["derive"] }
+base64 = "0.22"
+xdg = "2.5"
+url = "2.5"
+toml = "0.8"
+
+# Async
+tokio = { version = "1", features = ["macros", "sync"] }
+tokio-util = "0.7"
+futures = "0.3"
+
+# TUI
+crossterm = { version = "0.27", features = ["event-stream"] }
+ratatui = { version = "0.26", features = ["serde"] }
+tui-input = "0.8"
+tui-tree-widget = "0.20"
+
 # Config for 'cargo dist'
 [workspace.metadata.dist]
 # The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
