@@ -9,7 +9,7 @@ use super::rustmission_torrent::RustmissionTorrent;
 pub struct TableManager {
     ctx: app::Ctx,
     pub table: GenericTable<RustmissionTorrent>,
-    pub widths: [Constraint; 6],
+    pub widths: [Constraint; 7],
     pub filter: Arc<Mutex<Option<String>>>,
     pub torrents_displaying_no: u16,
     header: Vec<String>,
@@ -31,6 +31,7 @@ impl TableManager {
                 "ETA".to_owned(),
                 "Download".to_owned(),
                 "Upload".to_owned(),
+                "Directory".to_owned(),
             ],
         }
     }
@@ -100,7 +101,7 @@ impl TableManager {
         rows
     }
 
-    const fn default_widths() -> [Constraint; 6] {
+    const fn default_widths() -> [Constraint; 7] {
         [
             Constraint::Max(70),    // Name
             Constraint::Length(10), // Size
@@ -108,10 +109,11 @@ impl TableManager {
             Constraint::Length(10), // ETA
             Constraint::Length(10), // Download
             Constraint::Length(10), // Upload
+            Constraint::Length(20), // Download directory
         ]
     }
 
-    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 6] {
+    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 7] {
         if !self.ctx.config.general.auto_hide {
             return Self::default_widths();
         }
@@ -120,6 +122,7 @@ impl TableManager {
         let mut upload_width = 0;
         let mut progress_width = 0;
         let mut eta_width = 0;
+        let mut download_dir_width = 0;
 
         for row in rows {
             if !row.download_speed.is_empty() {
@@ -135,15 +138,20 @@ impl TableManager {
             if !row.eta_secs.is_empty() {
                 eta_width = 9;
             }
+
+            if !row.download_dir.is_empty() {
+                download_dir_width = 18;
+            }
         }
 
         [
-            Constraint::Max(70),                // Name
-            Constraint::Length(9),              // Size
-            Constraint::Length(progress_width), // Progress
-            Constraint::Length(eta_width),      // ETA
-            Constraint::Length(download_width), // Download
-            Constraint::Length(upload_width),   // Upload
+            Constraint::Max(70),                    // Name
+            Constraint::Length(9),                  // Size
+            Constraint::Length(progress_width),     // Progress
+            Constraint::Length(eta_width),          // ETA
+            Constraint::Length(download_width),     // Download
+            Constraint::Length(upload_width),       // Upload
+            Constraint::Length(download_dir_width), // Download directory
         ]
     }
 }

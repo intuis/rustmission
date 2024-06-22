@@ -10,6 +10,7 @@ use super::{
         default::DefaultBar,
         delete_torrent::{self, DeleteBar},
         filter::FilterBar,
+        move_torrent::MoveBar,
     },
     TableManager,
 };
@@ -34,6 +35,7 @@ enum CurrentTask {
     AddMagnetBar(AddMagnetBar),
     DeleteBar(DeleteBar),
     FilterBar(FilterBar),
+    MoveBar(MoveBar),
     Default(DefaultBar),
 }
 
@@ -53,13 +55,16 @@ impl Component for TaskManager {
                 Some(A::Render) => Some(A::Render),
                 _ => None,
             },
-
+            CurrentTask::MoveBar(move_bar) => match move_bar.handle_actions(action) {
+                Some(A::Quit) => self.finish_task(),
+                Some(A::Render) => Some(A::Render),
+                _ => None,
+            },
             CurrentTask::FilterBar(filter_bar) => match filter_bar.handle_actions(action) {
                 Some(A::Quit) => self.finish_task(),
                 Some(A::Render) => Some(A::Render),
                 _ => None,
             },
-
             CurrentTask::Default(_) => self.handle_events_to_manager(&action),
         }
     }
@@ -68,6 +73,7 @@ impl Component for TaskManager {
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => magnet_bar.render(f, rect),
             CurrentTask::DeleteBar(delete_bar) => delete_bar.render(f, rect),
+            CurrentTask::MoveBar(move_bar) => move_bar.render(f, rect),
             CurrentTask::FilterBar(filter_bar) => filter_bar.render(f, rect),
             CurrentTask::Default(default_bar) => default_bar.render(f, rect),
         }
@@ -84,6 +90,7 @@ impl TaskManager {
             }
             Action::DeleteWithFiles => self.delete_torrent(delete_torrent::Mode::WithFiles),
             Action::DeleteWithoutFiles => self.delete_torrent(delete_torrent::Mode::WithoutFiles),
+            Action::MoveTorrent => self.move_torrent(),
             Action::Search => {
                 self.current_task = CurrentTask::FilterBar(FilterBar::new(
                     self.ctx.clone(),
@@ -102,6 +109,16 @@ impl TaskManager {
                 vec![torrent.id.clone()],
                 mode,
             ));
+            Some(Action::SwitchToInputMode)
+        } else {
+            None
+        }
+    }
+
+    fn move_torrent(&mut self) -> Option<Action> {
+        if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
+            self.current_task =
+                CurrentTask::MoveBar(MoveBar::new(self.ctx.clone(), vec![torrent.id.clone()]));
             Some(Action::SwitchToInputMode)
         } else {
             None
