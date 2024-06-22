@@ -89,8 +89,7 @@ impl TableManager {
         let matcher = SkimMatcherV2::default();
         let mut rows = vec![];
 
-        let highlight_style =
-            Style::default().fg(self.ctx.config.general.accent_color.as_ratatui());
+        let highlight_style = Style::default().fg(self.ctx.config.general.accent_color);
 
         for torrent in torrents {
             if let Some((_, indices)) = matcher.fuzzy_indices(&torrent.torrent_name, filter) {

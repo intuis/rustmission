@@ -50,7 +50,7 @@ impl Component for InputManager {
 
         spans.push(Span::styled(
             self.prompt.as_str(),
-            Style::default().fg(self.ctx.config.general.accent_color.as_ratatui()),
+            Style::default().fg(self.ctx.config.general.accent_color),
         ));
 
         spans.push(Span::raw(self.text()));

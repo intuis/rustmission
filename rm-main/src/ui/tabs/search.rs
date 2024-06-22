@@ -228,7 +228,7 @@ impl Component for SearchTab {
             if self.search_focus == SearchFocus::Search {
                 Style::default()
                     .underlined()
-                    .fg(self.ctx.config.general.accent_color.as_ratatui())
+                    .fg(self.ctx.config.general.accent_color)
             } else {
                 Style::default().underlined().gray()
             }
@@ -264,8 +264,7 @@ impl Component for SearchTab {
             .ctx
             .config
             .general
-            .accent_color
-            .as_ratatui());
+            .accent_color);
         let table = Table::new(items, widths)
             .header(header)
             .highlight_style(table_higlight_style);
