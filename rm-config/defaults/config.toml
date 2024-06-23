@@ -11,6 +11,9 @@ accent_color = "LightMagenta"
 # a little bit cluttered interface.
 beginner_mode = true
 
+# If enabled, hides header row of torrents tab
+hide_headers = false
+
 [connection]
 url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 

@@ -120,11 +120,17 @@ impl TorrentsTab {
             .general
             .accent_color);
 
-        let table_widget = Table::new(torrent_rows, table_manager_lock.widths)
-            .header(Row::new(
-                table_manager_lock.header().iter().map(|s| s.as_str()),
-            ))
-            .highlight_style(highlight_table_style);
+        let table_widget: Table;
+        table_widget = if self.ctx.config.general.hide_headers {
+            Table::new(torrent_rows, table_manager_lock.widths)
+                .highlight_style(highlight_table_style)
+        } else {
+            Table::new(torrent_rows, table_manager_lock.widths)
+                .highlight_style(highlight_table_style)
+                .header(Row::new(
+                    table_manager_lock.header().iter().map(|s| s.as_str()),
+                ))
+        };
 
         f.render_stateful_widget(
             table_widget,

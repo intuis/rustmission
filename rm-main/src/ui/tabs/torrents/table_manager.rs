@@ -9,7 +9,7 @@ use super::rustmission_torrent::RustmissionTorrent;
 pub struct TableManager {
     ctx: app::Ctx,
     pub table: GenericTable<RustmissionTorrent>,
-    pub widths: [Constraint; 6],
+    pub widths: [Constraint; 7],
     pub filter: Arc<Mutex<Option<String>>>,
     pub torrents_displaying_no: u16,
     header: Vec<String>,
@@ -26,6 +26,7 @@ impl TableManager {
             torrents_displaying_no: 0,
             header: vec![
                 "Name".to_owned(),
+                "".to_owned(),
                 "Size".to_owned(),
                 "Progress".to_owned(),
                 "ETA".to_owned(),
@@ -99,9 +100,10 @@ impl TableManager {
         rows
     }
 
-    const fn default_widths() -> [Constraint; 6] {
+    const fn default_widths() -> [Constraint; 7] {
         [
             Constraint::Max(70),    // Name
+            Constraint::Length(5),  // <padding>
             Constraint::Length(10), // Size
             Constraint::Length(10), // Progress
             Constraint::Length(10), // ETA
@@ -110,7 +112,7 @@ impl TableManager {
         ]
     }
 
-    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 6] {
+    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 7] {
         if !self.ctx.config.general.auto_hide {
             return Self::default_widths();
         }
@@ -138,6 +140,7 @@ impl TableManager {
 
         [
             Constraint::Max(70),                // Name
+            Constraint::Length(5),              // <padding>
             Constraint::Length(9),              // Size
             Constraint::Length(progress_width), // Progress
             Constraint::Length(eta_width),      // ETA

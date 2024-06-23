@@ -61,3 +61,17 @@ pub fn seconds_to_human_format(seconds: i64) -> String {
     curr_string = format!("{curr_string}{rest}s");
     curr_string
 }
+
+pub fn download_speed_format(download_speed: &str) -> String {
+    if download_speed.len() > 0 {
+        return format!("▼ {}", download_speed);
+    }
+    download_speed.to_string()
+}
+
+pub fn upload_speed_format(upload_speed: &str) -> String {
+    if upload_speed.len() > 0 {
+        return format!("▼ {}", upload_speed);
+    }
+    upload_speed.to_string()
+}
