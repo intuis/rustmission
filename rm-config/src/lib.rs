@@ -1,20 +1,25 @@
-use std::{
-    fs::File,
-    io::{Read, Write},
-    path::PathBuf,
-    sync::OnceLock,
-};
+mod keymap;
+mod utils;
+
+use std::{collections::HashMap, path::PathBuf, sync::OnceLock};
 
 use anyhow::{bail, Context, Result};
+use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::style::Color;
+use rm_shared::action::Action;
 use serde::{Deserialize, Serialize};
 use toml::Table;
 use xdg::BaseDirectories;
 
-#[derive(Debug, Serialize, Deserialize)]
+use crate::utils::put_config;
+use keymap::Keymap;
+
+#[derive(Serialize, Deserialize)]
 pub struct Config {
     pub connection: Connection,
     pub general: General,
+    #[serde(skip)]
+    pub keymap: Option<HashMap<(KeyCode, KeyModifiers), Action>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -45,41 +50,34 @@ pub struct Connection {
 const DEFAULT_CONFIG: &str = include_str!("../defaults/config.toml");
 static XDG_DIRS: OnceLock<BaseDirectories> = OnceLock::new();
 static CONFIG_PATH: OnceLock<PathBuf> = OnceLock::new();
+pub const MAIN_CONFIG_FILENAME: &str = "config.toml";
+pub const KEYMAP_CONFIG_FILENAME: &str = "keymap.toml";
+
+pub fn xdg_dirs() -> &'static BaseDirectories {
+    XDG_DIRS.get_or_init(|| xdg::BaseDirectories::with_prefix("rustmission").unwrap())
+}
+
+pub fn get_config_path(filename: &str) -> &'static PathBuf {
+    CONFIG_PATH.get_or_init(|| xdg_dirs().place_config_file(filename).unwrap())
+}
 
 impl Config {
     pub fn init() -> Result<Self> {
-        let Ok(table) = Self::table_from_home() else {
-            Self::put_default_conf_in_home()?;
+        let Ok(table) = utils::fetch_config_table(MAIN_CONFIG_FILENAME) else {
+            put_config(DEFAULT_CONFIG, MAIN_CONFIG_FILENAME)?;
             // TODO: check if the user really changed the config.
             println!(
                 "Update {:?} and start rustmission again",
-                Self::get_config_path()
+                get_config_path(MAIN_CONFIG_FILENAME)
             );
             std::process::exit(0);
         };
 
         Self::table_config_verify(&table)?;
 
-        Self::table_to_config(&table)
-    }
-
-    fn table_from_home() -> Result<Table> {
-        let xdg_dirs = xdg::BaseDirectories::with_prefix("rustmission")?;
-        let config_path = xdg_dirs
-            .find_config_file("config.toml")
-            .ok_or_else(|| anyhow::anyhow!("config.toml not found"))?;
-
-        let mut config_buf = String::new();
-        let mut config_file = File::open(config_path).unwrap();
-        config_file.read_to_string(&mut config_buf).unwrap();
-        Ok(toml::from_str(&config_buf)?)
-    }
-
-    fn put_default_conf_in_home() -> Result<Table> {
-        let config_path = Self::get_config_path();
-        let mut config_file = File::create(config_path)?;
-        config_file.write_all(DEFAULT_CONFIG.as_bytes())?;
-        Ok(toml::from_str(DEFAULT_CONFIG)?)
+        let mut config = Self::table_to_config(&table)?;
+        config.keymap = Some(Keymap::init().unwrap().to_hashmap());
+        Ok(config)
     }
 
     fn table_to_config(table: &Table) -> Result<Self> {
@@ -99,30 +97,18 @@ impl Config {
             .with_context(|| {
                 format!(
                     "no url given in: {}",
-                    Self::get_config_path().to_str().unwrap()
+                    get_config_path(MAIN_CONFIG_FILENAME).to_str().unwrap()
                 )
             })?;
 
         url::Url::parse(url).with_context(|| {
             format!(
                 "invalid url '{url}' in {}",
-                Self::get_config_path().to_str().unwrap()
+                get_config_path(MAIN_CONFIG_FILENAME).to_str().unwrap()
             )
         })?;
 
         Ok(())
-    }
-
-    fn get_xdg_dirs() -> &'static BaseDirectories {
-        XDG_DIRS.get_or_init(|| xdg::BaseDirectories::with_prefix("rustmission").unwrap())
-    }
-
-    pub fn get_config_path() -> &'static PathBuf {
-        CONFIG_PATH.get_or_init(|| {
-            Self::get_xdg_dirs()
-                .place_config_file("config.toml")
-                .unwrap()
-        })
     }
 }
 

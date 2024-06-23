@@ -1,9 +1,10 @@
+use std::collections::HashMap;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::{tui::Event, ui::global_popups::ErrorPopup};
-
+use crate::event::Event;
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum Action {
+pub enum Action {
     HardQuit,
     Quit,
     SoftQuit,
@@ -31,7 +32,13 @@ pub(crate) enum Action {
     AddMagnet,
     ChangeTab(u8),
     Input(KeyEvent),
-    Error(Box<ErrorPopup>),
+    Error(Box<ErrorMessage>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ErrorMessage {
+    pub title: String,
+    pub message: String,
 }
 
 impl Action {
@@ -54,7 +61,11 @@ pub enum Mode {
     Normal,
 }
 
-pub fn event_to_action(mode: Mode, event: Event) -> Option<Action> {
+pub fn event_to_action(
+    mode: Mode,
+    event: Event,
+    keymap: &HashMap<(KeyCode, KeyModifiers), Action>,
+) -> Option<Action> {
     use Action as A;
 
     // Handle CTRL+C first
@@ -71,18 +82,22 @@ pub fn event_to_action(mode: Mode, event: Event) -> Option<Action> {
         Event::Error => todo!(),
         Event::Render => Some(A::Render),
         Event::Key(key) if mode == Mode::Input => Some(A::Input(key)),
-        Event::Key(key) => key_event_to_action(key),
+        Event::Key(key) => key_event_to_action(key, keymap),
     }
 }
 
-fn key_event_to_action(key: KeyEvent) -> Option<Action> {
+fn key_event_to_action(
+    key: KeyEvent,
+    keymap: &HashMap<(KeyCode, KeyModifiers), Action>,
+) -> Option<Action> {
     use Action as A;
 
-    match (key.modifiers, key.code) {
-        (KeyModifiers::CONTROL, KeyCode::Char('d')) => Some(A::ScrollDownPage),
-        (KeyModifiers::CONTROL, KeyCode::Char('u')) => Some(A::ScrollUpPage),
-        (_, keycode) => keycode_to_action(keycode),
-    }
+    keymap.get(&(key.code, key.modifiers)).cloned()
+    // match (key.modifiers, key.code) {
+    //     (KeyModifiers::CONTROL, KeyCode::Char('d')) => Some(A::ScrollDownPage),
+    //     (KeyModifiers::CONTROL, KeyCode::Char('u')) => Some(A::ScrollUpPage),
+    //     (_, keycode) => keycode_to_action(keycode),
+    // }
 }
 
 fn keycode_to_action(key: KeyCode) -> Option<Action> {

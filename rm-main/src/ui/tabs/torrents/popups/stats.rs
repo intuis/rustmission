@@ -8,11 +8,11 @@ use ratatui::{
 use transmission_rpc::types::SessionStats;
 
 use crate::{
-    action::Action,
     app,
     ui::{centered_rect, components::Component},
     utils::bytes_to_human_format,
 };
+use rm_shared::action::Action;
 
 pub struct StatisticsPopup {
     stats: SessionStats,

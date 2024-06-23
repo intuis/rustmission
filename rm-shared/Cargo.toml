@@ -1,23 +1,13 @@
 [package]
-name = "rm-config"
-description = "Config library for rustmission"
+name = "rm-shared"
 version.workspace = true
 edition.workspace = true
-license.workspace = true
 authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
+license.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rm-shared.workspace = true
-xdg.workspace = true
-toml.workspace = true
-serde.workspace = true
-anyhow.workspace = true
-url.workspace = true
-ratatui.workspace = true
 crossterm.workspace = true
-
-

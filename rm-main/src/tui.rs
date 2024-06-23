@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::Result;
 use crossterm::{
     cursor,
-    event::{Event as CrosstermEvent, KeyEvent, KeyEventKind},
+    event::{Event as CrosstermEvent, KeyEventKind},
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
 use futures::{FutureExt, StreamExt};
@@ -14,13 +14,7 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
-#[derive(Clone, Debug)]
-pub enum Event {
-    Quit,
-    Error,
-    Render,
-    Key(KeyEvent),
-}
+use rm_shared::event::Event;
 
 pub struct Tui {
     pub terminal: ratatui::Terminal<Backend<std::io::Stdout>>,

@@ -7,10 +7,10 @@ use ratatui::{
 };
 
 use crate::{
-    action::Action,
     app,
     ui::{centered_rect, components::Component},
 };
+use rm_shared::action::Action;
 
 macro_rules! add_line {
     ($lines:expr, $key:expr, $description:expr) => {

@@ -15,11 +15,11 @@ use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use crate::{
-    action::Action,
     app,
     transmission::TorrentAction,
     ui::{centered_rect, components::Component},
 };
+use rm_shared::action::Action;
 
 pub struct FilesPopup {
     ctx: app::Ctx,
