@@ -1,8 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, marker::PhantomData};
 
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{self, SeqAccess, Visitor},
+    Deserialize, Serialize,
+};
 use toml::Table;
 
 use crate::{utils, KEYMAP_CONFIG_FILENAME};
@@ -90,12 +93,129 @@ impl From<TorrentsAction> for Action {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 struct Keybinding<T: Into<Action>> {
     on: KeyCode,
     #[serde(default)]
     modifier: KeyModifier,
     action: T,
+}
+
+impl<T: Into<Action>> Keybinding<T> {
+    fn new(on: KeyCode, action: T, modifier: Option<KeyModifier>) -> Self {
+        Self {
+            on,
+            modifier: modifier.unwrap_or(KeyModifier::None),
+            action,
+        }
+    }
+}
+
+impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T> {
+    fn deserialize<D>(deserializer: D) -> std::prelude::v1::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Field {
+            On,
+            Modifier,
+            Action,
+        }
+
+        struct KeybindingVisitor<T> {
+            phantom: PhantomData<T>,
+        }
+
+        impl<'de, T: Into<Action> + Deserialize<'de>> Visitor<'de> for KeybindingVisitor<T> {
+            type Value = Keybinding<T>;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("struct Keybinding")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> std::prelude::v1::Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut on = None;
+                let mut modifier = None;
+                let mut action = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::On => {
+                            if on.is_some() {
+                                return Err(de::Error::duplicate_field("on"));
+                            }
+                            let key = map.next_value::<String>()?;
+
+                            if key.len() == 1 {
+                                on = Some(KeyCode::Char(key.chars().next().unwrap()));
+                            } else if key.starts_with('F') && (key.len() == 2 || key.len() == 3) {
+                                let which_f = key[1..].parse::<u8>().map_err(|_| {
+                                    de::Error::invalid_value(
+                                        de::Unexpected::Str(&key),
+                                        &"something_correct",
+                                    )
+                                })?;
+                                on = Some(KeyCode::F(which_f));
+                            } else {
+                                on = {
+                                    match key.to_lowercase().as_str() {
+                                        "enter" => Some(KeyCode::Enter),
+                                        "esc" => Some(KeyCode::Esc),
+                                        "up" => Some(KeyCode::Up),
+                                        "down" => Some(KeyCode::Down),
+                                        "left" => Some(KeyCode::Left),
+                                        "right" => Some(KeyCode::Right),
+                                        "home" => Some(KeyCode::Home),
+                                        "end" => Some(KeyCode::End),
+                                        "pageup" => Some(KeyCode::PageUp),
+                                        "pagedown" => Some(KeyCode::PageDown),
+                                        "tab" => Some(KeyCode::Tab),
+                                        "backspace" => Some(KeyCode::Backspace),
+                                        "delete" => Some(KeyCode::Delete),
+
+                                        _ => {
+                                            return Err(de::Error::invalid_value(
+                                                de::Unexpected::Str(&key),
+                                                &"something correct",
+                                            ))
+                                        }
+                                    }
+                                };
+                            }
+                        }
+                        Field::Modifier => {
+                            if modifier.is_some() {
+                                return Err(de::Error::duplicate_field("modifier"));
+                            }
+                            modifier = Some(map.next_value());
+                        }
+                        Field::Action => {
+                            if action.is_some() {
+                                return Err(de::Error::duplicate_field("action"));
+                            }
+                            action = Some(map.next_value());
+                        }
+                    }
+                }
+                let on = on.ok_or_else(|| de::Error::missing_field("on"))?;
+                let action = action.ok_or_else(|| de::Error::missing_field("action"))??;
+                Ok(Keybinding::new(on, action, modifier.transpose().unwrap()))
+            }
+        }
+
+        const FIELDS: &[&str] = &["on", "modifier", "action"];
+        deserializer.deserialize_struct(
+            "Keybinding",
+            FIELDS,
+            KeybindingVisitor {
+                phantom: PhantomData::default(),
+            },
+        )
+    }
 }
 
 #[derive(Serialize, Deserialize, Hash)]
@@ -124,6 +244,7 @@ impl Default for KeyModifier {
 impl Keymap {
     pub fn init() -> Result<Self> {
         let table = {
+            // TODO: handle errors or there will be hell to pay
             if let Ok(table) = utils::fetch_config_table(KEYMAP_CONFIG_FILENAME) {
                 table
             } else {
