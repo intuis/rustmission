@@ -1,7 +1,7 @@
 use ratatui::{
     style::{Style, Stylize},
     text::{Line, Span},
-    widgets::{Cell, Row},
+    widgets::Row,
 };
 use transmission_rpc::types::{Id, Torrent, TorrentStatus};
 
@@ -25,13 +25,13 @@ pub struct RustmissionTorrent {
 impl RustmissionTorrent {
     pub fn to_row(&self) -> ratatui::widgets::Row {
         Row::new([
-            Cell::new(self.torrent_name.as_str()),
-            Cell::new(""),
-            Cell::new(self.size_when_done.as_str()),
-            Cell::new(self.progress.as_str()),
-            Cell::new(self.eta_secs.as_str()),
-            Cell::new(download_speed_format(&self.download_speed)),
-            Cell::new(upload_speed_format(&self.upload_speed)),
+            Line::from(self.torrent_name.as_str()),
+            Line::from(""),
+            Line::from(self.size_when_done.as_str()),
+            Line::from(self.progress.as_str()),
+            Line::from(self.eta_secs.as_str()),
+            Line::from(download_speed_format(&self.download_speed)),
+            Line::from(upload_speed_format(&self.upload_speed)),
         ])
         .style(self.style)
     }
@@ -52,13 +52,13 @@ impl RustmissionTorrent {
         }
 
         Row::new([
-            Cell::new(self.torrent_name.as_str()),
-            Cell::new(""),
-            Cell::new(self.size_when_done.as_str()),
-            Cell::new(self.progress.as_str()),
-            Cell::new(self.eta_secs.as_str()),
-            Cell::new(download_speed_format(&self.download_speed)),
-            Cell::new(upload_speed_format(&self.upload_speed)),
+            Line::from(torrent_name_line),
+            Line::from(""),
+            Line::from(self.size_when_done.as_str()),
+            Line::from(self.progress.as_str()),
+            Line::from(self.eta_secs.as_str()),
+            Line::from(download_speed_format(&self.download_speed)),
+            Line::from(upload_speed_format(&self.upload_speed)),
         ])
     }
 
