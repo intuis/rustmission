@@ -108,7 +108,7 @@ impl TableManager {
             Constraint::Length(10), // ETA
             Constraint::Length(10), // Download
             Constraint::Length(10), // Upload
-            Constraint::Length(20), // Download directory
+            Constraint::Max(70),    // Download directory
         ]
     }
 
@@ -121,7 +121,6 @@ impl TableManager {
         let mut upload_width = 0;
         let mut progress_width = 0;
         let mut eta_width = 0;
-        let mut download_dir_width = 0;
 
         for row in rows {
             if !row.download_speed.is_empty() {
@@ -137,20 +136,16 @@ impl TableManager {
             if !row.eta_secs.is_empty() {
                 eta_width = 9;
             }
-
-            if !row.download_dir.is_empty() {
-                download_dir_width = 18;
-            }
         }
 
         [
-            Constraint::Max(70),                    // Name
-            Constraint::Length(9),                  // Size
-            Constraint::Length(progress_width),     // Progress
-            Constraint::Length(eta_width),          // ETA
-            Constraint::Length(download_width),     // Download
-            Constraint::Length(upload_width),       // Upload
-            Constraint::Length(download_dir_width), // Download directory
+            Constraint::Max(70),                // Name
+            Constraint::Length(9),              // Size
+            Constraint::Length(progress_width), // Progress
+            Constraint::Length(eta_width),      // ETA
+            Constraint::Length(download_width), // Download
+            Constraint::Length(upload_width),   // Upload
+            Constraint::Max(70),                // Download directory
         ]
     }
 }
