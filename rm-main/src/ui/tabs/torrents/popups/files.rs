@@ -241,7 +241,10 @@ impl Component for FilesPopup {
                 }
             };
             let block = block
-                .title(Title::from(format!(" {} ", download_dir)).alignment(Alignment::Right))
+                .title(
+                    Title::from(format!(" {} ", download_dir).set_style(highlight_style))
+                        .alignment(Alignment::Right),
+                )
                 .title(
                     Title::from(" [ CLOSE ] ".set_style(close_button_style))
                         .alignment(Alignment::Right)
