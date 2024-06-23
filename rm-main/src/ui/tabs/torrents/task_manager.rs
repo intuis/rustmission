@@ -117,8 +117,11 @@ impl TaskManager {
 
     fn move_torrent(&mut self) -> Option<Action> {
         if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
-            self.current_task =
-                CurrentTask::MoveBar(MoveBar::new(self.ctx.clone(), vec![torrent.id.clone()]));
+            self.current_task = CurrentTask::MoveBar(MoveBar::new(
+                self.ctx.clone(),
+                vec![torrent.id.clone()],
+                torrent.download_dir.to_string(),
+            ));
             Some(Action::SwitchToInputMode)
         } else {
             None

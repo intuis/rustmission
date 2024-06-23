@@ -16,12 +16,12 @@ pub struct MoveBar {
 }
 
 impl MoveBar {
-    pub fn new(ctx: app::Ctx, to_move: Vec<Id>) -> Self {
+    pub fn new(ctx: app::Ctx, torrents_to_move: Vec<Id>, existing_location: String) -> Self {
         let prompt = format!("New directory: ");
 
         Self {
-            torrents_to_move: to_move,
-            input_mgr: InputManager::new(ctx.clone(), prompt),
+            torrents_to_move,
+            input_mgr: InputManager::new_with_value(ctx.clone(), prompt, existing_location),
             ctx,
         }
     }
