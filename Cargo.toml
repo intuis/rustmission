@@ -25,7 +25,7 @@ fuzzy-matcher = "0.3.7"
 clap = { version = "4.5.6", features = ["derive"] }
 base64 = "0.22"
 xdg = "2.5"
-url = "2.5"
+url = { version = "2.5", features = ["serde"] }
 toml = "0.8"
 
 # Async

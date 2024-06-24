@@ -46,7 +46,7 @@ impl Ctx {
                 });
             }
             Err(e) => {
-                let config_path = rm_config::get_config_path(rm_config::MAIN_CONFIG_FILENAME);
+                let config_path = config.directories.main_path;
                 return Err(Error::msg(format!(
                     "{e}\nIs the connection info in {:?} correct?",
                     config_path
@@ -111,7 +111,7 @@ impl App {
 
             tokio::select! {
                 event = tui_event => {
-                    if let Some(action) = event_to_action(self.mode, event.unwrap(), self.ctx.config.keymap.as_ref().unwrap()) {
+                    if let Some(action) = event_to_action(self.mode, event.unwrap(), &self.ctx.config.keymap) {
                         if let Some(action) = self.update(action).await {
                             self.ctx.action_tx.send(action).unwrap();
                         }

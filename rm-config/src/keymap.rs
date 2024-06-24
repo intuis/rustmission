@@ -1,18 +1,18 @@
-use std::{collections::HashMap, marker::PhantomData};
+use std::{collections::HashMap, marker::PhantomData, path::PathBuf, sync::OnceLock};
 
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
 use serde::{
-    de::{self, SeqAccess, Visitor},
+    de::{self, Visitor},
     Deserialize, Serialize,
 };
 use toml::Table;
 
-use crate::{utils, KEYMAP_CONFIG_FILENAME};
+use crate::utils;
 use rm_shared::action::Action;
 
 #[derive(Serialize, Deserialize)]
-pub struct Keymap {
+pub(crate) struct KeymapConfig {
     general: General<GeneralAction>,
     torrents_tab: TorrentsTab<TorrentsAction>,
 }
@@ -241,11 +241,13 @@ impl Default for KeyModifier {
     }
 }
 
-impl Keymap {
+impl KeymapConfig {
+    pub const FILENAME: &'static str = "keymap.toml";
+
     pub fn init() -> Result<Self> {
         let table = {
             // TODO: handle errors or there will be hell to pay
-            if let Ok(table) = utils::fetch_config_table(KEYMAP_CONFIG_FILENAME) {
+            if let Ok(table) = utils::fetch_config(Self::FILENAME) {
                 table
             } else {
                 todo!();
@@ -272,5 +274,10 @@ impl Keymap {
         let config_string = table.to_string();
         let config = toml::from_str(&config_string)?;
         Ok(config)
+    }
+
+    pub fn path() -> &'static PathBuf {
+        static PATH: OnceLock<PathBuf> = OnceLock::new();
+        PATH.get_or_init(|| utils::get_config_path(Self::FILENAME))
     }
 }
