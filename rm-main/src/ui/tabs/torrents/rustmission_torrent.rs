@@ -23,6 +23,7 @@ pub struct RustmissionTorrent {
 impl RustmissionTorrent {
     pub fn to_row(&self) -> ratatui::widgets::Row {
         Row::new([
+            self.status_icon(),
             self.torrent_name.as_str(),
             self.size_when_done.as_str(),
             self.progress.as_str(),
@@ -49,6 +50,7 @@ impl RustmissionTorrent {
         }
 
         Row::new([
+            Line::from(self.status_icon()),
             torrent_name_line,
             Line::from(self.size_when_done.as_str()),
             Line::from(self.progress.as_str()),
@@ -71,6 +73,19 @@ impl RustmissionTorrent {
 
         self.status = new_status;
     }
+
+    fn status_icon(&self) -> &str {
+        // ▼
+        match self.status() {
+            TorrentStatus::Stopped => "⏸",
+            TorrentStatus::Verifying => "↺",
+            TorrentStatus::Seeding => "▲",
+            TorrentStatus::Downloading => "▼",
+            TorrentStatus::QueuedToSeed => "",
+            TorrentStatus::QueuedToVerify => "",
+            TorrentStatus::QueuedToDownload => "",
+        }
+    }
 }
 
 impl From<&Torrent> for RustmissionTorrent {
@@ -82,7 +97,7 @@ impl From<&Torrent> for RustmissionTorrent {
         let size_when_done = bytes_to_human_format(t.size_when_done.expect("field requested"));
 
         let progress = match t.percent_done.expect("field requested") {
-            done if done == 1f32 => "✓".to_string(),
+            done if done == 1f32 => String::default(),
             percent => format!("{:.2}%", percent * 100f32),
         };
 
