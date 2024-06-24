@@ -268,7 +268,7 @@ impl Component for SearchTab {
 
         let table = {
             let table = Table::new(items, widths).highlight_style(table_higlight_style);
-            if !self.ctx.config.general.hide_headers {
+            if !self.ctx.config.general.headers_hide {
                 table.header(header)
             } else {
                 table
