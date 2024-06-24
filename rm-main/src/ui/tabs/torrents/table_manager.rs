@@ -9,7 +9,7 @@ use super::rustmission_torrent::RustmissionTorrent;
 pub struct TableManager {
     ctx: app::Ctx,
     pub table: GenericTable<RustmissionTorrent>,
-    pub widths: [Constraint; 7],
+    pub widths: [Constraint; 8],
     pub filter: Arc<Mutex<Option<String>>>,
     pub torrents_displaying_no: u16,
     header: Vec<String>,
@@ -101,7 +101,7 @@ impl TableManager {
         rows
     }
 
-    const fn default_widths() -> [Constraint; 7] {
+    const fn default_widths() -> [Constraint; 8] {
         [
             Constraint::Length(1),  // State
             Constraint::Max(70),    // Name
@@ -114,7 +114,7 @@ impl TableManager {
         ]
     }
 
-    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 7] {
+    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 8] {
         if !self.ctx.config.general.auto_hide {
             return Self::default_widths();
         }
