@@ -25,6 +25,8 @@ pub struct General {
     pub accent_color: Color,
     #[serde(default = "default_beginner_mode")]
     pub beginner_mode: bool,
+    #[serde(default)]
+    pub headers_hide: bool,
 }
 
 fn default_accent_color() -> Color {

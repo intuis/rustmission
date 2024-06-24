@@ -265,9 +265,15 @@ impl Component for SearchTab {
             .config
             .general
             .accent_color);
-        let table = Table::new(items, widths)
-            .header(header)
-            .highlight_style(table_higlight_style);
+
+        let table = {
+            let table = Table::new(items, widths).highlight_style(table_higlight_style);
+            if !self.ctx.config.general.headers_hide {
+                table.header(header)
+            } else {
+                table
+            }
+        };
 
         f.render_stateful_widget(table, rest, &mut *table_lock.state.borrow_mut());
 

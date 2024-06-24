@@ -27,6 +27,7 @@ impl TableManager {
             header: vec![
                 " ".to_owned(),
                 "Name".to_owned(),
+                "".to_owned(),
                 "Size".to_owned(),
                 "Progress".to_owned(),
                 "ETA".to_owned(),
@@ -104,11 +105,12 @@ impl TableManager {
         [
             Constraint::Length(1),  // State
             Constraint::Max(70),    // Name
-            Constraint::Length(10), // Size
-            Constraint::Length(10), // Progress
-            Constraint::Length(10), // ETA
-            Constraint::Length(10), // Download
-            Constraint::Length(10), // Upload
+            Constraint::Length(5),  // <padding>
+            Constraint::Length(12), // Size
+            Constraint::Length(12), // Progress
+            Constraint::Length(12), // ETA
+            Constraint::Length(12), // Download
+            Constraint::Length(12), // Upload
         ]
     }
 
@@ -124,24 +126,25 @@ impl TableManager {
 
         for row in rows {
             if !row.download_speed.is_empty() {
-                download_width = 9;
+                download_width = 11;
             }
             if !row.upload_speed.is_empty() {
-                upload_width = 9;
+                upload_width = 11;
             }
             if !row.progress.is_empty() {
-                progress_width = 9;
+                progress_width = 11;
             }
 
             if !row.eta_secs.is_empty() {
-                eta_width = 9;
+                eta_width = 11;
             }
         }
 
         [
             Constraint::Length(1),
             Constraint::Max(70),                // Name
-            Constraint::Length(9),              // Size
+            Constraint::Length(5),              // <padding>
+            Constraint::Length(11),             // Size
             Constraint::Length(progress_width), // Progress
             Constraint::Length(eta_width),      // ETA
             Constraint::Length(download_width), // Download
