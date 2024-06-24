@@ -82,7 +82,7 @@ impl From<&Torrent> for RustmissionTorrent {
         let size_when_done = bytes_to_human_format(t.size_when_done.expect("field requested"));
 
         let progress = match t.percent_done.expect("field requested") {
-            done if done == 1f32 => String::default(),
+            done if done == 1f32 => "✓".to_string(),
             percent => format!("{:.2}%", percent * 100f32),
         };
 
