@@ -28,7 +28,7 @@ impl MoveBar {
 
     fn handle_input(&mut self, input: KeyEvent) -> Option<Action> {
         if input.code == KeyCode::Enter {
-            let new_location = self.input_mgr.text().to_lowercase();
+            let new_location = self.input_mgr.text();
             let torrents_to_move = self.torrents_to_move.clone();
             self.ctx
                 .send_torrent_action(TorrentAction::Move(torrents_to_move, new_location));
