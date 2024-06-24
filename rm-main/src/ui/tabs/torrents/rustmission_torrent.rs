@@ -75,7 +75,6 @@ impl RustmissionTorrent {
     }
 
     fn status_icon(&self) -> &str {
-        // ▼
         match self.status() {
             TorrentStatus::Stopped => "⏸",
             TorrentStatus::Verifying => "↺",
