@@ -10,7 +10,11 @@ use ratatui::{
     prelude::*,
     widgets::{Cell, Paragraph, Row, Table},
 };
-use tokio::sync::mpsc::{self, UnboundedSender};
+use throbber_widgets_tui::ThrobberState;
+use tokio::{
+    sync::mpsc::{self, UnboundedSender},
+    task::JoinSet,
+};
 use tui_input::Input;
 
 use crate::{
@@ -50,21 +54,67 @@ impl SearchTab {
         let ctx_clone = ctx.clone();
         let table_clone = Arc::clone(&table);
         let search_result_info_clone = Arc::clone(&search_result_info);
+        let state = Arc::new(Mutex::new(throbber_widgets_tui::ThrobberState::default()));
+
         tokio::task::spawn(async move {
-            let magnetease = Magnetease::new();
             while let Some(search_phrase) = rx.recv().await {
-                search_result_info_clone.lock().unwrap().searching();
+                search_result_info_clone
+                    .lock()
+                    .unwrap()
+                    .searching(Arc::clone(&state));
                 ctx_clone.send_action(Action::Render);
-                let res = magnetease.search(&search_phrase).await;
-                if res.is_empty() {
-                    search_result_info_clone.lock().unwrap().not_found();
-                } else {
-                    search_result_info_clone.lock().unwrap().found(res.len());
+
+                let state_clone = Arc::clone(&state);
+                let mut set = JoinSet::new();
+                set.spawn(async move {
+                    let magnetease = Magnetease::new();
+                    let res = magnetease.search(&search_phrase).await;
+                    res
+                });
+
+                set.spawn(async move {
+                    let tick_rate = tokio::time::Duration::from_millis(100);
+                    let mut last_tick = tokio::time::Instant::now();
+                    loop {
+                        if last_tick.elapsed() >= tick_rate {
+                            state_clone.lock().unwrap().calc_next();
+                            last_tick = tokio::time::Instant::now();
+                            // ctx_clone_next.send_action(Action::Render);
+                        }
+                    }
+                });
+
+                while let Some(res) = set.join_next().await {
+                    match res {
+                        Ok(res) => {
+                            if res.is_empty() {
+                                search_result_info_clone.lock().unwrap().not_found();
+                            } else {
+                                search_result_info_clone.lock().unwrap().found(res.len());
+                            }
+
+                            // TODO: add an X icon if no results, else V when results
+                            table_clone.lock().unwrap().set_items(res);
+                            ctx_clone.send_action(Action::Render);
+                        }
+                        Err(e) => {}
+                    }
                 }
 
-                // TODO: add an X icon if no results, else V when results
-                table_clone.lock().unwrap().set_items(res);
-                ctx_clone.send_action(Action::Render);
+                // let animate_handle = tokio::task::spawn(async move {
+                //     let tick_rate = tokio::time::Duration::from_millis(100);
+                //     let mut last_tick = tokio::time::Instant::now();
+                //     loop {
+                //         if last_tick.elapsed() >= tick_rate {
+                //             state_clone.lock().unwrap().calc_next();
+                //             last_tick = tokio::time::Instant::now();
+                //             // ctx_clone_next.send_action(Action::Render);
+                //         }
+                //     }
+                //     true
+                // });
+
+                // animate_handle.abort();
             }
         });
 
@@ -278,11 +328,11 @@ impl Component for SearchTab {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum SearchResultState {
     Nothing,
     NoResults,
-    Searching,
+    Searching(Arc<Mutex<ThrobberState>>),
     Found(usize),
 }
 
@@ -291,8 +341,8 @@ impl SearchResultState {
         Self::Nothing
     }
 
-    fn searching(&mut self) {
-        *self = Self::Searching;
+    fn searching(&mut self, state: Arc<Mutex<ThrobberState>>) {
+        *self = Self::Searching(state);
     }
 
     fn not_found(&mut self) {
@@ -308,8 +358,15 @@ impl Component for SearchResultState {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         match self {
             SearchResultState::Nothing => return,
-            SearchResultState::Searching => {
-                f.render_widget("󱗼 Searching...", rect);
+            SearchResultState::Searching(state) => {
+                let default_throbber = throbber_widgets_tui::Throbber::default()
+                    .label("Searching...")
+                    .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
+                f.render_stateful_widget(
+                    default_throbber.clone(),
+                    rect,
+                    &mut state.lock().unwrap(),
+                );
             }
             SearchResultState::NoResults => {
                 let mut line = Line::default();
