@@ -1,7 +1,6 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use indexmap::IndexMap;
 
-use crate::event::Event;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
     HardQuit,
@@ -77,11 +76,9 @@ pub fn event_to_action(
     }
 
     match event {
-        Event::Quit => Some(A::Quit),
-        Event::Error => todo!(),
-        Event::Render => Some(A::Render),
         Event::Key(key) if mode == Mode::Input => Some(A::Input(key)),
         Event::Key(key) => key_event_to_action(key, keymap),
+        _ => None,
     }
 }
 
