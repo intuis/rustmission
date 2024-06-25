@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use indexmap::IndexMap;
 
 use crate::event::Event;
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,7 +63,7 @@ pub enum Mode {
 pub fn event_to_action(
     mode: Mode,
     event: Event,
-    keymap: &HashMap<(KeyCode, KeyModifiers), Action>,
+    keymap: &IndexMap<(KeyCode, KeyModifiers), Action>,
 ) -> Option<Action> {
     use Action as A;
 
@@ -88,7 +87,7 @@ pub fn event_to_action(
 
 fn key_event_to_action(
     key: KeyEvent,
-    keymap: &HashMap<(KeyCode, KeyModifiers), Action>,
+    keymap: &IndexMap<(KeyCode, KeyModifiers), Action>,
 ) -> Option<Action> {
     use Action as A;
 

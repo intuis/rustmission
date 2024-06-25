@@ -1,7 +1,8 @@
-use std::{collections::HashMap, marker::PhantomData, path::PathBuf, sync::OnceLock};
+use std::{marker::PhantomData, path::PathBuf, sync::OnceLock};
 
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
+use indexmap::IndexMap;
 use serde::{
     de::{self, Visitor},
     Deserialize, Serialize,
@@ -257,17 +258,17 @@ impl KeymapConfig {
         Self::table_to_keymap(&table)
     }
 
-    pub fn to_hashmap(self) -> HashMap<(KeyCode, KeyModifiers), Action> {
-        let mut hashmap = HashMap::new();
+    pub fn to_map(self) -> IndexMap<(KeyCode, KeyModifiers), Action> {
+        let mut map = IndexMap::new();
         for keybinding in self.general.keybindings {
             let hash_value = (keybinding.on, keybinding.modifier.into());
-            hashmap.insert(hash_value, keybinding.action.into());
+            map.insert(hash_value, keybinding.action.into());
         }
         for keybinding in self.torrents_tab.keybindings {
             let hash_value = (keybinding.on, keybinding.modifier.into());
-            hashmap.insert(hash_value, keybinding.action.into());
+            map.insert(hash_value, keybinding.action.into());
         }
-        hashmap
+        map
     }
 
     fn table_to_keymap(table: &Table) -> Result<Self> {

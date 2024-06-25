@@ -27,6 +27,7 @@ base64 = "0.22"
 xdg = "2.5"
 url = { version = "2.5", features = ["serde"] }
 toml = "0.8"
+indexmap = "2"
 
 # Async
 tokio = { version = "1", features = ["macros", "sync"] }

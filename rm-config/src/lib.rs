@@ -2,7 +2,8 @@ mod keymap;
 mod main_config;
 mod utils;
 
-use std::{collections::HashMap, path::PathBuf};
+use indexmap::IndexMap;
+use std::path::PathBuf;
 
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -14,7 +15,7 @@ use rm_shared::action::Action;
 pub struct Config {
     pub general: main_config::General,
     pub connection: main_config::Connection,
-    pub keymap: HashMap<(KeyCode, KeyModifiers), Action>,
+    pub keymap: IndexMap<(KeyCode, KeyModifiers), Action>,
     pub directories: Directories,
 }
 
@@ -36,7 +37,7 @@ impl Config {
         Ok(Self {
             general: main_config.general,
             connection: main_config.connection,
-            keymap: keybindings.to_hashmap(),
+            keymap: keybindings.to_map(),
             directories,
         })
     }
