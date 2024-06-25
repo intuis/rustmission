@@ -65,6 +65,7 @@ pub struct App {
     should_quit: bool,
     ctx: Ctx,
     action_rx: UnboundedReceiver<Action>,
+    tick_rx: UnboundedReceiver<Action>,
     main_window: MainWindow,
     mode: Mode,
 }
@@ -78,11 +79,28 @@ impl App {
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
         let ctx = Ctx::new(client, config, action_tx, trans_tx).await?;
 
+        let (tick_tx, tick_rx) = mpsc::unbounded_channel();
+
         tokio::spawn(transmission::action_handler(ctx.clone(), trans_rx));
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(250));
+            loop {
+                let _ = tick_tx.send(Action::Tick);
+                interval.tick().await;
+            }
+
+            // let mut last_tick = tokio::time::Instant::now();
+            // let tick_rate = tokio::time::Duration::from_millis(250);
+            //
+            // if last_tick.elapsed() >= tick_rate {
+            //     last_tick = tokio::time::Instant::now();
+            // }
+        });
         Ok(Self {
             should_quit: false,
             main_window: MainWindow::new(ctx.clone()),
             action_rx,
+            tick_rx,
             ctx,
             mode: Mode::Normal,
         })
@@ -105,8 +123,15 @@ impl App {
         loop {
             let tui_event = tui.next();
             let action = self.action_rx.recv();
+            let tick_action = self.tick_rx.recv();
 
             tokio::select! {
+                tick = tick_action => {
+                    if let Some(_) = tick {
+                        self.ctx.action_tx.send(Action::Tick).unwrap();
+                    }
+                },
+
                 event = tui_event => {
                     if let Some(action) = event_to_action(self.mode, event.unwrap()) {
                         if let Some(action) = self.update(action).await {

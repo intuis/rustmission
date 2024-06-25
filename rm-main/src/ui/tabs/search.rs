@@ -11,10 +11,7 @@ use ratatui::{
     widgets::{Cell, Paragraph, Row, Table},
 };
 use throbber_widgets_tui::ThrobberState;
-use tokio::{
-    sync::mpsc::{self, UnboundedSender},
-    task::JoinSet,
-};
+use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::Input;
 
 use crate::{
@@ -54,67 +51,24 @@ impl SearchTab {
         let ctx_clone = ctx.clone();
         let table_clone = Arc::clone(&table);
         let search_result_info_clone = Arc::clone(&search_result_info);
-        let state = Arc::new(Mutex::new(throbber_widgets_tui::ThrobberState::default()));
-
         tokio::task::spawn(async move {
+            let magnetease = Magnetease::new();
             while let Some(search_phrase) = rx.recv().await {
                 search_result_info_clone
                     .lock()
                     .unwrap()
-                    .searching(Arc::clone(&state));
+                    .searching(Arc::new(Mutex::new(ThrobberState::default())));
                 ctx_clone.send_action(Action::Render);
-
-                let state_clone = Arc::clone(&state);
-                let mut set = JoinSet::new();
-                set.spawn(async move {
-                    let magnetease = Magnetease::new();
-                    let res = magnetease.search(&search_phrase).await;
-                    res
-                });
-
-                set.spawn(async move {
-                    let tick_rate = tokio::time::Duration::from_millis(100);
-                    let mut last_tick = tokio::time::Instant::now();
-                    loop {
-                        if last_tick.elapsed() >= tick_rate {
-                            state_clone.lock().unwrap().calc_next();
-                            last_tick = tokio::time::Instant::now();
-                            // ctx_clone_next.send_action(Action::Render);
-                        }
-                    }
-                });
-
-                while let Some(res) = set.join_next().await {
-                    match res {
-                        Ok(res) => {
-                            if res.is_empty() {
-                                search_result_info_clone.lock().unwrap().not_found();
-                            } else {
-                                search_result_info_clone.lock().unwrap().found(res.len());
-                            }
-
-                            // TODO: add an X icon if no results, else V when results
-                            table_clone.lock().unwrap().set_items(res);
-                            ctx_clone.send_action(Action::Render);
-                        }
-                        Err(e) => {}
-                    }
+                let res = magnetease.search(&search_phrase).await;
+                if res.is_empty() {
+                    search_result_info_clone.lock().unwrap().not_found();
+                } else {
+                    search_result_info_clone.lock().unwrap().found(res.len());
                 }
 
-                // let animate_handle = tokio::task::spawn(async move {
-                //     let tick_rate = tokio::time::Duration::from_millis(100);
-                //     let mut last_tick = tokio::time::Instant::now();
-                //     loop {
-                //         if last_tick.elapsed() >= tick_rate {
-                //             state_clone.lock().unwrap().calc_next();
-                //             last_tick = tokio::time::Instant::now();
-                //             // ctx_clone_next.send_action(Action::Render);
-                //         }
-                //     }
-                //     true
-                // });
-
-                // animate_handle.abort();
+                // TODO: add an X icon if no results, else V when results
+                table_clone.lock().unwrap().set_items(res);
+                ctx_clone.send_action(Action::Render);
             }
         });
 
@@ -243,9 +197,15 @@ impl Component for SearchTab {
             A::Home => self.scroll_to_home(),
             A::End => self.scroll_to_end(),
             A::Confirm => self.add_torrent(),
+            A::Tick => self.tick(),
 
             _ => None,
         }
+    }
+
+    fn tick(&mut self) -> Option<Action> {
+        self.search_result_info.lock().unwrap().tick();
+        Some(Action::Render)
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
@@ -382,6 +342,16 @@ impl Component for SearchResultState {
                 let paragraph = Paragraph::new(line);
                 f.render_widget(paragraph, rect);
             }
+        }
+    }
+
+    fn tick(&mut self) -> Option<Action> {
+        match self {
+            SearchResultState::Searching(state) => {
+                state.lock().unwrap().calc_next();
+                Some(Action::Render)
+            }
+            _ => None,
         }
     }
 }
