@@ -88,13 +88,6 @@ impl App {
                 let _ = tick_tx.send(Action::Tick);
                 interval.tick().await;
             }
-
-            // let mut last_tick = tokio::time::Instant::now();
-            // let tick_rate = tokio::time::Duration::from_millis(250);
-            //
-            // if last_tick.elapsed() >= tick_rate {
-            //     last_tick = tokio::time::Instant::now();
-            // }
         });
         Ok(Self {
             should_quit: false,
