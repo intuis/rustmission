@@ -12,7 +12,7 @@ use crate::{
     app,
     ui::{centered_rect, components::Component},
 };
-use rm_config::keymap::{GeneralAction, TorrentsAction, UserAction};
+use rm_config::keymap::{Keybinding, UserAction};
 use rm_shared::action::Action;
 
 macro_rules! add_line {
@@ -32,6 +32,24 @@ pub struct HelpPopup {
 impl HelpPopup {
     pub const fn new(ctx: app::Ctx) -> Self {
         Self { ctx }
+    }
+
+    fn write_keybindings<T: Into<Action> + UserAction + Ord>(
+        keybindings: &[Keybinding<T>],
+        lines: &mut Vec<Line>,
+    ) {
+        let mut keys = BTreeMap::new();
+
+        for keybinding in keybindings {
+            keys.entry(&keybinding.action)
+                .or_insert_with(Vec::new)
+                .push(keybinding.keycode_string());
+        }
+
+        for (action, keycodes) in keys {
+            let keycode_string = keycodes.join(" / ");
+            add_line!(lines, keycode_string, action.desc());
+        }
     }
 }
 
@@ -70,19 +88,7 @@ impl Component for HelpPopup {
         )])
         .centered()];
 
-        let mut general_keys: BTreeMap<GeneralAction, Vec<String>> = BTreeMap::new();
-
-        for keybinding in &self.ctx.config.keybindings.general.keybindings {
-            general_keys
-                .entry(keybinding.action)
-                .or_insert_with(Vec::new)
-                .push(keybinding.keycode_string());
-        }
-
-        for (action, keycodes) in general_keys {
-            let keycode_string = keycodes.join(" / ");
-            add_line!(lines, keycode_string, action.desc());
-        }
+        Self::write_keybindings(&self.ctx.config.keybindings.general.keybindings, &mut lines);
 
         lines.push(
             Line::from(vec![Span::styled(
@@ -92,19 +98,10 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        let mut torrent_keys: BTreeMap<TorrentsAction, Vec<String>> = BTreeMap::new();
-
-        for keybinding in &self.ctx.config.keybindings.torrents_tab.keybindings {
-            torrent_keys
-                .entry(keybinding.action)
-                .or_insert_with(Vec::new)
-                .push(keybinding.keycode_string());
-        }
-
-        for (action, keycodes) in torrent_keys {
-            let keycode_string = keycodes.join(" / ");
-            add_line!(lines, keycode_string, action.desc());
-        }
+        Self::write_keybindings(
+            &self.ctx.config.keybindings.torrents_tab.keybindings,
+            &mut lines,
+        );
 
         let help_text = Text::from(lines);
         let help_paragraph = Paragraph::new(help_text);
