@@ -18,11 +18,13 @@ pub struct Args {
 #[derive(Subcommand)]
 pub enum Commands {
     AddTorrent { torrent: String },
+    FetchRss { url: String },
 }
 
 pub async fn handle_command(config: &Config, command: Commands) -> Result<()> {
     match command {
         Commands::AddTorrent { torrent } => add_torrent(config, torrent).await?,
+        Commands::FetchRss { url } => fetch_rss(config, url).await?,
     }
     Ok(())
 }
@@ -58,5 +60,27 @@ async fn add_torrent(config: &Config, torrent: String) -> Result<()> {
 
         std::process::exit(1);
     };
+    Ok(())
+}
+
+async fn fetch_rss(config: &Config, url: String) -> Result<()> {
+    let mut transclient = transmission::utils::client_from_config(&config);
+    let content = reqwest::get(url).await?.bytes().await?;
+    let channel = rss::Channel::read_from(&content[..])?;
+    let urls = channel.items().iter().filter_map(|item| item.link());
+    for url in urls {
+        let args = TorrentAddArgs {
+            filename: Some(url.to_string()),
+            ..Default::default()
+        };
+        if let Err(e) = transclient.torrent_add(args).await {
+            eprintln!("error while adding a torrent: {e}");
+            if e.to_string().contains("expected value at line") {
+                eprintln!("Check whether your arguments are valid.");
+            }
+
+            std::process::exit(1);
+        }
+    }
     Ok(())
 }
