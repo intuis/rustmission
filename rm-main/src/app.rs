@@ -65,7 +65,6 @@ pub struct App {
     should_quit: bool,
     ctx: Ctx,
     action_rx: UnboundedReceiver<Action>,
-    tick_rx: UnboundedReceiver<Action>,
     main_window: MainWindow,
     mode: Mode,
 }
@@ -79,14 +78,11 @@ impl App {
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
         let ctx = Ctx::new(client, config, action_tx, trans_tx).await?;
 
-        let (tick_tx, tick_rx) = mpsc::unbounded_channel();
-
         tokio::spawn(transmission::action_handler(ctx.clone(), trans_rx));
         Ok(Self {
             should_quit: false,
             main_window: MainWindow::new(ctx.clone()),
             action_rx,
-            tick_rx,
             ctx,
             mode: Mode::Normal,
         })
