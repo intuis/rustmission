@@ -82,13 +82,6 @@ impl App {
         let (tick_tx, tick_rx) = mpsc::unbounded_channel();
 
         tokio::spawn(transmission::action_handler(ctx.clone(), trans_rx));
-        tokio::spawn(async move {
-            let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(250));
-            loop {
-                let _ = tick_tx.send(Action::Tick);
-                interval.tick().await;
-            }
-        });
         Ok(Self {
             should_quit: false,
             main_window: MainWindow::new(ctx.clone()),
@@ -113,16 +106,15 @@ impl App {
     }
 
     async fn main_loop(&mut self, tui: &mut Tui) -> Result<()> {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(250));
         loop {
             let tui_event = tui.next();
             let action = self.action_rx.recv();
-            let tick_action = self.tick_rx.recv();
+            let tick_action = interval.tick();
 
             tokio::select! {
-                tick = tick_action => {
-                    if let Some(_) = tick {
-                        self.ctx.action_tx.send(Action::Tick).unwrap();
-                    }
+                _ = tick_action => {
+                    self.ctx.action_tx.send(Action::Tick).unwrap();
                 },
 
                 event = tui_event => {

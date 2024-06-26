@@ -29,4 +29,5 @@ crossterm.workspace = true
 ratatui.workspace = true
 tui-input.workspace = true
 tui-tree-widget.workspace = true
-throbber-widgets-tui = "0.5.0"
+throbber-widgets-tui.workspace = true 
+
