@@ -11,4 +11,3 @@ license.workspace = true
 
 [dependencies]
 crossterm.workspace = true
-indexmap.workspace = true

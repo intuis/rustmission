@@ -1247,7 +1247,6 @@ version = "0.3.3"
 dependencies = [
  "anyhow",
  "crossterm",
- "indexmap",
  "ratatui",
  "rm-shared",
  "serde",
@@ -1261,7 +1260,6 @@ name = "rm-shared"
 version = "0.3.3"
 dependencies = [
  "crossterm",
- "indexmap",
 ]
 
 [[package]]

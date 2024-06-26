@@ -1,8 +1,7 @@
-use std::{marker::PhantomData, path::PathBuf, sync::OnceLock};
+use std::{collections::HashMap, marker::PhantomData, path::PathBuf, sync::OnceLock};
 
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
-use indexmap::IndexMap;
 use serde::{
     de::{self, Visitor},
     Deserialize, Serialize,
@@ -12,19 +11,19 @@ use toml::Table;
 use crate::utils;
 use rm_shared::action::Action;
 
-#[derive(Serialize, Deserialize)]
-pub(crate) struct KeymapConfig {
-    general: General<GeneralAction>,
-    torrents_tab: TorrentsTab<TorrentsAction>,
+#[derive(Serialize, Deserialize, Clone)]
+pub struct KeymapConfig {
+    pub general: General<GeneralAction>,
+    pub torrents_tab: TorrentsTab<TorrentsAction>,
 }
 
-#[derive(Serialize, Deserialize)]
-struct General<T: Into<Action>> {
-    keybindings: Vec<Keybinding<T>>,
+#[derive(Serialize, Deserialize, Clone)]
+pub struct General<T: Into<Action>> {
+    pub keybindings: Vec<Keybinding<T>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-enum GeneralAction {
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum GeneralAction {
     ShowHelp,
     Quit,
     SoftQuit,
@@ -37,10 +36,37 @@ enum GeneralAction {
     Search,
     SwitchFocus,
     Confirm,
-    PageDown,
-    PageUp,
-    Home,
-    End,
+    ScrollPageDown,
+    ScrollPageUp,
+    GoToBeginning,
+    GoToEnd,
+}
+
+pub trait UserAction: Into<Action> {
+    fn desc(&self) -> &'static str;
+}
+
+impl UserAction for GeneralAction {
+    fn desc(&self) -> &'static str {
+        match self {
+            GeneralAction::ShowHelp => "toggle help",
+            GeneralAction::Quit => "quit Rustmission / a popup",
+            GeneralAction::SoftQuit => "close a popup / task",
+            GeneralAction::SwitchToTorrents => "switch to torrents tab",
+            GeneralAction::SwitchToSearch => "switch to search tab",
+            GeneralAction::Left => "switch to tab left",
+            GeneralAction::Right => "switch to tab right",
+            GeneralAction::Down => "move down",
+            GeneralAction::Up => "move up",
+            GeneralAction::Search => "search",
+            GeneralAction::SwitchFocus => "switch focus",
+            GeneralAction::Confirm => "confirm",
+            GeneralAction::ScrollPageDown => "scroll page down",
+            GeneralAction::ScrollPageUp => "scroll page up",
+            GeneralAction::GoToBeginning => "scroll to the beginning",
+            GeneralAction::GoToEnd => "scroll to the end",
+        }
+    }
 }
 
 impl From<GeneralAction> for Action {
@@ -58,27 +84,40 @@ impl From<GeneralAction> for Action {
             GeneralAction::Search => Action::Search,
             GeneralAction::SwitchFocus => Action::ChangeFocus,
             GeneralAction::Confirm => Action::Confirm,
-            GeneralAction::PageDown => Action::ScrollDownPage,
-            GeneralAction::PageUp => Action::ScrollUpPage,
-            GeneralAction::Home => Action::Home,
-            GeneralAction::End => Action::End,
+            GeneralAction::ScrollPageDown => Action::ScrollDownPage,
+            GeneralAction::ScrollPageUp => Action::ScrollUpPage,
+            GeneralAction::GoToBeginning => Action::Home,
+            GeneralAction::GoToEnd => Action::End,
         }
     }
 }
 
-#[derive(Serialize, Deserialize)]
-struct TorrentsTab<T: Into<Action>> {
-    keybindings: Vec<Keybinding<T>>,
+#[derive(Serialize, Deserialize, Clone)]
+pub struct TorrentsTab<T: Into<Action>> {
+    pub keybindings: Vec<Keybinding<T>>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-enum TorrentsAction {
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TorrentsAction {
     AddMagnet,
     Pause,
     DeleteWithFiles,
     DeleteWithoutFiles,
     ShowFiles,
     ShowStats,
+}
+
+impl UserAction for TorrentsAction {
+    fn desc(&self) -> &'static str {
+        match self {
+            TorrentsAction::AddMagnet => "add a magnet",
+            TorrentsAction::Pause => "pause/unpause",
+            TorrentsAction::DeleteWithFiles => "delete with files",
+            TorrentsAction::DeleteWithoutFiles => "delete without files",
+            TorrentsAction::ShowFiles => "show files",
+            TorrentsAction::ShowStats => "show statistics",
+        }
+    }
 }
 
 impl From<TorrentsAction> for Action {
@@ -94,12 +133,52 @@ impl From<TorrentsAction> for Action {
     }
 }
 
-#[derive(Serialize)]
-struct Keybinding<T: Into<Action>> {
-    on: KeyCode,
+#[derive(Serialize, Clone)]
+pub struct Keybinding<T: Into<Action>> {
+    pub on: KeyCode,
     #[serde(default)]
-    modifier: KeyModifier,
-    action: T,
+    pub modifier: KeyModifier,
+    pub action: T,
+}
+
+impl<T: Into<Action>> Keybinding<T> {
+    pub fn keycode_string(&self) -> String {
+        let key = match self.on {
+            KeyCode::Backspace => "Backspace".into(),
+            KeyCode::Enter => "Enter".into(),
+            KeyCode::Left => "".into(),
+            KeyCode::Right => "".into(),
+            KeyCode::Up => "".into(),
+            KeyCode::Down => "".into(),
+            KeyCode::Home => "Home".into(),
+            KeyCode::End => "End".into(),
+            KeyCode::PageUp => "PageUp".into(),
+            KeyCode::PageDown => "PageDown".into(),
+            KeyCode::Tab => "Tab".into(),
+            KeyCode::BackTab => todo!(),
+            KeyCode::Delete => todo!(),
+            KeyCode::Insert => "Insert".into(),
+            KeyCode::F(i) => format!("F{i}"),
+            KeyCode::Char(c) => c.into(),
+            KeyCode::Null => todo!(),
+            KeyCode::Esc => "Esc".into(),
+            KeyCode::CapsLock => todo!(),
+            KeyCode::ScrollLock => todo!(),
+            KeyCode::NumLock => todo!(),
+            KeyCode::PrintScreen => todo!(),
+            KeyCode::Pause => todo!(),
+            KeyCode::Menu => todo!(),
+            KeyCode::KeypadBegin => todo!(),
+            KeyCode::Media(_) => todo!(),
+            KeyCode::Modifier(_) => todo!(),
+        };
+
+        if !self.modifier.is_none() {
+            format!("{}-{key}", self.modifier.to_str())
+        } else {
+            key
+        }
+    }
 }
 
 impl<T: Into<Action>> Keybinding<T> {
@@ -219,11 +298,25 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
     }
 }
 
-#[derive(Serialize, Deserialize, Hash)]
-enum KeyModifier {
+#[derive(Serialize, Deserialize, Hash, Clone, Copy, PartialEq, Eq)]
+pub enum KeyModifier {
     None,
     Ctrl,
     Shift,
+}
+
+impl KeyModifier {
+    fn to_str(self) -> &'static str {
+        match self {
+            KeyModifier::None => "",
+            KeyModifier::Ctrl => "CTRL",
+            KeyModifier::Shift => "SHIFT",
+        }
+    }
+
+    fn is_none(self) -> bool {
+        self == KeyModifier::None
+    }
 }
 
 impl From<KeyModifier> for KeyModifiers {
@@ -258,8 +351,8 @@ impl KeymapConfig {
         Self::table_to_keymap(&table)
     }
 
-    pub fn to_map(self) -> IndexMap<(KeyCode, KeyModifiers), Action> {
-        let mut map = IndexMap::new();
+    pub fn to_map(self) -> HashMap<(KeyCode, KeyModifiers), Action> {
+        let mut map = HashMap::new();
         for keybinding in self.general.keybindings {
             let hash_value = (keybinding.on, keybinding.modifier.into());
             map.insert(hash_value, keybinding.action.into());

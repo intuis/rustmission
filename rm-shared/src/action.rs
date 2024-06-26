@@ -1,5 +1,6 @@
+use std::collections::HashMap;
+
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-use indexmap::IndexMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
@@ -62,7 +63,7 @@ pub enum Mode {
 pub fn event_to_action(
     mode: Mode,
     event: Event,
-    keymap: &IndexMap<(KeyCode, KeyModifiers), Action>,
+    keymap: &HashMap<(KeyCode, KeyModifiers), Action>,
 ) -> Option<Action> {
     use Action as A;
 
@@ -77,52 +78,7 @@ pub fn event_to_action(
 
     match event {
         Event::Key(key) if mode == Mode::Input => Some(A::Input(key)),
-        Event::Key(key) => key_event_to_action(key, keymap),
-        _ => None,
-    }
-}
-
-fn key_event_to_action(
-    key: KeyEvent,
-    keymap: &IndexMap<(KeyCode, KeyModifiers), Action>,
-) -> Option<Action> {
-    use Action as A;
-
-    keymap.get(&(key.code, key.modifiers)).cloned()
-    // match (key.modifiers, key.code) {
-    //     (KeyModifiers::CONTROL, KeyCode::Char('d')) => Some(A::ScrollDownPage),
-    //     (KeyModifiers::CONTROL, KeyCode::Char('u')) => Some(A::ScrollUpPage),
-    //     (_, keycode) => keycode_to_action(keycode),
-    // }
-}
-
-fn keycode_to_action(key: KeyCode) -> Option<Action> {
-    use Action as A;
-    match key {
-        KeyCode::Char('q') | KeyCode::Char('Q') => Some(A::Quit),
-        KeyCode::Esc => Some(A::SoftQuit),
-        KeyCode::Tab => Some(A::ChangeFocus),
-        KeyCode::Home => Some(A::Home),
-        KeyCode::End => Some(A::End),
-        KeyCode::PageUp => Some(A::ScrollUpPage),
-        KeyCode::PageDown => Some(A::ScrollDownPage),
-        KeyCode::Char('j') | KeyCode::Down => Some(A::Down),
-        KeyCode::Char('k') | KeyCode::Up => Some(A::Up),
-        KeyCode::Char('h') | KeyCode::Left => Some(A::Left),
-        KeyCode::Char('l') | KeyCode::Right => Some(A::Right),
-        KeyCode::Char('?') | KeyCode::F(1) => Some(A::ShowHelp),
-        KeyCode::Char('s') => Some(A::ShowStats),
-        KeyCode::Char('f') => Some(A::ShowFiles),
-        KeyCode::Char('/') => Some(A::Search),
-        KeyCode::Char('a') => Some(A::AddMagnet),
-        KeyCode::Char('p') => Some(A::Pause),
-        KeyCode::Char('d') => Some(A::DeleteWithoutFiles),
-        KeyCode::Char('D') => Some(A::DeleteWithFiles),
-        KeyCode::Char(' ') => Some(A::Space),
-        KeyCode::Char(n @ '1'..='9') => {
-            Some(A::ChangeTab(n.to_digit(10).expect("This is ok") as u8))
-        }
-        KeyCode::Enter => Some(A::Confirm),
+        Event::Key(key) => keymap.get(&(key.code, key.modifiers)).cloned(),
         _ => None,
     }
 }

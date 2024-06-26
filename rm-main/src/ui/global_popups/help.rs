@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use ratatui::{
     prelude::*,
     widgets::{
@@ -10,6 +12,7 @@ use crate::{
     app,
     ui::{centered_rect, components::Component},
 };
+use rm_config::keymap::{GeneralAction, TorrentsAction, UserAction};
 use rm_shared::action::Action;
 
 macro_rules! add_line {
@@ -67,22 +70,19 @@ impl Component for HelpPopup {
         )])
         .centered()];
 
-        add_line!(lines, "? / F1", "show/hide help");
-        add_line!(lines, "q", "quit Rustmission / a popup");
-        add_line!(lines, "ESC", "close a popup / task");
-        add_line!(lines, "1", "switch to torrents tab");
-        add_line!(lines, "2", "switch to search tab");
-        add_line!(lines, "h / ←", "switch to tab left of current tab");
-        add_line!(lines, "l / →", "switch to tab right of current tab");
-        add_line!(lines, "j / ↓", "move down");
-        add_line!(lines, "k / ↑", "move up");
-        add_line!(lines, "/", "search or filter");
-        add_line!(lines, "TAB", "switch focus");
-        add_line!(lines, "Enter", "confirm");
-        add_line!(lines, "CTRL-d", "scroll page down");
-        add_line!(lines, "CTRL-u", "scroll page up");
-        add_line!(lines, "Home", "scroll to the beginning");
-        add_line!(lines, "End", "scroll to the end");
+        let mut general_keys: BTreeMap<GeneralAction, Vec<String>> = BTreeMap::new();
+
+        for keybinding in &self.ctx.config.keybindings.general.keybindings {
+            general_keys
+                .entry(keybinding.action)
+                .or_insert_with(Vec::new)
+                .push(keybinding.keycode_string());
+        }
+
+        for (action, keycodes) in general_keys {
+            let keycode_string = keycodes.join(" / ");
+            add_line!(lines, keycode_string, action.desc());
+        }
 
         lines.push(
             Line::from(vec![Span::styled(
@@ -92,12 +92,19 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        add_line!(lines, "a", "add a magnet url");
-        add_line!(lines, "p", "pause/unpause a torrent");
-        add_line!(lines, "d", "delete a torrent without files");
-        add_line!(lines, "D", "delete a torrent with files");
-        add_line!(lines, "f", "show files of a torrent");
-        add_line!(lines, "s", "show statistics");
+        let mut torrent_keys: BTreeMap<TorrentsAction, Vec<String>> = BTreeMap::new();
+
+        for keybinding in &self.ctx.config.keybindings.torrents_tab.keybindings {
+            torrent_keys
+                .entry(keybinding.action)
+                .or_insert_with(Vec::new)
+                .push(keybinding.keycode_string());
+        }
+
+        for (action, keycodes) in torrent_keys {
+            let keycode_string = keycodes.join(" / ");
+            add_line!(lines, keycode_string, action.desc());
+        }
 
         let help_text = Text::from(lines);
         let help_paragraph = Paragraph::new(help_text);

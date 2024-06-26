@@ -19,6 +19,5 @@ anyhow.workspace = true
 url.workspace = true
 ratatui.workspace = true
 crossterm.workspace = true
-indexmap.workspace = true
 
 
