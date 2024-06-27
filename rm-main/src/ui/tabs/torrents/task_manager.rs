@@ -32,7 +32,7 @@ impl TaskManager {
     }
 }
 
-enum CurrentTask {
+pub enum CurrentTask {
     AddMagnetBar(AddMagnetBar),
     DeleteBar(DeleteBar),
     FilterBar(FilterBar),
@@ -47,13 +47,18 @@ impl Component for TaskManager {
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
                 Some(A::Confirm) => self.pending_task(StatusTask::Add),
+
                 Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
                 _ => None,
             },
 
             CurrentTask::DeleteBar(delete_bar) => match delete_bar.handle_actions(action) {
-                Some(A::Confirm) => self.pending_task(StatusTask::Delete),
+                Some(A::Confirm) => {
+                    // select closest existing torrent
+                    self.table_manager.lock().unwrap().table.previous();
+                    self.pending_task(StatusTask::Delete)
+                }
                 Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
                 _ => None,

@@ -84,6 +84,7 @@ impl Component for StatusBar {
     }
 }
 
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum StatusTask {
     Add,
     Delete,
