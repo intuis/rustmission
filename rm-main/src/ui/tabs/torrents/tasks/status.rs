@@ -19,7 +19,6 @@ impl StatusBar {
 impl Component for StatusBar {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         match &self.task_status {
-            CurrentTaskState::Nothing => return,
             CurrentTaskState::Loading(state) => {
                 let title = match self.task {
                     StatusTask::Add => "Adding torrent...",
@@ -92,21 +91,12 @@ pub enum StatusTask {
 
 #[derive(Clone)]
 pub enum CurrentTaskState {
-    Nothing,
     Loading(Arc<Mutex<ThrobberState>>),
     Success(),
     Failure(),
 }
 
 impl CurrentTaskState {
-    fn new() -> Self {
-        Self::Nothing
-    }
-
-    fn loading(&mut self, state: Arc<Mutex<ThrobberState>>) {
-        *self = Self::Loading(state);
-    }
-
     fn failure(&mut self) {
         *self = Self::Failure();
     }
@@ -115,5 +105,3 @@ impl CurrentTaskState {
         *self = Self::Success();
     }
 }
-
-impl Component for CurrentTaskState {}

@@ -32,7 +32,7 @@ impl TaskManager {
     }
 }
 
-pub enum CurrentTask {
+enum CurrentTask {
     AddMagnetBar(AddMagnetBar),
     DeleteBar(DeleteBar),
     FilterBar(FilterBar),
