@@ -25,8 +25,15 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
     while let Some(action) = trans_rx.recv().await {
         match action {
             TorrentAction::Add(ref url, directory) => {
+                let formatted = {
+                    if url.starts_with("www") {
+                        format!("https://{url}")
+                    } else {
+                        url.to_string()
+                    }
+                };
                 let args = TorrentAddArgs {
-                    filename: Some(url.clone()),
+                    filename: Some(formatted),
                     download_dir: directory,
                     ..Default::default()
                 };
