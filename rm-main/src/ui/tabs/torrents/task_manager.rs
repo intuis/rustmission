@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    borrow::Borrow,
+    sync::{Arc, Mutex},
+};
 
 use ratatui::prelude::*;
 use throbber_widgets_tui::ThrobberState;
@@ -9,7 +12,7 @@ use super::{
     tasks::{
         add_magnet::AddMagnetBar,
         default::DefaultBar,
-        delete_torrent::{self, DeleteBar},
+        delete_torrent::{self, DeleteBar, TorrentInfo},
         filter::FilterBar,
         status::{CurrentTaskState, StatusBar, StatusTask},
     },
@@ -46,7 +49,7 @@ impl Component for TaskManager {
         use Action as A;
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
-                Some(A::Confirm) => self.pending_task(StatusTask::Add),
+                Some(A::Pending(task)) => self.pending_task(task),
 
                 Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
@@ -54,10 +57,23 @@ impl Component for TaskManager {
             },
 
             CurrentTask::DeleteBar(delete_bar) => match delete_bar.handle_actions(action) {
-                Some(A::Confirm) => {
+                Some(A::Pending(task)) => {
+                    let selected = self
+                        .table_manager
+                        .lock()
+                        .unwrap()
+                        .table
+                        .state
+                        .borrow()
+                        .selected();
+
                     // select closest existing torrent
-                    self.table_manager.lock().unwrap().table.previous();
-                    self.pending_task(StatusTask::Delete)
+                    if let Some(idx) = selected {
+                        if idx > 0 {
+                            self.table_manager.lock().unwrap().table.previous();
+                        }
+                    }
+                    self.pending_task(task)
                 }
                 Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
@@ -123,7 +139,10 @@ impl TaskManager {
         if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
             self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
                 self.ctx.clone(),
-                vec![torrent.id.clone()],
+                vec![TorrentInfo {
+                    id: torrent.id.clone(),
+                    name: torrent.torrent_name.clone(),
+                }],
                 mode,
             ));
             Some(Action::SwitchToInputMode)
@@ -133,22 +152,20 @@ impl TaskManager {
     }
 
     fn pending_task(&mut self, task: StatusTask) -> Option<Action> {
-        if !matches!(self.current_task, CurrentTask::Status(_)) {
-            let state = Arc::new(Mutex::new(ThrobberState::default()));
-            self.current_task =
-                CurrentTask::Status(StatusBar::new(task, CurrentTaskState::Loading(state)));
-            Some(Action::SwitchToNormalMode)
-        } else {
-            None
+        if matches!(self.current_task, CurrentTask::Status(_)) {
+            return None;
         }
+        let state = Arc::new(Mutex::new(ThrobberState::default()));
+        self.current_task =
+            CurrentTask::Status(StatusBar::new(task, CurrentTaskState::Loading(state)));
+        Some(Action::SwitchToNormalMode)
     }
 
     fn cancel_task(&mut self) -> Option<Action> {
-        if !matches!(self.current_task, CurrentTask::Default(_)) {
-            self.current_task = CurrentTask::Default(DefaultBar::new(self.ctx.clone()));
-            Some(Action::SwitchToNormalMode)
-        } else {
-            None
+        if matches!(self.current_task, CurrentTask::Default(_)) {
+            return None;
         }
+        self.current_task = CurrentTask::Default(DefaultBar::new(self.ctx.clone()));
+        Some(Action::SwitchToNormalMode)
     }
 }

@@ -1,6 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::{tui::Event, ui::global_popups::ErrorPopup};
+use crate::{
+    tui::Event,
+    ui::{global_popups::ErrorPopup, tabs::torrents::tasks::status::StatusTask},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Action {
@@ -18,6 +21,7 @@ pub(crate) enum Action {
     Home,
     End,
     Confirm,
+    Pending(StatusTask),
     Space,
     ShowHelp,
     ShowStats,

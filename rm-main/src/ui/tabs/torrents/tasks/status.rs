@@ -16,16 +16,31 @@ impl StatusBar {
     }
 }
 
+fn format_display_name(name: &str) -> String {
+    if name.len() < 60 {
+        name.to_string()
+    } else {
+        let truncated = &name[0..59];
+        format!("\"{truncated}...\"")
+    }
+}
+
 impl Component for StatusBar {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         match &self.task_status {
             CurrentTaskState::Loading(state) => {
-                let title = match self.task {
-                    StatusTask::Add => "Adding torrent...",
-                    StatusTask::Delete => "Deleting torrent...",
+                let status_text = match &self.task {
+                    StatusTask::Add(name) => {
+                        let display_name = format_display_name(&name);
+                        format!("Adding {display_name}")
+                    }
+                    StatusTask::Delete(name) => {
+                        let display_name = format_display_name(&name);
+                        format!("Deleting {display_name}")
+                    }
                 };
                 let default_throbber = throbber_widgets_tui::Throbber::default()
-                    .label(title)
+                    .label(status_text)
                     .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
                 f.render_stateful_widget(
                     default_throbber.clone(),
@@ -33,25 +48,42 @@ impl Component for StatusBar {
                     &mut state.lock().unwrap(),
                 );
             }
-            CurrentTaskState::Failure() => {
-                let title = match self.task {
-                    StatusTask::Add => " Error adding torrent",
-                    StatusTask::Delete => " Error deleting torrent",
+            task_state => {
+                let status_text = match task_state {
+                    CurrentTaskState::Failure() => match &self.task {
+                        StatusTask::Add(name) => {
+                            let display_name = format_display_name(&name);
+                            format!(" Error adding {display_name}")
+                        }
+                        StatusTask::Delete(name) => {
+                            let display_name = format_display_name(&name);
+                            format!(" Error deleting {display_name}")
+                        }
+                    },
+                    CurrentTaskState::Success() => match &self.task {
+                        StatusTask::Add(name) => {
+                            let display_name = format_display_name(&name);
+                            format!(" Added {display_name}")
+                        }
+                        StatusTask::Delete(name) => {
+                            let display_name = format_display_name(&name);
+                            format!(" Deleted {display_name}")
+                        }
+                    },
+                    _ => return,
                 };
                 let mut line = Line::default();
-                line.push_span(Span::styled("", Style::default().red()));
-                line.push_span(Span::raw(title));
-                let paragraph = Paragraph::new(line);
-                f.render_widget(paragraph, rect);
-            }
-            CurrentTaskState::Success() => {
-                let title = match self.task {
-                    StatusTask::Add => " Added torrent",
-                    StatusTask::Delete => " Deleted torrent",
-                };
-                let mut line = Line::default();
-                line.push_span(Span::styled("", Style::default().green()));
-                line.push_span(Span::raw(title));
+                match task_state {
+                    CurrentTaskState::Failure() => {
+                        line.push_span(Span::styled("", Style::default().red()));
+                    }
+                    CurrentTaskState::Success() => {
+                        line.push_span(Span::styled("", Style::default().green()));
+                    }
+                    _ => return,
+                }
+
+                line.push_span(Span::raw(status_text));
                 let paragraph = Paragraph::new(line);
                 f.render_widget(paragraph, rect);
             }
@@ -84,10 +116,10 @@ impl Component for StatusBar {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StatusTask {
-    Add,
-    Delete,
+    Add(String),
+    Delete(String),
 }
 
 #[derive(Clone)]

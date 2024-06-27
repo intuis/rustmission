@@ -9,8 +9,16 @@ use crate::{
     ui::{components::Component, tabs::torrents::input_manager::InputManager, to_input_request},
 };
 
+use super::status::StatusTask;
+
+#[derive(Clone)]
+pub struct TorrentInfo {
+    pub id: Id,
+    pub name: String,
+}
+
 pub struct DeleteBar {
-    torrents_to_delete: Vec<Id>,
+    torrents_to_delete: Vec<TorrentInfo>,
     ctx: app::Ctx,
     input_mgr: InputManager,
     mode: Mode,
@@ -22,7 +30,7 @@ pub enum Mode {
 }
 
 impl DeleteBar {
-    pub fn new(ctx: app::Ctx, to_delete: Vec<Id>, mode: Mode) -> Self {
+    pub fn new(ctx: app::Ctx, to_delete: Vec<TorrentInfo>, mode: Mode) -> Self {
         let prompt = {
             match mode {
                 Mode::WithFiles => "Really delete selected WITH files? (y/n) ".to_string(),
@@ -50,7 +58,11 @@ impl Component for DeleteBar {
                 if input.code == KeyCode::Enter {
                     let text = self.input_mgr.text().to_lowercase();
                     if text == "y" || text == "yes" {
-                        let torrents_to_delete = self.torrents_to_delete.clone();
+                        let torrents_to_delete: Vec<Id> = self
+                            .torrents_to_delete
+                            .iter()
+                            .map(|x| x.id.clone())
+                            .collect();
                         match self.mode {
                             Mode::WithFiles => self.ctx.send_torrent_action(
                                 TorrentAction::DeleteWithFiles(torrents_to_delete),
@@ -62,7 +74,9 @@ impl Component for DeleteBar {
                                     ))
                             }
                         }
-                        return Some(Action::Confirm);
+                        return Some(Action::Pending(StatusTask::Delete(
+                            self.torrents_to_delete[0].name.clone(),
+                        )));
                     } else if text == "n" || text == "no" {
                         return Some(Action::Quit);
                     }
