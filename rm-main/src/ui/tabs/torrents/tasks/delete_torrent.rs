@@ -74,7 +74,7 @@ impl Component for DeleteBar {
                                     ))
                             }
                         }
-                        return Some(Action::Pending(StatusTask::Delete(
+                        return Some(Action::TaskPending(StatusTask::Delete(
                             self.torrents_to_delete[0].name.clone(),
                         )));
                     } else if text == "n" || text == "no" {

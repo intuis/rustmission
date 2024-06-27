@@ -46,7 +46,7 @@ impl Component for TaskManager {
         use Action as A;
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
-                Some(A::Pending(task)) => self.pending_task(task),
+                Some(A::TaskPending(task)) => self.pending_task(task),
 
                 Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
@@ -54,7 +54,7 @@ impl Component for TaskManager {
             },
 
             CurrentTask::DeleteBar(delete_bar) => match delete_bar.handle_actions(action) {
-                Some(A::Pending(task)) => {
+                Some(A::TaskPending(task)) => {
                     let selected = self
                         .table_manager
                         .lock()

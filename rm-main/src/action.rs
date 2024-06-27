@@ -21,7 +21,6 @@ pub(crate) enum Action {
     Home,
     End,
     Confirm,
-    Pending(StatusTask),
     Space,
     ShowHelp,
     ShowStats,
@@ -37,7 +36,8 @@ pub(crate) enum Action {
     ChangeTab(u8),
     Input(KeyEvent),
     Error(Box<ErrorPopup>),
-    Success,
+    TaskSuccess,
+    TaskPending(StatusTask),
 }
 
 impl Action {

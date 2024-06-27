@@ -33,7 +33,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
 
                 match ctx.client.lock().await.torrent_add(args).await {
                     Ok(_) => {
-                        ctx.send_action(Action::Success);
+                        ctx.send_action(Action::TaskSuccess);
                     }
                     Err(e) => {
                         let error_title = "Failed to add a torrent";
@@ -69,7 +69,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .torrent_remove(ids, true)
                     .await
                     .unwrap();
-                ctx.send_action(Action::Success)
+                ctx.send_action(Action::TaskSuccess)
             }
             TorrentAction::DeleteWithoutFiles(ids) => {
                 ctx.client
@@ -79,7 +79,7 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .await
                     .unwrap();
 
-                ctx.send_action(Action::Success)
+                ctx.send_action(Action::TaskSuccess)
             }
             TorrentAction::GetTorrentInfo(id, torrent_info) => {
                 let new_torrent_info = ctx

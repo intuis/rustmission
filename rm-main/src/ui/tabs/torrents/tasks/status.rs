@@ -94,7 +94,7 @@ impl Component for StatusBar {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         match action {
             Action::Tick => self.tick(),
-            Action::Success => {
+            Action::TaskSuccess => {
                 self.task_status.success(tokio::time::Instant::now());
                 Some(Action::Render)
             }
