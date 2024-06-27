@@ -19,5 +19,4 @@ anyhow.workspace = true
 url.workspace = true
 ratatui.workspace = true
 crossterm.workspace = true
-
-
+thiserror.workspace = true

@@ -1,4 +1,6 @@
-use std::{collections::HashMap, marker::PhantomData, path::PathBuf, sync::OnceLock};
+use std::{
+    collections::HashMap, io::ErrorKind, marker::PhantomData, path::PathBuf, sync::OnceLock,
+};
 
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -6,7 +8,6 @@ use serde::{
     de::{self, Visitor},
     Deserialize, Serialize,
 };
-use toml::Table;
 
 use crate::utils;
 use rm_shared::action::Action;
@@ -303,6 +304,9 @@ pub enum KeyModifier {
     None,
     Ctrl,
     Shift,
+    Alt,
+    Super,
+    Meta,
 }
 
 impl KeyModifier {
@@ -311,6 +315,9 @@ impl KeyModifier {
             KeyModifier::None => "",
             KeyModifier::Ctrl => "CTRL",
             KeyModifier::Shift => "SHIFT",
+            KeyModifier::Alt => "ALT",
+            KeyModifier::Super => "SUPER",
+            KeyModifier::Meta => "META",
         }
     }
 
@@ -325,6 +332,9 @@ impl From<KeyModifier> for KeyModifiers {
             KeyModifier::None => KeyModifiers::NONE,
             KeyModifier::Ctrl => KeyModifiers::CONTROL,
             KeyModifier::Shift => KeyModifiers::SHIFT,
+            KeyModifier::Alt => KeyModifiers::ALT,
+            KeyModifier::Super => KeyModifiers::SUPER,
+            KeyModifier::Meta => KeyModifiers::META,
         }
     }
 }
@@ -337,18 +347,19 @@ impl Default for KeyModifier {
 
 impl KeymapConfig {
     pub const FILENAME: &'static str = "keymap.toml";
+    const DEFAULT_CONFIG: &'static str = include_str!("../defaults/keymap.toml");
 
     pub fn init() -> Result<Self> {
-        let table = {
-            // TODO: handle errors or there will be hell to pay
-            if let Ok(table) = utils::fetch_config(Self::FILENAME) {
-                table
-            } else {
-                todo!();
-            }
-        };
-
-        Self::table_to_keymap(&table)
+        match utils::fetch_config::<Self>(Self::FILENAME) {
+            Ok(config) => return Ok(config),
+            Err(e) => match e {
+                utils::ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
+                    return Ok(utils::put_config(Self::DEFAULT_CONFIG, Self::FILENAME)?)
+                }
+                utils::ConfigFetchingError::Toml(_) => anyhow::bail!(e),
+                _ => anyhow::bail!(e),
+            },
+        }
     }
 
     pub fn to_map(self) -> HashMap<(KeyCode, KeyModifiers), Action> {
@@ -362,12 +373,6 @@ impl KeymapConfig {
             map.insert(hash_value, keybinding.action.into());
         }
         map
-    }
-
-    fn table_to_keymap(table: &Table) -> Result<Self> {
-        let config_string = table.to_string();
-        let config = toml::from_str(&config_string)?;
-        Ok(config)
     }
 
     pub fn path() -> &'static PathBuf {

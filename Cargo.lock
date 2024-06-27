@@ -1250,6 +1250,7 @@ dependencies = [
  "ratatui",
  "rm-shared",
  "serde",
+ "thiserror",
  "toml",
  "url",
  "xdg",
