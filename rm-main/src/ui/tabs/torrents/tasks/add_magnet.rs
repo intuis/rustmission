@@ -66,7 +66,7 @@ impl AddMagnetBar {
                 self.input_magnet_mgr.text(),
                 Some(self.input_location_mgr.text()),
             ));
-            return Some(Action::Quit);
+            return Some(Action::Confirm);
         }
         if input.code == KeyCode::Esc {
             return Some(Action::Quit);

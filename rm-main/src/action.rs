@@ -33,6 +33,7 @@ pub(crate) enum Action {
     ChangeTab(u8),
     Input(KeyEvent),
     Error(Box<ErrorPopup>),
+    Success,
 }
 
 impl Action {

@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use ratatui::prelude::*;
+use throbber_widgets_tui::ThrobberState;
 
 use crate::{action::Action, app, ui::components::Component};
 
@@ -10,6 +11,7 @@ use super::{
         default::DefaultBar,
         delete_torrent::{self, DeleteBar},
         filter::FilterBar,
+        status::{CurrentTaskState, StatusBar, StatusTask},
     },
     TableManager,
 };
@@ -30,11 +32,12 @@ impl TaskManager {
     }
 }
 
-enum CurrentTask {
+pub enum CurrentTask {
     AddMagnetBar(AddMagnetBar),
     DeleteBar(DeleteBar),
     FilterBar(FilterBar),
     Default(DefaultBar),
+    Status(StatusBar),
 }
 
 impl Component for TaskManager {
@@ -43,20 +46,28 @@ impl Component for TaskManager {
         use Action as A;
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
-                Some(A::Quit) => self.finish_task(),
+                Some(A::Confirm) => self.pending_task(StatusTask::Add),
+                Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
                 _ => None,
             },
 
             CurrentTask::DeleteBar(delete_bar) => match delete_bar.handle_actions(action) {
-                Some(A::Quit) => self.finish_task(),
+                Some(A::Confirm) => self.pending_task(StatusTask::Delete),
+                Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
                 _ => None,
             },
 
             CurrentTask::FilterBar(filter_bar) => match filter_bar.handle_actions(action) {
-                Some(A::Quit) => self.finish_task(),
+                Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
+                _ => None,
+            },
+
+            CurrentTask::Status(status_bar) => match status_bar.handle_actions(action) {
+                Some(A::Render) => Some(A::Render),
+                Some(action) => self.handle_events_to_manager(&action),
                 _ => None,
             },
 
@@ -70,6 +81,14 @@ impl Component for TaskManager {
             CurrentTask::DeleteBar(delete_bar) => delete_bar.render(f, rect),
             CurrentTask::FilterBar(filter_bar) => filter_bar.render(f, rect),
             CurrentTask::Default(default_bar) => default_bar.render(f, rect),
+            CurrentTask::Status(status_bar) => status_bar.render(f, rect),
+        }
+    }
+
+    fn tick(&mut self) -> Option<Action> {
+        match &mut self.current_task {
+            CurrentTask::Status(status_bar) => status_bar.tick(),
+            _ => None,
         }
     }
 }
@@ -108,7 +127,18 @@ impl TaskManager {
         }
     }
 
-    fn finish_task(&mut self) -> Option<Action> {
+    fn pending_task(&mut self, task: StatusTask) -> Option<Action> {
+        if !matches!(self.current_task, CurrentTask::Status(_)) {
+            let state = Arc::new(Mutex::new(ThrobberState::default()));
+            self.current_task =
+                CurrentTask::Status(StatusBar::new(task, CurrentTaskState::Loading(state)));
+            Some(Action::SwitchToNormalMode)
+        } else {
+            None
+        }
+    }
+
+    fn cancel_task(&mut self) -> Option<Action> {
         if !matches!(self.current_task, CurrentTask::Default(_)) {
             self.current_task = CurrentTask::Default(DefaultBar::new(self.ctx.clone()));
             Some(Action::SwitchToNormalMode)
@@ -117,3 +147,92 @@ impl TaskManager {
         }
     }
 }
+
+// enum CurrentTaskState {
+//     Nothing,
+//     Loading(Arc<Mutex<ThrobberState>>),
+//     Success(),
+//     Failure(),
+// }
+//
+// impl CurrentTaskState {
+//     fn new() -> Self {
+//         Self::Nothing
+//     }
+//
+//     fn loading(&mut self, state: Arc<Mutex<ThrobberState>>) {
+//         *self = Self::Loading(task, state);
+//     }
+//
+//     fn failure(&mut self) {
+//         *self = Self::Failure(task);
+//     }
+//
+//     fn success(&mut self, task: CurrentTask) {
+//         *self = Self::Success(task);
+//     }
+// }
+//
+// impl Component for CurrentTaskState {
+//     fn render(&mut self, f: &mut Frame, rect: Rect) {
+//         match self {
+//             CurrentTaskState::Nothing => return,
+//             CurrentTaskState::Loading(task, state) => {
+//                 let label = match task {
+//                     CurrentTask::DeleteBar(_) => Some("Deleting..."),
+//                     CurrentTask::AddMagnetBar(_) => Some("Adding..."),
+//                     _ => None,
+//                 };
+//
+//                 if let Some(text) = label {
+//                     let default_throbber = throbber_widgets_tui::Throbber::default()
+//                         .label(text)
+//                         .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
+//                     f.render_stateful_widget(
+//                         default_throbber.clone(),
+//                         rect,
+//                         &mut state.lock().unwrap(),
+//                     );
+//                 }
+//             }
+//             CurrentTaskState::Failure(task) => {
+//                 let label = match task {
+//                     CurrentTask::DeleteBar(_) => Some(" Error deleting torrent"),
+//                     CurrentTask::AddMagnetBar(_) => Some(" Error adding torrent"),
+//                     _ => None,
+//                 };
+//                 if let Some(text) = label {
+//                     let mut line = Line::default();
+//                     line.push_span(Span::styled("", Style::default().red()));
+//                     line.push_span(Span::raw(text));
+//                     let paragraph = Paragraph::new(line);
+//                     f.render_widget(paragraph, rect);
+//                 }
+//             }
+//             CurrentTaskState::Success(task) => {
+//                 let label = match task {
+//                     CurrentTask::DeleteBar(_) => Some(" Deleted torrent"),
+//                     CurrentTask::AddMagnetBar(_) => Some(" Added torrent"),
+//                     _ => None,
+//                 };
+//                 if let Some(text) = label {
+//                     let mut line = Line::default();
+//                     line.push_span(Span::styled("", Style::default().green()));
+//                     line.push_span(Span::raw(text));
+//                     let paragraph = Paragraph::new(line);
+//                     f.render_widget(paragraph, rect);
+//                 }
+//             }
+//         }
+//     }
+//
+//     fn tick(&mut self) -> Option<Action> {
+//         match self {
+//             CurrentTaskState::Loading(_, state) => {
+//                 state.lock().unwrap().calc_next();
+//                 Some(Action::Render)
+//             }
+//             _ => None,
+//         }
+//     }
+// }

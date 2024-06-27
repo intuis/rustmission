@@ -62,7 +62,7 @@ impl Component for DeleteBar {
                                     ))
                             }
                         }
-                        return Some(Action::Quit);
+                        return Some(Action::Confirm);
                     } else if text == "n" || text == "no" {
                         return Some(Action::Quit);
                     }
