@@ -4,10 +4,11 @@ use crate::{action::Action, ui::components::Component};
 
 use ratatui::{prelude::*, widgets::Paragraph};
 use throbber_widgets_tui::ThrobberState;
+use tokio::time::Instant;
 
 pub struct StatusBar {
     task: StatusTask,
-    task_status: CurrentTaskState,
+    pub task_status: CurrentTaskState,
 }
 
 impl StatusBar {
@@ -50,7 +51,7 @@ impl Component for StatusBar {
             }
             task_state => {
                 let status_text = match task_state {
-                    CurrentTaskState::Failure() => match &self.task {
+                    CurrentTaskState::Failure => match &self.task {
                         StatusTask::Add(name) => {
                             let display_name = format_display_name(&name);
                             format!(" Error adding {display_name}")
@@ -60,7 +61,7 @@ impl Component for StatusBar {
                             format!(" Error deleting {display_name}")
                         }
                     },
-                    CurrentTaskState::Success() => match &self.task {
+                    CurrentTaskState::Success(_) => match &self.task {
                         StatusTask::Add(name) => {
                             let display_name = format_display_name(&name);
                             format!(" Added {display_name}")
@@ -74,10 +75,10 @@ impl Component for StatusBar {
                 };
                 let mut line = Line::default();
                 match task_state {
-                    CurrentTaskState::Failure() => {
+                    CurrentTaskState::Failure => {
                         line.push_span(Span::styled("", Style::default().red()));
                     }
-                    CurrentTaskState::Success() => {
+                    CurrentTaskState::Success(_) => {
                         line.push_span(Span::styled("", Style::default().green()));
                     }
                     _ => return,
@@ -90,18 +91,18 @@ impl Component for StatusBar {
         }
     }
 
-    fn handle_actions(&mut self, _action: Action) -> Option<Action> {
-        match _action {
+    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+        match action {
             Action::Tick => self.tick(),
             Action::Success => {
-                self.task_status.success();
+                self.task_status.success(tokio::time::Instant::now());
                 Some(Action::Render)
             }
             Action::Error(_) => {
                 self.task_status.failure();
                 Some(Action::Render)
             }
-            _ => Some(_action),
+            _ => Some(action),
         }
     }
 
@@ -110,6 +111,13 @@ impl Component for StatusBar {
             CurrentTaskState::Loading(state) => {
                 state.lock().unwrap().calc_next();
                 Some(Action::Render)
+            }
+            CurrentTaskState::Success(start) => {
+                let expiration_duration = tokio::time::Duration::from_secs(5);
+                if start.elapsed() > expiration_duration {
+                    return Some(Action::Quit);
+                }
+                None
             }
             _ => None,
         }
@@ -125,16 +133,16 @@ pub enum StatusTask {
 #[derive(Clone)]
 pub enum CurrentTaskState {
     Loading(Arc<Mutex<ThrobberState>>),
-    Success(),
-    Failure(),
+    Success(Instant),
+    Failure,
 }
 
 impl CurrentTaskState {
     fn failure(&mut self) {
-        *self = Self::Failure();
+        *self = Self::Failure;
     }
 
-    fn success(&mut self) {
-        *self = Self::Success();
+    fn success(&mut self, start: Instant) {
+        *self = Self::Success(start);
     }
 }

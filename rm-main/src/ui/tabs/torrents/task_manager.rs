@@ -84,6 +84,7 @@ impl Component for TaskManager {
             },
 
             CurrentTask::Status(status_bar) => match status_bar.handle_actions(action) {
+                Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
                 Some(action) => self.handle_events_to_manager(&action),
                 _ => None,
@@ -104,10 +105,19 @@ impl Component for TaskManager {
     }
 
     fn tick(&mut self) -> Option<Action> {
-        match &mut self.current_task {
-            CurrentTask::Status(status_bar) => status_bar.tick(),
-            _ => None,
+        if let CurrentTask::Status(status_bar) = &mut self.current_task {
+            if let CurrentTaskState::Success(start) = status_bar.task_status {
+                let expiration_duration = tokio::time::Duration::from_secs(5);
+                println!("{:?}, {:?}", start, expiration_duration);
+                if start.elapsed() > expiration_duration {
+                    self.current_task = CurrentTask::Default(DefaultBar::new(self.ctx.clone()));
+                    return Some(Action::Render);
+                } else {
+                    return status_bar.tick();
+                }
+            }
         }
+        None
     }
 }
 
