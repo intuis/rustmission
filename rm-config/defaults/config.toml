@@ -21,4 +21,7 @@ url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 # username = "CHANGE_ME"
 # password = "CHANGE_ME"
 
-
+# Refresh timings (in seconds)
+torrents_refresh = 5
+stats_refresh = 10
+free_space_refresh = 10
