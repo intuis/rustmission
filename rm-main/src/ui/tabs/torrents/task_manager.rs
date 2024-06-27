@@ -1,7 +1,4 @@
-use std::{
-    borrow::Borrow,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use ratatui::prelude::*;
 use throbber_widgets_tui::ThrobberState;
