@@ -83,7 +83,6 @@ impl Component for StatusBar {
                     }
                     _ => return,
                 }
-
                 line.push_span(Span::raw(status_text));
                 let paragraph = Paragraph::new(line);
                 f.render_widget(paragraph, rect);

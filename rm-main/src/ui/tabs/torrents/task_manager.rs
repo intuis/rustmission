@@ -61,7 +61,6 @@ impl Component for TaskManager {
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
                 Some(A::TaskPending(task)) => self.pending_task(task),
-
                 Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
                 _ => None,

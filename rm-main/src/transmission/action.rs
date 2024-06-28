@@ -78,7 +78,6 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .torrent_remove(ids, false)
                     .await
                     .unwrap();
-
                 ctx.send_action(Action::TaskSuccess)
             }
             TorrentAction::GetTorrentInfo(id, torrent_info) => {
