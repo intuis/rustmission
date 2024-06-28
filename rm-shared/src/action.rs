@@ -17,7 +17,7 @@ pub enum Action {
     Home,
     End,
     Confirm,
-    Space,
+    Select,
     ShowHelp,
     ShowStats,
     ShowFiles,

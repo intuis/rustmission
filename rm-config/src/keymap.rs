@@ -37,6 +37,7 @@ pub enum GeneralAction {
     Search,
     SwitchFocus,
     Confirm,
+    Select,
     ScrollPageDown,
     ScrollPageUp,
     GoToBeginning,
@@ -62,6 +63,7 @@ impl UserAction for GeneralAction {
             GeneralAction::Search => "search",
             GeneralAction::SwitchFocus => "switch focus",
             GeneralAction::Confirm => "confirm",
+            GeneralAction::Select => "select",
             GeneralAction::ScrollPageDown => "scroll page down",
             GeneralAction::ScrollPageUp => "scroll page up",
             GeneralAction::GoToBeginning => "scroll to the beginning",
@@ -85,6 +87,7 @@ impl From<GeneralAction> for Action {
             GeneralAction::Search => Action::Search,
             GeneralAction::SwitchFocus => Action::ChangeFocus,
             GeneralAction::Confirm => Action::Confirm,
+            GeneralAction::Select => Action::Select,
             GeneralAction::ScrollPageDown => Action::ScrollDownPage,
             GeneralAction::ScrollPageUp => Action::ScrollUpPage,
             GeneralAction::GoToBeginning => Action::Home,
@@ -160,7 +163,13 @@ impl<T: Into<Action>> Keybinding<T> {
             KeyCode::Delete => todo!(),
             KeyCode::Insert => "Insert".into(),
             KeyCode::F(i) => format!("F{i}"),
-            KeyCode::Char(c) => c.into(),
+            KeyCode::Char(c) => {
+                if c == ' ' {
+                    "Space".into()
+                } else {
+                    c.into()
+                }
+            }
             KeyCode::Null => todo!(),
             KeyCode::Esc => "Esc".into(),
             KeyCode::CapsLock => todo!(),

@@ -6,6 +6,7 @@ keybindings = [
   { on = "q", action = "Quit" },
   { on = "Esc", action = "SoftQuit" },
   { on = "Enter", action = "Confirm" },
+  { on = " ", action = "Select" },
   { on = "Tab", action = "SwitchFocus" },
   { on = "/", action = "Search" },
   
