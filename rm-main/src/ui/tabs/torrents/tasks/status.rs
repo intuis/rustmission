@@ -4,7 +4,7 @@ use crate::{action::Action, ui::components::Component};
 
 use ratatui::{prelude::*, widgets::Paragraph};
 use throbber_widgets_tui::ThrobberState;
-use tokio::time::Instant;
+use tokio::time::{self, Instant};
 
 pub struct StatusBar {
     task: StatusTask,
@@ -95,11 +95,11 @@ impl Component for StatusBar {
         match action {
             Action::Tick => self.tick(),
             Action::TaskSuccess => {
-                self.task_status.success(tokio::time::Instant::now());
+                self.task_status.set_success(time::Instant::now());
                 Some(Action::Render)
             }
             Action::Error(_) => {
-                self.task_status.failure();
+                self.task_status.set_failure();
                 Some(Action::Render)
             }
             _ => Some(action),
@@ -113,8 +113,8 @@ impl Component for StatusBar {
                 Some(Action::Render)
             }
             CurrentTaskState::Success(start) => {
-                let expiration_duration = tokio::time::Duration::from_secs(5);
-                if start.elapsed() > expiration_duration {
+                let expiration_duration = time::Duration::from_secs(5);
+                if start.elapsed() >= expiration_duration {
                     return Some(Action::Quit);
                 }
                 None
@@ -138,11 +138,11 @@ pub enum CurrentTaskState {
 }
 
 impl CurrentTaskState {
-    fn failure(&mut self) {
+    fn set_failure(&mut self) {
         *self = Self::Failure;
     }
 
-    fn success(&mut self, start: Instant) {
+    fn set_success(&mut self, start: Instant) {
         *self = Self::Success(start);
     }
 }

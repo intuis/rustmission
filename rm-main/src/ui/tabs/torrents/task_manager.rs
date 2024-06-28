@@ -3,7 +3,11 @@ use std::sync::{Arc, Mutex};
 use ratatui::prelude::*;
 use throbber_widgets_tui::ThrobberState;
 
-use crate::{action::Action, app, ui::components::Component};
+use crate::{
+    action::Action,
+    app::{self},
+    ui::components::Component,
+};
 
 use super::{
     tasks::{
@@ -38,6 +42,24 @@ pub enum CurrentTask {
     FilterBar(FilterBar),
     Default(DefaultBar),
     Status(StatusBar),
+}
+
+impl CurrentTask {
+    fn tick(&mut self) -> Option<Action> {
+        if let Self::Status(status_bar) = self {
+            // if let CurrentTaskState::Success(start) = status_bar.task_status {
+            //     let expiration_duration = tokio::time::Duration::from_secs(5);
+            //     if start.elapsed() > expiration_duration {
+            //         *self = CurrentTask::Default(DefaultBar::new(ctx));
+            //         return Some(Action::Render);
+            //     } else {
+            //         return status_bar.tick();
+            //     }
+            // }
+            return status_bar.tick();
+        }
+        None
+    }
 }
 
 impl Component for TaskManager {
@@ -105,19 +127,7 @@ impl Component for TaskManager {
     }
 
     fn tick(&mut self) -> Option<Action> {
-        if let CurrentTask::Status(status_bar) = &mut self.current_task {
-            if let CurrentTaskState::Success(start) = status_bar.task_status {
-                let expiration_duration = tokio::time::Duration::from_secs(5);
-                println!("{:?}, {:?}", start, expiration_duration);
-                if start.elapsed() > expiration_duration {
-                    self.current_task = CurrentTask::Default(DefaultBar::new(self.ctx.clone()));
-                    return Some(Action::Render);
-                } else {
-                    return status_bar.tick();
-                }
-            }
-        }
-        None
+        self.current_task.tick()
     }
 }
 
