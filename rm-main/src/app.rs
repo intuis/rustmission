@@ -102,11 +102,17 @@ impl App {
     }
 
     async fn main_loop(&mut self, tui: &mut Tui) -> Result<()> {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(250));
         loop {
             let tui_event = tui.next();
             let action = self.action_rx.recv();
+            let tick_action = interval.tick();
 
             tokio::select! {
+                _ = tick_action => {
+                    self.ctx.action_tx.send(Action::Tick).unwrap();
+                },
+
                 event = tui_event => {
                     if let Some(action) = event_to_action(self.mode, event.unwrap()) {
                         if let Some(action) = self.update(action).await {

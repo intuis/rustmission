@@ -40,6 +40,7 @@ crossterm = { version = "0.27", features = ["event-stream"] }
 ratatui = { version = "0.26", features = ["serde"] }
 tui-input = "0.8"
 tui-tree-widget = "0.20"
+throbber-widgets-tui = "0.5.0"
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]
