@@ -19,13 +19,13 @@ pub struct Args {
 #[derive(Subcommand)]
 pub enum Commands {
     AddTorrent { torrent: String },
-    FetchRss { url: String, filter: String },
+    FetchRss { url: String, filter: Option<String> },
 }
 
 pub async fn handle_command(config: &Config, command: Commands) -> Result<()> {
     match command {
         Commands::AddTorrent { torrent } => add_torrent(config, torrent).await?,
-        Commands::FetchRss { url, filter } => fetch_rss(config, &url, &filter).await?,
+        Commands::FetchRss { url, filter } => fetch_rss(config, &url, filter.as_deref()).await?,
     }
     Ok(())
 }
@@ -64,29 +64,37 @@ async fn add_torrent(config: &Config, torrent: String) -> Result<()> {
     Ok(())
 }
 
-async fn fetch_rss(config: &Config, url: &str, filter: &str) -> Result<()> {
+async fn fetch_rss(config: &Config, url: &str, filter: Option<&str>) -> Result<()> {
     let mut transclient = transmission::utils::client_from_config(&config);
     let content = reqwest::get(url).await?.bytes().await?;
     let channel = rss::Channel::read_from(&content[..])?;
-    let re = {
-        let re = Regex::new(&format!(r"{filter}"));
-        match re {
-            Err(e) => {
-                eprintln!(
-                    "error constructing regex: {e}\nCheck if provided regex filter is valid."
-                );
-                std::process::exit(1);
+    let re: Option<Regex> = {
+        if let Some(filter_str) = filter {
+            let res = Regex::new(&format!(r"{filter_str}"));
+            match res {
+                Err(e) => {
+                    eprintln!(
+                        "error constructing regex: {e}\nCheck if provided regex filter is valid."
+                    );
+                    std::process::exit(1);
+                }
+                Ok(re) => Some(re),
             }
-            Ok(re) => re,
+        } else {
+            None
         }
     };
     let urls = channel.items().iter().filter_map(|item| {
         if let Some(title) = item.title() {
-            if re.is_match(title) {
-                println!("{title} matches provided regex");
-                return item.link();
+            if let Some(re) = &re {
+                if re.is_match(title) {
+                    println!("{title} matches provided regex");
+                    return item.link();
+                } else {
+                    println!("{title} does not match provided regex");
+                }
             } else {
-                println!("{title} does not match provided regex");
+                return item.link();
             }
         }
         None
