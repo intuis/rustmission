@@ -3,6 +3,7 @@ use std::{fs::File, io::Read};
 use anyhow::Result;
 use base64::Engine;
 use clap::{Parser, Subcommand};
+use regex::Regex;
 use rm_config::Config;
 use transmission_rpc::types::TorrentAddArgs;
 
@@ -18,13 +19,13 @@ pub struct Args {
 #[derive(Subcommand)]
 pub enum Commands {
     AddTorrent { torrent: String },
-    FetchRss { url: String },
+    FetchRss { url: String, filter: String },
 }
 
 pub async fn handle_command(config: &Config, command: Commands) -> Result<()> {
     match command {
         Commands::AddTorrent { torrent } => add_torrent(config, torrent).await?,
-        Commands::FetchRss { url } => fetch_rss(config, url).await?,
+        Commands::FetchRss { url, filter } => fetch_rss(config, &url, &filter).await?,
     }
     Ok(())
 }
@@ -63,12 +64,35 @@ async fn add_torrent(config: &Config, torrent: String) -> Result<()> {
     Ok(())
 }
 
-async fn fetch_rss(config: &Config, url: String) -> Result<()> {
+async fn fetch_rss(config: &Config, url: &str, filter: &str) -> Result<()> {
     let mut transclient = transmission::utils::client_from_config(&config);
     let content = reqwest::get(url).await?.bytes().await?;
     let channel = rss::Channel::read_from(&content[..])?;
-    let urls = channel.items().iter().filter_map(|item| item.link());
+    let re = {
+        let re = Regex::new(&format!(r"{filter}"));
+        match re {
+            Err(e) => {
+                eprintln!(
+                    "error constructing regex: {e}\nCheck if provided regex filter is valid."
+                );
+                std::process::exit(1);
+            }
+            Ok(re) => re,
+        }
+    };
+    let urls = channel.items().iter().filter_map(|item| {
+        if let Some(title) = item.title() {
+            if re.is_match(title) {
+                println!("{title} matches provided regex");
+                return item.link();
+            } else {
+                println!("{title} does not match provided regex");
+            }
+        }
+        None
+    });
     for url in urls {
+        println!("downloading {url}");
         let args = TorrentAddArgs {
             filename: Some(url.to_string()),
             ..Default::default()
