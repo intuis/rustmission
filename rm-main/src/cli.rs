@@ -84,23 +84,23 @@ async fn fetch_rss(config: &Config, url: &str, filter: Option<&str>) -> Result<(
             None
         }
     };
-    let urls = channel.items().iter().filter_map(|item| {
-        if let Some(title) = item.title() {
+    let items = channel.items().iter().filter_map(|item| {
+        if let (Some(title), Some(url)) = (item.title(), item.link()) {
             if let Some(re) = &re {
                 if re.is_match(title) {
                     println!("{title} matches provided regex");
-                    return item.link();
+                    return Some((title, url));
                 } else {
                     println!("{title} does not match provided regex");
                 }
             } else {
-                return item.link();
+                return Some((title, url));
             }
         }
         None
     });
-    for url in urls {
-        println!("downloading {url}");
+    for (title, url) in items {
+        println!("downloading {title}");
         let args = TorrentAddArgs {
             filename: Some(url.to_string()),
             ..Default::default()
