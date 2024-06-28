@@ -78,7 +78,14 @@ pub fn event_to_action(
 
     match event {
         Event::Key(key) if mode == Mode::Input => Some(A::Input(key)),
-        Event::Key(key) => keymap.get(&(key.code, key.modifiers)).cloned(),
+        Event::Key(key) => {
+            if let KeyCode::Char(e) = key.code {
+                if e.is_uppercase() {
+                    return keymap.get(&(key.code, KeyModifiers::NONE)).cloned();
+                }
+            }
+            keymap.get(&(key.code, key.modifiers)).cloned()
+        }
         _ => None,
     }
 }

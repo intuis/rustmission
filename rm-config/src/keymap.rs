@@ -284,7 +284,19 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
                 }
                 let on = on.ok_or_else(|| de::Error::missing_field("on"))?;
                 let action = action.ok_or_else(|| de::Error::missing_field("action"))??;
-                Ok(Keybinding::new(on, action, modifier.transpose().unwrap()))
+                let modifier = modifier.transpose().unwrap();
+
+                if modifier.is_some() {
+                    if let KeyCode::Char(char) = on {
+                        if char.is_uppercase() {
+                            return Err(de::Error::custom(
+                                "you can't have a modifier with an uppercase letter, sorry",
+                            ));
+                        }
+                    }
+                }
+
+                Ok(Keybinding::new(on, action, modifier))
             }
         }
 
