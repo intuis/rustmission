@@ -47,18 +47,10 @@ pub enum CurrentTask {
 impl CurrentTask {
     fn tick(&mut self) -> Option<Action> {
         if let Self::Status(status_bar) = self {
-            // if let CurrentTaskState::Success(start) = status_bar.task_status {
-            //     let expiration_duration = tokio::time::Duration::from_secs(5);
-            //     if start.elapsed() > expiration_duration {
-            //         *self = CurrentTask::Default(DefaultBar::new(ctx));
-            //         return Some(Action::Render);
-            //     } else {
-            //         return status_bar.tick();
-            //     }
-            // }
-            return status_bar.tick();
+            status_bar.tick()
+        } else {
+            None
         }
-        None
     }
 }
 
