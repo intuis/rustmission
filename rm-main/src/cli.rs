@@ -70,7 +70,7 @@ async fn fetch_rss(config: &Config, url: &str, filter: Option<&str>) -> Result<(
     let channel = rss::Channel::read_from(&content[..])?;
     let re: Option<Regex> = {
         if let Some(filter_str) = filter {
-            let res = Regex::new(&format!(r"{filter_str}"))?;
+            let res = Regex::new(filter_str)?;
             Some(res)
         } else {
             None
