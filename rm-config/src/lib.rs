@@ -25,6 +25,8 @@ pub struct General {
     pub accent_color: Color,
     #[serde(default = "default_beginner_mode")]
     pub beginner_mode: bool,
+    #[serde(default)]
+    pub headers_hide: bool,
 }
 
 fn default_accent_color() -> Color {
@@ -40,6 +42,12 @@ pub struct Connection {
     pub username: Option<String>,
     pub password: Option<String>,
     pub url: String,
+    #[serde(default)]
+    pub torrents_refresh: u64,
+    #[serde(default)]
+    pub stats_refresh: u64,
+    #[serde(default)]
+    pub free_space_refresh: u64,
 }
 
 const DEFAULT_CONFIG: &str = include_str!("../defaults/config.toml");

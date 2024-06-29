@@ -8,6 +8,7 @@ pub(crate) enum Action {
     Quit,
     SoftQuit,
     Render,
+    Tick,
     Up,
     Down,
     Left,

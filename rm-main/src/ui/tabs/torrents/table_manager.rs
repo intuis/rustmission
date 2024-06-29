@@ -9,7 +9,7 @@ use super::rustmission_torrent::RustmissionTorrent;
 pub struct TableManager {
     ctx: app::Ctx,
     pub table: GenericTable<RustmissionTorrent>,
-    pub widths: [Constraint; 7],
+    pub widths: [Constraint; 8],
     pub filter: Arc<Mutex<Option<String>>>,
     pub torrents_displaying_no: u16,
     header: Vec<String>,
@@ -26,6 +26,7 @@ impl TableManager {
             torrents_displaying_no: 0,
             header: vec![
                 "Name".to_owned(),
+                "".to_owned(),
                 "Size".to_owned(),
                 "Progress".to_owned(),
                 "ETA".to_owned(),
@@ -100,19 +101,20 @@ impl TableManager {
         rows
     }
 
-    const fn default_widths() -> [Constraint; 7] {
+    const fn default_widths() -> [Constraint; 8] {
         [
             Constraint::Max(70),    // Name
-            Constraint::Length(10), // Size
-            Constraint::Length(10), // Progress
-            Constraint::Length(10), // ETA
-            Constraint::Length(10), // Download
-            Constraint::Length(10), // Upload
+            Constraint::Length(5),  // <padding>
+            Constraint::Length(12), // Size
+            Constraint::Length(12), // Progress
+            Constraint::Length(12), // ETA
+            Constraint::Length(12), // Download
+            Constraint::Length(12), // Upload
             Constraint::Max(70),    // Download directory
         ]
     }
 
-    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 7] {
+    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 8] {
         if !self.ctx.config.general.auto_hide {
             return Self::default_widths();
         }
@@ -124,23 +126,24 @@ impl TableManager {
 
         for row in rows {
             if !row.download_speed.is_empty() {
-                download_width = 9;
+                download_width = 11;
             }
             if !row.upload_speed.is_empty() {
-                upload_width = 9;
+                upload_width = 11;
             }
             if !row.progress.is_empty() {
-                progress_width = 9;
+                progress_width = 11;
             }
 
             if !row.eta_secs.is_empty() {
-                eta_width = 9;
+                eta_width = 11;
             }
         }
 
         [
             Constraint::Max(70),                // Name
-            Constraint::Length(9),              // Size
+            Constraint::Length(5),              // <padding>
+            Constraint::Length(11),             // Size
             Constraint::Length(progress_width), // Progress
             Constraint::Length(eta_width),      // ETA
             Constraint::Length(download_width), // Download

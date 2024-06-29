@@ -5,7 +5,9 @@ use ratatui::{
 };
 use transmission_rpc::types::{Id, Torrent, TorrentStatus};
 
-use crate::utils::{bytes_to_human_format, seconds_to_human_format};
+use crate::utils::{
+    bytes_to_human_format, download_speed_format, seconds_to_human_format, upload_speed_format,
+};
 
 #[derive(Clone)]
 pub struct RustmissionTorrent {
@@ -24,13 +26,14 @@ pub struct RustmissionTorrent {
 impl RustmissionTorrent {
     pub fn to_row(&self) -> ratatui::widgets::Row {
         Row::new([
-            self.torrent_name.as_str(),
-            self.size_when_done.as_str(),
-            self.progress.as_str(),
-            self.eta_secs.as_str(),
-            self.download_speed.as_str(),
-            self.upload_speed.as_str(),
-            self.download_dir.as_str(),
+            Line::from(self.torrent_name.as_str()),
+            Line::from(""),
+            Line::from(self.size_when_done.as_str()),
+            Line::from(self.progress.as_str()),
+            Line::from(self.eta_secs.as_str()),
+            Line::from(download_speed_format(&self.download_speed)),
+            Line::from(upload_speed_format(&self.upload_speed)),
+            Line::from(self.download_dir.as_str()),
         ])
         .style(self.style)
     }
@@ -51,12 +54,13 @@ impl RustmissionTorrent {
         }
 
         Row::new([
-            torrent_name_line,
+            Line::from(torrent_name_line),
+            Line::from(""),
             Line::from(self.size_when_done.as_str()),
             Line::from(self.progress.as_str()),
             Line::from(self.eta_secs.as_str()),
-            Line::from(self.download_speed.as_str()),
-            Line::from(self.upload_speed.as_str()),
+            Line::from(download_speed_format(&self.download_speed)),
+            Line::from(upload_speed_format(&self.upload_speed)),
             Line::from(self.download_dir.as_str()),
         ])
     }
