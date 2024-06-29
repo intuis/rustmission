@@ -111,7 +111,7 @@ impl App {
 
             tokio::select! {
                 event = tui_event => {
-                    if let Some(action) = event_to_action(self.mode, event.unwrap(), &self.ctx.config.keymap) {
+                    if let Some(action) = event_to_action(self.mode, event.unwrap(), &self.ctx.config.keybindings.keymap) {
                         if let Some(action) = self.update(action).await {
                             self.ctx.action_tx.send(action).unwrap();
                         }

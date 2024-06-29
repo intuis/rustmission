@@ -14,12 +14,14 @@ use rm_shared::action::Action;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct KeymapConfig {
-    pub general: General<GeneralAction>,
-    pub torrents_tab: TorrentsTab<TorrentsAction>,
+    pub general: KeybindsHolder<GeneralAction>,
+    pub torrents_tab: KeybindsHolder<TorrentsAction>,
+    #[serde(skip)]
+    pub keymap: HashMap<(KeyCode, KeyModifiers), Action>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct General<T: Into<Action>> {
+pub struct KeybindsHolder<T: Into<Action>> {
     pub keybindings: Vec<Keybinding<T>>,
 }
 
@@ -94,11 +96,6 @@ impl From<GeneralAction> for Action {
             GeneralAction::GoToEnd => Action::End,
         }
     }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct TorrentsTab<T: Into<Action>> {
-    pub keybindings: Vec<Keybinding<T>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -372,10 +369,16 @@ impl KeymapConfig {
 
     pub fn init() -> Result<Self> {
         match utils::fetch_config::<Self>(Self::FILENAME) {
-            Ok(config) => return Ok(config),
+            Ok(mut keymap_config) => {
+                keymap_config.populate_hashmap();
+                return Ok(keymap_config);
+            }
             Err(e) => match e {
                 utils::ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
-                    return Ok(utils::put_config(Self::DEFAULT_CONFIG, Self::FILENAME)?)
+                    let mut keymap_config =
+                        utils::put_config::<Self>(Self::DEFAULT_CONFIG, Self::FILENAME)?;
+                    keymap_config.populate_hashmap();
+                    return Ok(keymap_config);
                 }
                 utils::ConfigFetchingError::Toml(_) => anyhow::bail!(e),
                 _ => anyhow::bail!(e),
@@ -383,17 +386,36 @@ impl KeymapConfig {
         }
     }
 
-    pub fn to_map(self) -> HashMap<(KeyCode, KeyModifiers), Action> {
-        let mut map = HashMap::new();
-        for keybinding in self.general.keybindings {
-            let hash_value = (keybinding.on, keybinding.modifier.into());
-            map.insert(hash_value, keybinding.action.into());
+    pub fn get_keys_for_action(&self, action: Action) -> Option<String> {
+        let mut keys = vec![];
+
+        for keybinding in &self.general.keybindings {
+            if action == keybinding.action.into() {
+                keys.push(keybinding.keycode_string());
+            }
         }
-        for keybinding in self.torrents_tab.keybindings {
-            let hash_value = (keybinding.on, keybinding.modifier.into());
-            map.insert(hash_value, keybinding.action.into());
+        for keybinding in &self.torrents_tab.keybindings {
+            if action == keybinding.action.into() {
+                keys.push(keybinding.keycode_string());
+            }
         }
-        map
+
+        if keys.is_empty() {
+            return None;
+        } else {
+            Some(keys.join("/"))
+        }
+    }
+
+    fn populate_hashmap(&mut self) {
+        for keybinding in &self.general.keybindings {
+            let hash_value = (keybinding.on, keybinding.modifier.into());
+            self.keymap.insert(hash_value, keybinding.action.into());
+        }
+        for keybinding in &self.torrents_tab.keybindings {
+            let hash_value = (keybinding.on, keybinding.modifier.into());
+            self.keymap.insert(hash_value, keybinding.action.into());
+        }
     }
 
     pub fn path() -> &'static PathBuf {
