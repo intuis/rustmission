@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use base64::Engine;
 use clap::{Parser, Subcommand};
 use regex::Regex;
@@ -70,16 +70,8 @@ async fn fetch_rss(config: &Config, url: &str, filter: Option<&str>) -> Result<(
     let channel = rss::Channel::read_from(&content[..])?;
     let re: Option<Regex> = {
         if let Some(filter_str) = filter {
-            let res = Regex::new(&format!(r"{filter_str}"));
-            match res {
-                Err(e) => {
-                    eprintln!(
-                        "error constructing regex: {e}\nCheck if provided regex filter is valid."
-                    );
-                    std::process::exit(1);
-                }
-                Ok(re) => Some(re),
-            }
+            let res = Regex::new(&format!(r"{filter_str}"))?;
+            Some(res)
         } else {
             None
         }
@@ -88,10 +80,7 @@ async fn fetch_rss(config: &Config, url: &str, filter: Option<&str>) -> Result<(
         if let (Some(title), Some(url)) = (item.title(), item.link()) {
             if let Some(re) = &re {
                 if re.is_match(title) {
-                    println!("{title} matches provided regex");
                     return Some((title, url));
-                } else {
-                    println!("{title} does not match provided regex");
                 }
             } else {
                 return Some((title, url));
@@ -106,12 +95,7 @@ async fn fetch_rss(config: &Config, url: &str, filter: Option<&str>) -> Result<(
             ..Default::default()
         };
         if let Err(e) = transclient.torrent_add(args).await {
-            eprintln!("error while adding a torrent: {e}");
-            if e.to_string().contains("expected value at line") {
-                eprintln!("Check whether your arguments are valid.");
-            }
-
-            std::process::exit(1);
+            bail!("error while adding a torrent: {e}")
         }
     }
     Ok(())
