@@ -1,3 +1,5 @@
+pub mod actions;
+
 use std::{
     collections::HashMap, io::ErrorKind, marker::PhantomData, path::PathBuf, sync::OnceLock,
 };
@@ -12,6 +14,8 @@ use serde::{
 use crate::utils;
 use rm_shared::action::Action;
 
+use self::actions::{general::GeneralAction, torrents_tab::TorrentsAction};
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct KeymapConfig {
     pub general: KeybindsHolder<GeneralAction>,
@@ -23,115 +27,6 @@ pub struct KeymapConfig {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct KeybindsHolder<T: Into<Action>> {
     pub keybindings: Vec<Keybinding<T>>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum GeneralAction {
-    ShowHelp,
-    Quit,
-    Close,
-    SwitchToTorrents,
-    SwitchToSearch,
-    Left,
-    Right,
-    Down,
-    Up,
-    Search,
-    SwitchFocus,
-    Confirm,
-    Select,
-    ScrollPageDown,
-    ScrollPageUp,
-    GoToBeginning,
-    GoToEnd,
-}
-
-pub trait UserAction: Into<Action> {
-    fn desc(&self) -> &'static str;
-}
-
-impl UserAction for GeneralAction {
-    fn desc(&self) -> &'static str {
-        match self {
-            GeneralAction::ShowHelp => "toggle help",
-            GeneralAction::Quit => "quit Rustmission / a popup",
-            GeneralAction::Close => "close a popup / task",
-            GeneralAction::SwitchToTorrents => "switch to torrents tab",
-            GeneralAction::SwitchToSearch => "switch to search tab",
-            GeneralAction::Left => "switch to tab left",
-            GeneralAction::Right => "switch to tab right",
-            GeneralAction::Down => "move down",
-            GeneralAction::Up => "move up",
-            GeneralAction::Search => "search",
-            GeneralAction::SwitchFocus => "switch focus",
-            GeneralAction::Confirm => "confirm",
-            GeneralAction::Select => "select",
-            GeneralAction::ScrollPageDown => "scroll page down",
-            GeneralAction::ScrollPageUp => "scroll page up",
-            GeneralAction::GoToBeginning => "scroll to the beginning",
-            GeneralAction::GoToEnd => "scroll to the end",
-        }
-    }
-}
-
-impl From<GeneralAction> for Action {
-    fn from(value: GeneralAction) -> Self {
-        match value {
-            GeneralAction::ShowHelp => Action::ShowHelp,
-            GeneralAction::Quit => Action::Quit,
-            GeneralAction::Close => Action::Close,
-            GeneralAction::SwitchToTorrents => Action::ChangeTab(1),
-            GeneralAction::SwitchToSearch => Action::ChangeTab(2),
-            GeneralAction::Left => Action::Left,
-            GeneralAction::Right => Action::Right,
-            GeneralAction::Down => Action::Down,
-            GeneralAction::Up => Action::Up,
-            GeneralAction::Search => Action::Search,
-            GeneralAction::SwitchFocus => Action::ChangeFocus,
-            GeneralAction::Confirm => Action::Confirm,
-            GeneralAction::Select => Action::Select,
-            GeneralAction::ScrollPageDown => Action::ScrollDownPage,
-            GeneralAction::ScrollPageUp => Action::ScrollUpPage,
-            GeneralAction::GoToBeginning => Action::Home,
-            GeneralAction::GoToEnd => Action::End,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TorrentsAction {
-    AddMagnet,
-    Pause,
-    DeleteWithFiles,
-    DeleteWithoutFiles,
-    ShowFiles,
-    ShowStats,
-}
-
-impl UserAction for TorrentsAction {
-    fn desc(&self) -> &'static str {
-        match self {
-            TorrentsAction::AddMagnet => "add a magnet",
-            TorrentsAction::Pause => "pause/unpause",
-            TorrentsAction::DeleteWithFiles => "delete with files",
-            TorrentsAction::DeleteWithoutFiles => "delete without files",
-            TorrentsAction::ShowFiles => "show files",
-            TorrentsAction::ShowStats => "show statistics",
-        }
-    }
-}
-
-impl From<TorrentsAction> for Action {
-    fn from(value: TorrentsAction) -> Self {
-        match value {
-            TorrentsAction::AddMagnet => Action::AddMagnet,
-            TorrentsAction::Pause => Action::Pause,
-            TorrentsAction::DeleteWithFiles => Action::DeleteWithFiles,
-            TorrentsAction::DeleteWithoutFiles => Action::DeleteWithoutFiles,
-            TorrentsAction::ShowFiles => Action::ShowFiles,
-            TorrentsAction::ShowStats => Action::ShowStats,
-        }
-    }
 }
 
 #[derive(Serialize, Clone)]
@@ -365,7 +260,7 @@ impl Default for KeyModifier {
 
 impl KeymapConfig {
     pub const FILENAME: &'static str = "keymap.toml";
-    const DEFAULT_CONFIG: &'static str = include_str!("../defaults/keymap.toml");
+    const DEFAULT_CONFIG: &'static str = include_str!("../../defaults/keymap.toml");
 
     pub fn init() -> Result<Self> {
         match utils::fetch_config::<Self>(Self::FILENAME) {

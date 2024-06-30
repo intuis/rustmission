@@ -12,7 +12,7 @@ use crate::{
     app,
     ui::{centered_rect, components::Component},
 };
-use rm_config::keymap::{Keybinding, UserAction};
+use rm_config::keymap::{actions::UserAction, Keybinding};
 use rm_shared::action::Action;
 
 macro_rules! add_line {
