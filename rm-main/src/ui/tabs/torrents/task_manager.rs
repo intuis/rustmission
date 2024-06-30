@@ -3,11 +3,8 @@ use std::sync::{Arc, Mutex};
 use ratatui::prelude::*;
 use throbber_widgets_tui::ThrobberState;
 
-use crate::{
-    action::Action,
-    app::{self},
-    ui::components::Component,
-};
+use crate::{app, ui::components::Component};
+use rm_shared::{action::Action, status_task::StatusTask};
 
 use super::{
     tasks::{
@@ -15,7 +12,7 @@ use super::{
         default::DefaultBar,
         delete_torrent::{self, DeleteBar, TorrentInfo},
         filter::FilterBar,
-        status::{CurrentTaskState, StatusBar, StatusTask},
+        status::{CurrentTaskState, StatusBar},
     },
     TableManager,
 };

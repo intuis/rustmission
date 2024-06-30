@@ -3,13 +3,12 @@ use ratatui::prelude::*;
 use transmission_rpc::types::Id;
 
 use crate::{
-    action::Action,
     app,
     transmission::TorrentAction,
     ui::{components::Component, tabs::torrents::input_manager::InputManager, to_input_request},
 };
-
-use super::status::StatusTask;
+use rm_shared::action::Action;
+use rm_shared::status_task::StatusTask;
 
 #[derive(Clone)]
 pub struct TorrentInfo {

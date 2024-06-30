@@ -2,13 +2,11 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
 
 use crate::{
-    action::Action,
     app,
     transmission::TorrentAction,
     ui::{components::Component, tabs::torrents::input_manager::InputManager, to_input_request},
 };
-
-use super::status::StatusTask;
+use rm_shared::{action::Action, status_task::StatusTask};
 
 pub struct AddMagnetBar {
     input_magnet_mgr: InputManager,

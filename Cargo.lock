@@ -276,6 +276,7 @@ dependencies = [
  "libc",
  "mio",
  "parking_lot",
+ "serde",
  "signal-hook",
  "signal-hook-mio",
  "winapi",
@@ -1245,11 +1246,21 @@ name = "rm-config"
 version = "0.3.3"
 dependencies = [
  "anyhow",
+ "crossterm",
  "ratatui",
+ "rm-shared",
  "serde",
+ "thiserror",
  "toml",
  "url",
  "xdg",
+]
+
+[[package]]
+name = "rm-shared"
+version = "0.3.3"
+dependencies = [
+ "crossterm",
 ]
 
 [[package]]
@@ -1349,6 +1360,7 @@ dependencies = [
  "magnetease",
  "ratatui",
  "rm-config",
+ "rm-shared",
  "serde",
  "throbber-widgets-tui",
  "tokio",
@@ -1921,6 +1933,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

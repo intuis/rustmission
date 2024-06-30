@@ -6,10 +6,10 @@ use std::{
 use transmission_rpc::types::{FreeSpace, SessionStats, TorrentGetField};
 
 use crate::{
-    action::Action,
     app,
     ui::tabs::torrents::{rustmission_torrent::RustmissionTorrent, table_manager::TableManager},
 };
+use rm_shared::action::Action;
 
 pub async fn stats(ctx: app::Ctx, stats: Arc<Mutex<Option<SessionStats>>>) {
     loop {
@@ -23,7 +23,7 @@ pub async fn stats(ctx: app::Ctx, stats: Arc<Mutex<Option<SessionStats>>>) {
             .arguments;
         *stats.lock().unwrap() = Some(new_stats);
         ctx.send_action(Action::Render);
-        tokio::time::sleep(Duration::from_secs(5)).await;
+        tokio::time::sleep(Duration::from_secs(ctx.config.connection.stats_refresh)).await;
     }
 }
 
@@ -50,7 +50,10 @@ pub async fn free_space(ctx: app::Ctx, free_space: Arc<Mutex<Option<FreeSpace>>>
             .arguments;
         *free_space.lock().unwrap() = Some(new_free_space);
         ctx.send_action(Action::Render);
-        tokio::time::sleep(Duration::from_secs(10)).await;
+        tokio::time::sleep(Duration::from_secs(
+            ctx.config.connection.free_space_refresh,
+        ))
+        .await;
     }
 }
 
@@ -85,6 +88,6 @@ pub async fn torrents(ctx: app::Ctx, table_manager: Arc<Mutex<TableManager>>) {
                 .set_new_rows(new_torrents.iter().map(RustmissionTorrent::from).collect());
         }
         ctx.send_action(Action::Render);
-        tokio::time::sleep(Duration::from_secs(5)).await;
+        tokio::time::sleep(Duration::from_secs(ctx.config.connection.torrents_refresh)).await;
     }
 }

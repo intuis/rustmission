@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{action::Action, ui::components::Component};
+use crate::ui::components::Component;
 
 use ratatui::{prelude::*, widgets::Paragraph};
+use rm_shared::{action::Action, status_task::StatusTask};
 use throbber_widgets_tui::ThrobberState;
 use tokio::time::{self, Instant};
 
@@ -121,12 +122,6 @@ impl Component for StatusBar {
             _ => None,
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum StatusTask {
-    Add(String),
-    Delete(String),
 }
 
 #[derive(Clone)]
