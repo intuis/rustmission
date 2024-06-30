@@ -1,9 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
+use rm_shared::action::Action;
 use transmission_rpc::types::Id;
 
 use crate::{
-    action::Action,
     app,
     transmission::TorrentAction,
     ui::{components::Component, tabs::torrents::input_manager::InputManager, to_input_request},

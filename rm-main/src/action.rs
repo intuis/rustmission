@@ -106,7 +106,6 @@ fn keycode_to_action(key: KeyCode) -> Option<Action> {
         KeyCode::Char('f') => Some(A::ShowFiles),
         KeyCode::Char('/') => Some(A::Search),
         KeyCode::Char('a') => Some(A::AddMagnet),
-        KeyCode::Char('m') => Some(A::MoveTorrent),
         KeyCode::Char('p') => Some(A::Pause),
         KeyCode::Char('d') => Some(A::DeleteWithoutFiles),
         KeyCode::Char('D') => Some(A::DeleteWithFiles),
