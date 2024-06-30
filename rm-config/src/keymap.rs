@@ -380,7 +380,6 @@ impl KeymapConfig {
                     keymap_config.populate_hashmap();
                     return Ok(keymap_config);
                 }
-                utils::ConfigFetchingError::Toml(_) => anyhow::bail!(e),
                 _ => anyhow::bail!(e),
             },
         }
