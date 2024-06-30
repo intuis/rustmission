@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
+use crate::status_task::StatusTask;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
     HardQuit,
@@ -33,6 +35,8 @@ pub enum Action {
     ChangeTab(u8),
     Input(KeyEvent),
     Error(Box<ErrorMessage>),
+    TaskPending(StatusTask),
+    TaskSuccess,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
