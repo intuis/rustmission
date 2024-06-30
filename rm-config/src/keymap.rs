@@ -3,7 +3,7 @@ use std::{
 };
 
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::{KeyCode, KeyModifiers as CrosstermKeyModifiers};
 use serde::{
     de::{self, Visitor},
     Deserialize, Serialize,
@@ -17,7 +17,7 @@ pub struct KeymapConfig {
     pub general: KeybindsHolder<GeneralAction>,
     pub torrents_tab: KeybindsHolder<TorrentsAction>,
     #[serde(skip)]
-    pub keymap: HashMap<(KeyCode, KeyModifiers), Action>,
+    pub keymap: HashMap<(KeyCode, CrosstermKeyModifiers), Action>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -344,15 +344,15 @@ impl KeyModifier {
     }
 }
 
-impl From<KeyModifier> for KeyModifiers {
+impl From<KeyModifier> for CrosstermKeyModifiers {
     fn from(value: KeyModifier) -> Self {
         match value {
-            KeyModifier::None => KeyModifiers::NONE,
-            KeyModifier::Ctrl => KeyModifiers::CONTROL,
-            KeyModifier::Shift => KeyModifiers::SHIFT,
-            KeyModifier::Alt => KeyModifiers::ALT,
-            KeyModifier::Super => KeyModifiers::SUPER,
-            KeyModifier::Meta => KeyModifiers::META,
+            KeyModifier::None => CrosstermKeyModifiers::NONE,
+            KeyModifier::Ctrl => CrosstermKeyModifiers::CONTROL,
+            KeyModifier::Shift => CrosstermKeyModifiers::SHIFT,
+            KeyModifier::Alt => CrosstermKeyModifiers::ALT,
+            KeyModifier::Super => CrosstermKeyModifiers::SUPER,
+            KeyModifier::Meta => CrosstermKeyModifiers::META,
         }
     }
 }
