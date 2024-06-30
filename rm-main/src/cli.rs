@@ -41,6 +41,11 @@ async fn add_torrent(config: &Config, torrent: String) -> Result<()> {
                 filename: Some(torrent),
                 ..Default::default()
             }
+        } else if torrent.starts_with("www") {
+            TorrentAddArgs {
+                filename: Some(format!("https://{torrent}")),
+                ..Default::default()
+            }
         } else {
             let mut torrent_file = File::open(torrent)?;
             let mut buf = vec![];
