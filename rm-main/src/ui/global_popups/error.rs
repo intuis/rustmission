@@ -26,7 +26,7 @@ impl Component for ErrorPopup {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         match action {
             _ if action.is_soft_quit() => Some(action),
-            Action::Confirm => Some(Action::SoftQuit),
+            Action::Confirm => Some(Action::Close),
             _ => None,
         }
     }

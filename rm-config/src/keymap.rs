@@ -29,7 +29,7 @@ pub struct KeybindsHolder<T: Into<Action>> {
 pub enum GeneralAction {
     ShowHelp,
     Quit,
-    SoftQuit,
+    Close,
     SwitchToTorrents,
     SwitchToSearch,
     Left,
@@ -55,7 +55,7 @@ impl UserAction for GeneralAction {
         match self {
             GeneralAction::ShowHelp => "toggle help",
             GeneralAction::Quit => "quit Rustmission / a popup",
-            GeneralAction::SoftQuit => "close a popup / task",
+            GeneralAction::Close => "close a popup / task",
             GeneralAction::SwitchToTorrents => "switch to torrents tab",
             GeneralAction::SwitchToSearch => "switch to search tab",
             GeneralAction::Left => "switch to tab left",
@@ -79,7 +79,7 @@ impl From<GeneralAction> for Action {
         match value {
             GeneralAction::ShowHelp => Action::ShowHelp,
             GeneralAction::Quit => Action::Quit,
-            GeneralAction::SoftQuit => Action::SoftQuit,
+            GeneralAction::Close => Action::Close,
             GeneralAction::SwitchToTorrents => Action::ChangeTab(1),
             GeneralAction::SwitchToSearch => Action::ChangeTab(2),
             GeneralAction::Left => Action::Left,

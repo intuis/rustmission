@@ -4,7 +4,7 @@ keybindings = [
   { on = "F1", action = "ShowHelp" },
 
   { on = "q", action = "Quit" },
-  { on = "Esc", action = "SoftQuit" },
+  { on = "Esc", action = "Close" },
   { on = "Enter", action = "Confirm" },
   { on = " ", action = "Select" },
   { on = "Tab", action = "SwitchFocus" },

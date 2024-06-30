@@ -30,7 +30,7 @@ impl Component for StatisticsPopup {
         use Action as A;
         match action {
             _ if action.is_soft_quit() => Some(action),
-            A::Confirm => Some(Action::SoftQuit),
+            A::Confirm => Some(Action::Close),
             _ => None,
         }
     }

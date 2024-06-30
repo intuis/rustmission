@@ -6,7 +6,7 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 pub enum Action {
     HardQuit,
     Quit,
-    SoftQuit,
+    Close,
     Render,
     Up,
     Down,
@@ -50,7 +50,7 @@ impl Action {
     }
 
     pub fn is_soft_quit(&self) -> bool {
-        self.is_quit() || *self == Self::SoftQuit
+        self.is_quit() || *self == Self::Close
     }
 }
 

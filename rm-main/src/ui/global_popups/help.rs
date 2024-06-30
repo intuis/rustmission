@@ -56,8 +56,8 @@ impl HelpPopup {
 impl Component for HelpPopup {
     fn handle_actions(&mut self, action: Action) -> Option<Action> {
         match action {
-            action if action.is_soft_quit() => Some(Action::SoftQuit),
-            Action::Confirm | Action::ShowHelp => Some(Action::SoftQuit),
+            action if action.is_soft_quit() => Some(Action::Close),
+            Action::Confirm | Action::ShowHelp => Some(Action::Close),
             _ => None,
         }
     }
