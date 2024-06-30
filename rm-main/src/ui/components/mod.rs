@@ -12,4 +12,7 @@ pub trait Component {
         None
     }
     fn render(&mut self, _f: &mut Frame, _rect: Rect) {}
+    fn tick(&mut self) -> Option<Action> {
+        None
+    }
 }

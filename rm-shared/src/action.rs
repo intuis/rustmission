@@ -7,6 +7,7 @@ pub enum Action {
     HardQuit,
     Quit,
     Close,
+    Tick,
     Render,
     Up,
     Down,

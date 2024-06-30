@@ -38,6 +38,12 @@ pub struct Connection {
     pub username: Option<String>,
     pub password: Option<String>,
     pub url: Url,
+    #[serde(default)]
+    pub torrents_refresh: u64,
+    #[serde(default)]
+    pub stats_refresh: u64,
+    #[serde(default)]
+    pub free_space_refresh: u64,
 }
 
 impl MainConfig {
