@@ -12,6 +12,7 @@ use super::{
         default::DefaultBar,
         delete_torrent::{self, DeleteBar, TorrentInfo},
         filter::FilterBar,
+        move_torrent::MoveBar,
         status::{CurrentTaskState, StatusBar},
     },
     TableManager,
@@ -37,6 +38,7 @@ pub enum CurrentTask {
     AddMagnetBar(AddMagnetBar),
     DeleteBar(DeleteBar),
     FilterBar(FilterBar),
+    MoveBar(MoveBar),
     Default(DefaultBar),
     Status(StatusBar),
 }
@@ -86,7 +88,11 @@ impl Component for TaskManager {
                 Some(A::Render) => Some(A::Render),
                 _ => None,
             },
-
+            CurrentTask::MoveBar(move_bar) => match move_bar.handle_actions(action) {
+                Some(A::Quit) => self.cancel_task(),
+                Some(A::Render) => Some(A::Render),
+                _ => None,
+            },
             CurrentTask::FilterBar(filter_bar) => match filter_bar.handle_actions(action) {
                 Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
@@ -99,7 +105,6 @@ impl Component for TaskManager {
                 Some(action) => self.handle_events_to_manager(&action),
                 _ => None,
             },
-
             CurrentTask::Default(_) => self.handle_events_to_manager(&action),
         }
     }
@@ -108,6 +113,7 @@ impl Component for TaskManager {
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => magnet_bar.render(f, rect),
             CurrentTask::DeleteBar(delete_bar) => delete_bar.render(f, rect),
+            CurrentTask::MoveBar(move_bar) => move_bar.render(f, rect),
             CurrentTask::FilterBar(filter_bar) => filter_bar.render(f, rect),
             CurrentTask::Default(default_bar) => default_bar.render(f, rect),
             CurrentTask::Status(status_bar) => status_bar.render(f, rect),
@@ -129,6 +135,7 @@ impl TaskManager {
             }
             Action::DeleteWithFiles => self.delete_torrent(delete_torrent::Mode::WithFiles),
             Action::DeleteWithoutFiles => self.delete_torrent(delete_torrent::Mode::WithoutFiles),
+            Action::MoveTorrent => self.move_torrent(),
             Action::Search => {
                 self.current_task = CurrentTask::FilterBar(FilterBar::new(
                     self.ctx.clone(),
@@ -149,6 +156,19 @@ impl TaskManager {
                     name: torrent.torrent_name.clone(),
                 }],
                 mode,
+            ));
+            Some(Action::SwitchToInputMode)
+        } else {
+            None
+        }
+    }
+
+    fn move_torrent(&mut self) -> Option<Action> {
+        if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
+            self.current_task = CurrentTask::MoveBar(MoveBar::new(
+                self.ctx.clone(),
+                vec![torrent.id.clone()],
+                torrent.download_dir.to_string(),
             ));
             Some(Action::SwitchToInputMode)
         } else {

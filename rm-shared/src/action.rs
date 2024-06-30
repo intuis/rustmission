@@ -32,6 +32,7 @@ pub enum Action {
     SwitchToNormalMode,
     ChangeFocus,
     AddMagnet,
+    MoveTorrent,
     ChangeTab(u8),
     Input(KeyEvent),
     Error(Box<ErrorMessage>),

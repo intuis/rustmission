@@ -71,6 +71,7 @@ pub async fn torrents(ctx: app::Ctx, table_manager: Arc<Mutex<TableManager>>) {
             TorrentGetField::RateUpload,
             TorrentGetField::RateDownload,
             TorrentGetField::Status,
+            TorrentGetField::DownloadDir,
         ];
         let rpc_response = ctx
             .client
