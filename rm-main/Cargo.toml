@@ -30,5 +30,7 @@ crossterm.workspace = true
 ratatui.workspace = true
 tui-input.workspace = true
 tui-tree-widget.workspace = true
+rss.workspace = true
+reqwest.workspace = true
+regex.workspace = true
 throbber-widgets-tui.workspace = true 
-

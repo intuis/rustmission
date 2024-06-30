@@ -27,6 +27,9 @@ base64 = "0.22"
 xdg = "2.5"
 url = { version = "2.5", features = ["serde"] }
 toml = "0.8"
+rss = "2"
+reqwest = "0.12"
+regex = "1"
 thiserror = "1"
 
 # Async
