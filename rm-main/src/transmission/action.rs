@@ -20,6 +20,8 @@ pub enum TorrentAction {
     GetTorrentInfo(Id, Arc<Mutex<Option<Torrent>>>),
     GetSessionGet(oneshot::Sender<SessionGet>),
     SetArgs(Box<TorrentSetArgs>, Option<Vec<Id>>),
+    // Torrent ID, Directory to move to
+    Move(Vec<Id>, String),
 }
 
 // TODO: make all the options use the same type of interface. Probably use a sender everywhere
@@ -123,6 +125,26 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     .unwrap()
                     .arguments;
                 sender.send(session_get).unwrap();
+            }
+            TorrentAction::Move(ids, new_directory) => {
+                if let Err(e) = ctx
+                    .client
+                    .lock()
+                    .await
+                    .torrent_set_location(ids, new_directory.clone(), Option::from(true))
+                    .await
+                {
+                    let error_title = "Failed to move torrent";
+                    let msg = "Failed to move torrent to new directory:\n\"".to_owned()
+                        + new_directory.as_str()
+                        + "\"\n"
+                        + &e.to_string();
+                    let error_message = ErrorMessage {
+                        title: error_title.to_string(),
+                        message: msg,
+                    };
+                    ctx.send_action(Action::Error(Box::new(error_message)));
+                }
             }
         }
     }

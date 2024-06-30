@@ -37,6 +37,7 @@ keybindings = [
 [torrents_tab]
 keybindings = [
   { on = "a", action = "AddMagnet" },
+  { on = "m", action = "MoveTorrent" },
   { on = "p", action = "Pause" },
   { on = "f", action = "ShowFiles" },
   { on = "s", action = "ShowStats" },
