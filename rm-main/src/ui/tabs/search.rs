@@ -4,7 +4,7 @@ use std::{
 };
 
 use crossterm::event::{KeyCode, KeyEvent};
-use magnetease::{magnetease::Magnetease, Magnet};
+use magnetease::{Magnet, Magnetease};
 use ratatui::{
     layout::Flex,
     prelude::*,
@@ -59,14 +59,13 @@ impl SearchTab {
                     .unwrap()
                     .searching(Arc::new(Mutex::new(ThrobberState::default())));
                 ctx_clone.send_action(Action::Render);
-                let res = magnetease.search(&search_phrase).await;
+                let res = magnetease.search(&search_phrase).await.unwrap();
                 if res.is_empty() {
                     search_result_info_clone.lock().unwrap().not_found();
                 } else {
                     search_result_info_clone.lock().unwrap().found(res.len());
                 }
 
-                // TODO: add an X icon if no results, else V when results
                 table_clone.lock().unwrap().set_items(res);
                 ctx_clone.send_action(Action::Render);
             }

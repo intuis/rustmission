@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyModifiers as CrosstermKeyModifiers};
+use ratatui::crossterm::event::{KeyCode, KeyModifiers as CrosstermKeyModifiers};
 use serde::{
     de::{self, Visitor},
     Deserialize, Serialize,
