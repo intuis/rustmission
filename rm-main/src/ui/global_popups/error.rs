@@ -33,8 +33,8 @@ impl Component for ErrorPopup {
 
     fn render(&mut self, f: &mut Frame, _rect: Rect) {
         let centered_rect = centered_rect(f.size(), 50, 50);
-        let popup_rect = centered_rect.inner(&Margin::new(1, 1));
-        let text_rect = popup_rect.inner(&Margin::new(3, 2));
+        let popup_rect = centered_rect.inner(Margin::new(1, 1));
+        let text_rect = popup_rect.inner(Margin::new(3, 2));
         let button_rect = Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)])
             .split(text_rect)[1];
 
