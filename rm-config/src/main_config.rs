@@ -1,9 +1,8 @@
 use std::{io::ErrorKind, path::PathBuf, sync::OnceLock};
 
 use anyhow::Result;
-use ratatui::style::Color;
-use serde::{Deserialize, Deserializer};
-use transmission_rpc::types::TorrentGetField;
+use ratatui::{layout::Constraint, style::Color};
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::utils::{self};
@@ -52,28 +51,46 @@ fn default_refresh() -> u64 {
     5
 }
 
-#[derive(Deserialize)]
-pub struct TorrentsTab {
-    #[serde(deserialize_with = "get_field_deserializer")]
-    pub headers: Vec<TorrentGetField>,
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Header {
+    Name,
+    SizeWhenDone,
+    Progress,
+    Eta,
+    DownloadRate,
+    UploadRate,
+    DownloadDir,
 }
 
-fn get_field_deserializer<'de, D: Deserializer<'de>>(
-    deserializer: D,
-) -> Result<Vec<TorrentGetField>, D::Error> {
-    let vals: Vec<String> = Vec::deserialize(deserializer)?;
-
-    let mut headers = vec![];
-
-    for val in vals {
-        match val.to_lowercase().as_str() {
-            "name" => headers.push(TorrentGetField::Name),
-            "downloaddir" => headers.push(TorrentGetField::DownloadDir),
-            _ => todo!(),
+impl Header {
+    pub fn default_constraint(&self) -> Constraint {
+        match self {
+            Header::Name => Constraint::Max(70),
+            Header::SizeWhenDone => Constraint::Length(12),
+            Header::Progress => Constraint::Length(12),
+            Header::Eta => Constraint::Length(12),
+            Header::DownloadRate => Constraint::Length(12),
+            Header::UploadRate => Constraint::Length(12),
+            Header::DownloadDir => Constraint::Max(70),
         }
     }
 
-    Ok(headers)
+    pub fn header_name(&self) -> &'static str {
+        match self {
+            Header::Name => "Name",
+            Header::SizeWhenDone => "Size",
+            Header::Progress => "Progress",
+            Header::Eta => "ETA",
+            Header::DownloadRate => "Download",
+            Header::UploadRate => "Upload",
+            Header::DownloadDir => "Directory",
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct TorrentsTab {
+    pub headers: Vec<Header>,
 }
 
 impl MainConfig {

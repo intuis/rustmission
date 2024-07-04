@@ -1,7 +1,10 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{prelude::*, widgets::Row};
-use std::sync::{Arc, Mutex};
-use transmission_rpc::types::TorrentGetField;
+use rm_config::main_config::Header;
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+};
 
 use crate::{app, ui::components::table::GenericTable};
 
@@ -13,7 +16,7 @@ pub struct TableManager {
     pub widths: Vec<Constraint>,
     pub filter: Arc<Mutex<Option<String>>>,
     pub torrents_displaying_no: u16,
-    headers: Vec<String>,
+    headers: Vec<&'static str>,
 }
 
 impl TableManager {
@@ -21,49 +24,7 @@ impl TableManager {
         let widths = Self::default_widths(&ctx.config.torrents_tab.headers);
         let mut headers = vec![];
         for header in &ctx.config.torrents_tab.headers {
-            match header {
-                TorrentGetField::ActivityDate => todo!(),
-                TorrentGetField::AddedDate => todo!(),
-                TorrentGetField::DoneDate => todo!(),
-                TorrentGetField::DownloadDir => headers.push("Directory".to_owned()),
-                TorrentGetField::EditDate => todo!(),
-                TorrentGetField::Error => todo!(),
-                TorrentGetField::ErrorString => todo!(),
-                TorrentGetField::Eta => todo!(),
-                TorrentGetField::FileCount => todo!(),
-                TorrentGetField::FileStats => todo!(),
-                TorrentGetField::Files => todo!(),
-                TorrentGetField::HashString => todo!(),
-                TorrentGetField::Id => todo!(),
-                TorrentGetField::IsFinished => todo!(),
-                TorrentGetField::IsPrivate => todo!(),
-                TorrentGetField::IsStalled => todo!(),
-                TorrentGetField::Labels => todo!(),
-                TorrentGetField::LeftUntilDone => todo!(),
-                TorrentGetField::MetadataPercentComplete => todo!(),
-                TorrentGetField::Name => headers.push("Name".to_owned()),
-                TorrentGetField::PeersConnected => todo!(),
-                TorrentGetField::PeersGettingFromUs => todo!(),
-                TorrentGetField::PeersSendingToUs => todo!(),
-                TorrentGetField::PercentDone => todo!(),
-                TorrentGetField::Priorities => todo!(),
-                TorrentGetField::QueuePosition => todo!(),
-                TorrentGetField::RateDownload => todo!(),
-                TorrentGetField::RateUpload => todo!(),
-                TorrentGetField::RecheckProgress => todo!(),
-                TorrentGetField::SecondsSeeding => todo!(),
-                TorrentGetField::SeedRatioLimit => todo!(),
-                TorrentGetField::SeedRatioMode => todo!(),
-                TorrentGetField::SizeWhenDone => todo!(),
-                TorrentGetField::Status => todo!(),
-                TorrentGetField::TorrentFile => todo!(),
-                TorrentGetField::TotalSize => todo!(),
-                TorrentGetField::Trackers => todo!(),
-                TorrentGetField::UploadRatio => todo!(),
-                TorrentGetField::UploadedEver => todo!(),
-                TorrentGetField::Wanted => todo!(),
-                TorrentGetField::WebseedsSendingToUs => todo!(),
-            }
+            headers.push(header.header_name());
         }
 
         Self {
@@ -90,7 +51,7 @@ impl TableManager {
         }
     }
 
-    pub const fn header(&self) -> &Vec<String> {
+    pub const fn header(&self) -> &Vec<&'static str> {
         &self.headers
     }
 
@@ -140,95 +101,60 @@ impl TableManager {
         rows
     }
 
-    fn default_widths(headers: &Vec<TorrentGetField>) -> Vec<Constraint> {
+    fn default_widths(headers: &Vec<Header>) -> Vec<Constraint> {
         let mut constraints = vec![];
 
         for header in headers {
-            match header {
-                TorrentGetField::ActivityDate => todo!(),
-                TorrentGetField::AddedDate => todo!(),
-                TorrentGetField::DoneDate => todo!(),
-                TorrentGetField::DownloadDir => constraints.push(Constraint::Max(70)),
-                TorrentGetField::EditDate => todo!(),
-                TorrentGetField::Error => todo!(),
-                TorrentGetField::ErrorString => todo!(),
-                TorrentGetField::Eta => todo!(),
-                TorrentGetField::FileCount => todo!(),
-                TorrentGetField::FileStats => todo!(),
-                TorrentGetField::Files => todo!(),
-                TorrentGetField::HashString => todo!(),
-                TorrentGetField::Id => todo!(),
-                TorrentGetField::IsFinished => todo!(),
-                TorrentGetField::IsPrivate => todo!(),
-                TorrentGetField::IsStalled => todo!(),
-                TorrentGetField::Labels => todo!(),
-                TorrentGetField::LeftUntilDone => todo!(),
-                TorrentGetField::MetadataPercentComplete => todo!(),
-                TorrentGetField::Name => constraints.push(Constraint::Max(70)),
-                TorrentGetField::PeersConnected => todo!(),
-                TorrentGetField::PeersGettingFromUs => todo!(),
-                TorrentGetField::PeersSendingToUs => todo!(),
-                TorrentGetField::PercentDone => todo!(),
-                TorrentGetField::Priorities => todo!(),
-                TorrentGetField::QueuePosition => todo!(),
-                TorrentGetField::RateDownload => todo!(),
-                TorrentGetField::RateUpload => todo!(),
-                TorrentGetField::RecheckProgress => todo!(),
-                TorrentGetField::SecondsSeeding => todo!(),
-                TorrentGetField::SeedRatioLimit => todo!(),
-                TorrentGetField::SeedRatioMode => todo!(),
-                TorrentGetField::SizeWhenDone => todo!(),
-                TorrentGetField::Status => todo!(),
-                TorrentGetField::TorrentFile => todo!(),
-                TorrentGetField::TotalSize => todo!(),
-                TorrentGetField::Trackers => todo!(),
-                TorrentGetField::UploadRatio => todo!(),
-                TorrentGetField::UploadedEver => todo!(),
-                TorrentGetField::Wanted => todo!(),
-                TorrentGetField::WebseedsSendingToUs => todo!(),
-            }
+            constraints.push(header.default_constraint())
         }
         constraints
     }
 
     fn header_widths(&self, rows: &[RustmissionTorrent]) -> Vec<Constraint> {
+        let headers = &self.ctx.config.torrents_tab.headers;
+
         if !self.ctx.config.general.auto_hide {
-            return Self::default_widths(&self.ctx.config.torrents_tab.headers);
+            return Self::default_widths(&headers);
         }
 
-        let mut constraints = Self::default_widths(&self.ctx.config.torrents_tab.headers);
-        constraints
+        let mut map = BTreeMap::new();
 
-        // let mut download_width = 0;
-        // let mut upload_width = 0;
-        // let mut progress_width = 0;
-        // let mut eta_width = 0;
+        for header in headers {
+            map.insert(header, header.default_constraint());
+        }
 
-        // for row in rows {
-        //     if !row.download_speed.is_empty() {
-        //         download_width = 11;
-        //     }
-        //     if !row.upload_speed.is_empty() {
-        //         upload_width = 11;
-        //     }
-        //     if !row.progress.is_empty() {
-        //         progress_width = 11;
-        //     }
+        let hidable_headers = [
+            Header::Progress,
+            Header::UploadRate,
+            Header::DownloadRate,
+            Header::Eta,
+        ];
 
-        //     if !row.eta_secs.is_empty() {
-        //         eta_width = 11;
-        //     }
-        // }
+        for hidable_header in &hidable_headers {
+            map.entry(hidable_header)
+                .and_modify(|c| *c = Constraint::Length(0));
+        }
 
-        // [
-        //     Constraint::Max(70),                // Name
-        //     Constraint::Length(5),              // <padding>
-        //     Constraint::Length(11),             // Size
-        //     Constraint::Length(progress_width), // Progress
-        //     Constraint::Length(eta_width),      // ETA
-        //     Constraint::Length(download_width), // Download
-        //     Constraint::Length(upload_width),   // Upload
-        //     Constraint::Max(70),                // Download directory
-        // ]
+        for row in rows {
+            if !row.download_speed.is_empty() {
+                map.entry(&Header::DownloadRate)
+                    .and_modify(|c| *c = Header::DownloadRate.default_constraint());
+            }
+            if !row.upload_speed.is_empty() {
+                map.entry(&Header::UploadRate)
+                    .and_modify(|c| *c = Header::UploadRate.default_constraint());
+            }
+            if !row.progress.is_empty() {
+                map.entry(&Header::Progress)
+                    .and_modify(|c| *c = Header::Progress.default_constraint());
+            }
+
+            if !row.eta_secs.is_empty() {
+                map.entry(&Header::Eta)
+                    .and_modify(|c| *c = Header::Eta.default_constraint());
+            }
+        }
+
+        map.values().cloned().collect()
     }
 }

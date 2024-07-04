@@ -1,5 +1,5 @@
 pub mod keymap;
-mod main_config;
+pub mod main_config;
 mod utils;
 
 use std::path::PathBuf;

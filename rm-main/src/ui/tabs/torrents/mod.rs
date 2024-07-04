@@ -124,9 +124,7 @@ impl TorrentsTab {
             let table = Table::new(torrent_rows, &table_manager_lock.widths)
                 .highlight_style(highlight_table_style);
             if !self.ctx.config.general.headers_hide {
-                table.header(Row::new(
-                    table_manager_lock.header().iter().map(|s| s.as_str()),
-                ))
+                table.header(Row::new(table_manager_lock.header().iter().cloned()))
             } else {
                 table
             }

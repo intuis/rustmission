@@ -3,7 +3,8 @@ use ratatui::{
     text::{Line, Span},
     widgets::Row,
 };
-use transmission_rpc::types::{Id, Torrent, TorrentGetField, TorrentStatus};
+use rm_config::main_config::Header;
+use transmission_rpc::types::{Id, Torrent, TorrentStatus};
 
 use crate::utils::{
     bytes_to_human_format, download_speed_format, seconds_to_human_format, upload_speed_format,
@@ -24,69 +25,25 @@ pub struct RustmissionTorrent {
 }
 
 impl RustmissionTorrent {
-    pub fn to_row(&self, headers: &Vec<TorrentGetField>) -> ratatui::widgets::Row {
+    pub fn to_row(&self, headers: &Vec<Header>) -> ratatui::widgets::Row {
         let mut cells = vec![];
         for header in headers {
             match header {
-                TorrentGetField::ActivityDate => todo!(),
-                TorrentGetField::AddedDate => todo!(),
-                TorrentGetField::DoneDate => todo!(),
-                TorrentGetField::DownloadDir => cells.push(Line::from(self.download_dir.as_str())),
-                TorrentGetField::EditDate => todo!(),
-                TorrentGetField::Error => todo!(),
-                TorrentGetField::ErrorString => todo!(),
-                TorrentGetField::Eta => cells.push(Line::from(self.size_when_done.as_str())),
-                TorrentGetField::FileCount => todo!(),
-                TorrentGetField::FileStats => todo!(),
-                TorrentGetField::Files => todo!(),
-                TorrentGetField::HashString => todo!(),
-                TorrentGetField::Id => todo!(),
-                TorrentGetField::IsFinished => todo!(),
-                TorrentGetField::IsPrivate => todo!(),
-                TorrentGetField::IsStalled => todo!(),
-                TorrentGetField::Labels => todo!(),
-                TorrentGetField::LeftUntilDone => todo!(),
-                TorrentGetField::MetadataPercentComplete => todo!(),
-                TorrentGetField::Name => cells.push(Line::from(self.torrent_name.as_str())),
-                TorrentGetField::PeersConnected => todo!(),
-                TorrentGetField::PeersGettingFromUs => todo!(),
-                TorrentGetField::PeersSendingToUs => todo!(),
-                TorrentGetField::PercentDone => todo!(),
-                TorrentGetField::Priorities => todo!(),
-                TorrentGetField::QueuePosition => todo!(),
-                TorrentGetField::RateDownload => todo!(),
-                TorrentGetField::RateUpload => todo!(),
-                TorrentGetField::RecheckProgress => todo!(),
-                TorrentGetField::SecondsSeeding => todo!(),
-                TorrentGetField::SeedRatioLimit => todo!(),
-                TorrentGetField::SeedRatioMode => todo!(),
-                TorrentGetField::SizeWhenDone => {
-                    cells.push(Line::from(self.size_when_done.as_str()))
+                Header::Name => cells.push(Line::from(self.torrent_name.as_str())),
+                Header::SizeWhenDone => cells.push(Line::from(self.size_when_done.as_str())),
+                Header::Progress => cells.push(Line::from(self.progress.as_str())),
+                Header::Eta => cells.push(Line::from(self.eta_secs.as_str())),
+                Header::DownloadRate => {
+                    cells.push(Line::from(download_speed_format(&self.download_speed)))
                 }
-                TorrentGetField::Status => todo!(),
-                TorrentGetField::TorrentFile => todo!(),
-                TorrentGetField::TotalSize => todo!(),
-                TorrentGetField::Trackers => todo!(),
-                TorrentGetField::UploadRatio => todo!(),
-                TorrentGetField::UploadedEver => todo!(),
-                TorrentGetField::Wanted => todo!(),
-                TorrentGetField::WebseedsSendingToUs => todo!(),
-            }
+                Header::UploadRate => {
+                    cells.push(Line::from(upload_speed_format(&self.upload_speed)))
+                }
+                Header::DownloadDir => cells.push(Line::from(self.download_dir.as_str())),
+            };
         }
 
         Row::new(cells).style(self.style)
-
-        // Row::new([
-        //     Line::from(self.torrent_name.as_str()),
-        //     Line::from(""),
-        //     Line::from(self.size_when_done.as_str()),
-        //     Line::from(self.progress.as_str()),
-        //     Line::from(self.eta_secs.as_str()),
-        //     Line::from(download_speed_format(&self.download_speed)),
-        //     Line::from(upload_speed_format(&self.upload_speed)),
-        //     Line::from(self.download_dir.as_str()),
-        // ])
-        // .style(self.style)
     }
 
     pub fn to_row_with_higlighted_indices(
