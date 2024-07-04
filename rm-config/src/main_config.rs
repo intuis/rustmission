@@ -1,19 +1,21 @@
-use std::{path::PathBuf, sync::OnceLock};
+use std::{io::ErrorKind, path::PathBuf, sync::OnceLock};
 
 use anyhow::Result;
 use ratatui::style::Color;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer};
+use transmission_rpc::types::TorrentGetField;
 use url::Url;
 
-use crate::utils::{self, put_config};
+use crate::utils::{self};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct MainConfig {
     pub general: General,
     pub connection: Connection,
+    pub torrents_tab: TorrentsTab,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct General {
     #[serde(default)]
     pub auto_hide: bool,
@@ -33,7 +35,7 @@ fn default_beginner_mode() -> bool {
     true
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Connection {
     pub username: Option<String>,
     pub password: Option<String>,
@@ -50,19 +52,46 @@ fn default_refresh() -> u64 {
     5
 }
 
+#[derive(Deserialize)]
+pub struct TorrentsTab {
+    #[serde(deserialize_with = "get_field_deserializer")]
+    pub headers: Vec<TorrentGetField>,
+}
+
+fn get_field_deserializer<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Vec<TorrentGetField>, D::Error> {
+    let vals: Vec<String> = Vec::deserialize(deserializer)?;
+
+    let mut headers = vec![];
+
+    for val in vals {
+        match val.to_lowercase().as_str() {
+            "name" => headers.push(TorrentGetField::Name),
+            "downloaddir" => headers.push(TorrentGetField::DownloadDir),
+            _ => todo!(),
+        }
+    }
+
+    Ok(headers)
+}
+
 impl MainConfig {
     pub(crate) const FILENAME: &'static str = "config.toml";
     const DEFAULT_CONFIG: &'static str = include_str!("../defaults/config.toml");
 
     pub(crate) fn init() -> Result<Self> {
-        let Ok(config) = utils::fetch_config(Self::FILENAME) else {
-            put_config(Self::DEFAULT_CONFIG, Self::FILENAME)?;
-            // TODO: check if the user really changed the config.
-            println!("Update {:?} and start rustmission again", Self::path());
-            std::process::exit(0);
+        match utils::fetch_config::<Self>(Self::FILENAME) {
+            Ok(config) => return Ok(config),
+            Err(e) => match e {
+                utils::ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
+                    utils::put_config::<Self>(Self::DEFAULT_CONFIG, Self::FILENAME)?;
+                    println!("Update {:?} and start rustmission again", Self::path());
+                    std::process::exit(0);
+                }
+                _ => anyhow::bail!(e),
+            },
         };
-
-        Ok(config)
     }
 
     pub(crate) fn path() -> &'static PathBuf {

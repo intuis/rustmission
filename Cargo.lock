@@ -1444,6 +1444,7 @@ dependencies = [
  "serde",
  "thiserror",
  "toml",
+ "transmission-rpc",
  "url",
  "xdg",
 ]
