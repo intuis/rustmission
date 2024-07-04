@@ -64,8 +64,8 @@ impl Component for HelpPopup {
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         let centered_rect = centered_rect(rect, 75, 75);
-        let popup_rect = centered_rect.inner(&Margin::new(1, 1));
-        let text_rect = popup_rect.inner(&Margin::new(3, 2));
+        let popup_rect = centered_rect.inner(Margin::new(1, 1));
+        let text_rect = popup_rect.inner(Margin::new(3, 2));
 
         let title_style = Style::new().fg(self.ctx.config.general.accent_color);
         let block = Block::bordered()
