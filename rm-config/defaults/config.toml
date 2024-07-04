@@ -1,4 +1,4 @@
-[general]
+[General]
 # Whether to hide empty columns or not
 auto_hide = false
 
@@ -19,7 +19,7 @@ url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 
 # Refresh timings (in seconds)
 torrents_refresh = 5
-stats_refresh = 10
+stats_refresh = 5
 free_space_refresh = 10
 
 # If you need username and password to authenticate:
@@ -28,4 +28,6 @@ free_space_refresh = 10
 
 
 [torrents_tab]
-headers = [ "Name", "DownloadDir" ]
+# Available fields:
+# Name, SizeWhenDone, Progress, DownloadRate, UploadRate, DownloadDir
+headers = ["Name", "SizeWhenDone", "Progress", "DownloadRate", "UploadRate"]

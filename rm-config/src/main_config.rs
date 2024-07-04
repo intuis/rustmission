@@ -11,6 +11,7 @@ use crate::utils::{self};
 pub struct MainConfig {
     pub general: General,
     pub connection: Connection,
+    #[serde(default)]
     pub torrents_tab: TorrentsTab,
 }
 
@@ -91,6 +92,21 @@ impl Header {
 #[derive(Deserialize)]
 pub struct TorrentsTab {
     pub headers: Vec<Header>,
+}
+
+impl Default for TorrentsTab {
+    fn default() -> Self {
+        Self {
+            headers: vec![
+                Header::Name,
+                Header::SizeWhenDone,
+                Header::Progress,
+                Header::Eta,
+                Header::DownloadRate,
+                Header::UploadRate,
+            ],
+        }
+    }
 }
 
 impl MainConfig {
