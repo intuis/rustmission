@@ -4,17 +4,17 @@ use std::{
 };
 
 use crossterm::event::{KeyCode, KeyEvent};
-use magnetease::{magnetease::Magnetease, Magnet};
+use magnetease::{Magnet, Magnetease};
 use ratatui::{
     layout::Flex,
     prelude::*,
     widgets::{Cell, Paragraph, Row, Table},
 };
+use throbber_widgets_tui::ThrobberState;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::Input;
 
 use crate::{
-    action::Action,
     app,
     transmission::TorrentAction,
     ui::{
@@ -23,6 +23,7 @@ use crate::{
     },
     utils::bytes_to_human_format,
 };
+use rm_shared::action::Action;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum SearchFocus {
@@ -53,16 +54,18 @@ impl SearchTab {
         tokio::task::spawn(async move {
             let magnetease = Magnetease::new();
             while let Some(search_phrase) = rx.recv().await {
-                search_result_info_clone.lock().unwrap().searching();
+                search_result_info_clone
+                    .lock()
+                    .unwrap()
+                    .searching(Arc::new(Mutex::new(ThrobberState::default())));
                 ctx_clone.send_action(Action::Render);
-                let res = magnetease.search(&search_phrase).await;
+                let res = magnetease.search(&search_phrase).await.unwrap();
                 if res.is_empty() {
                     search_result_info_clone.lock().unwrap().not_found();
                 } else {
                     search_result_info_clone.lock().unwrap().found(res.len());
                 }
 
-                // TODO: add an X icon if no results, else V when results
                 table_clone.lock().unwrap().set_items(res);
                 ctx_clone.send_action(Action::Render);
             }
@@ -193,9 +196,15 @@ impl Component for SearchTab {
             A::Home => self.scroll_to_home(),
             A::End => self.scroll_to_end(),
             A::Confirm => self.add_torrent(),
+            A::Tick => self.tick(),
 
             _ => None,
         }
+    }
+
+    fn tick(&mut self) -> Option<Action> {
+        self.search_result_info.lock().unwrap().tick();
+        Some(Action::Render)
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
@@ -284,11 +293,11 @@ impl Component for SearchTab {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 enum SearchResultState {
     Nothing,
     NoResults,
-    Searching,
+    Searching(Arc<Mutex<ThrobberState>>),
     Found(usize),
 }
 
@@ -297,8 +306,8 @@ impl SearchResultState {
         Self::Nothing
     }
 
-    fn searching(&mut self) {
-        *self = Self::Searching;
+    fn searching(&mut self, state: Arc<Mutex<ThrobberState>>) {
+        *self = Self::Searching(state);
     }
 
     fn not_found(&mut self) {
@@ -314,8 +323,15 @@ impl Component for SearchResultState {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         match self {
             SearchResultState::Nothing => return,
-            SearchResultState::Searching => {
-                f.render_widget("󱗼 Searching...", rect);
+            SearchResultState::Searching(state) => {
+                let default_throbber = throbber_widgets_tui::Throbber::default()
+                    .label("Searching...")
+                    .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
+                f.render_stateful_widget(
+                    default_throbber.clone(),
+                    rect,
+                    &mut state.lock().unwrap(),
+                );
             }
             SearchResultState::NoResults => {
                 let mut line = Line::default();
@@ -331,6 +347,16 @@ impl Component for SearchResultState {
                 let paragraph = Paragraph::new(line);
                 f.render_widget(paragraph, rect);
             }
+        }
+    }
+
+    fn tick(&mut self) -> Option<Action> {
+        match self {
+            SearchResultState::Searching(state) => {
+                state.lock().unwrap().calc_next();
+                Some(Action::Render)
+            }
+            _ => None,
         }
     }
 }

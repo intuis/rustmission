@@ -9,7 +9,7 @@ use super::rustmission_torrent::RustmissionTorrent;
 pub struct TableManager {
     ctx: app::Ctx,
     pub table: GenericTable<RustmissionTorrent>,
-    pub widths: [Constraint; 8],
+    pub widths: [Constraint; 9],
     pub filter: Arc<Mutex<Option<String>>>,
     pub torrents_displaying_no: u16,
     header: Vec<String>,
@@ -33,6 +33,7 @@ impl TableManager {
                 "ETA".to_owned(),
                 "Download".to_owned(),
                 "Upload".to_owned(),
+                "Directory".to_owned(),
             ],
         }
     }
@@ -101,7 +102,7 @@ impl TableManager {
         rows
     }
 
-    const fn default_widths() -> [Constraint; 8] {
+    const fn default_widths() -> [Constraint; 9] {
         [
             Constraint::Length(1),  // State
             Constraint::Max(70),    // Name
@@ -111,10 +112,11 @@ impl TableManager {
             Constraint::Length(12), // ETA
             Constraint::Length(12), // Download
             Constraint::Length(12), // Upload
+            Constraint::Max(70),    // Download directory
         ]
     }
 
-    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 8] {
+    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 9] {
         if !self.ctx.config.general.auto_hide {
             return Self::default_widths();
         }
@@ -149,6 +151,7 @@ impl TableManager {
             Constraint::Length(eta_width),      // ETA
             Constraint::Length(download_width), // Download
             Constraint::Length(upload_width),   // Upload
+            Constraint::Max(70),                // Download directory
         ]
     }
 }
