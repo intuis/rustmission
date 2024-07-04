@@ -1435,7 +1435,7 @@ dependencies = [
 
 [[package]]
 name = "rm-config"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "crossterm",
@@ -1450,7 +1450,7 @@ dependencies = [
 
 [[package]]
 name = "rm-shared"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "crossterm",
 ]
@@ -1566,7 +1566,7 @@ dependencies = [
 
 [[package]]
 name = "rustmission"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
