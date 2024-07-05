@@ -92,6 +92,7 @@ pub fn event_to_action(
             }
             keymap.get(&(key.code, key.modifiers)).cloned()
         }
+        Event::Resize(_, _) => Some(A::Render),
         _ => None,
     }
 }
