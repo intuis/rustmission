@@ -12,6 +12,7 @@ use ratatui::{
         Block, BorderType, Clear, Paragraph,
     },
 };
+use tokio::sync::oneshot;
 use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
@@ -39,17 +40,13 @@ async fn fetch_new_files(
     ctx: app::Ctx,
 ) {
     loop {
-        let new_torrent = ctx
-            .client
-            .lock()
-            .await
-            .torrent_get(None, Some(vec![torrent_id.clone()]))
-            .await
-            .unwrap()
-            .arguments
-            .torrents
-            .pop()
-            .unwrap();
+        let (torrent_tx, torrent_rx) = oneshot::channel();
+        ctx.send_torrent_action(TorrentAction::GetTorrentsById(
+            vec![torrent_id.clone()],
+            torrent_tx,
+        ));
+        let new_torrent = torrent_rx.await.unwrap().pop().unwrap();
+
         let new_tree = Node::new_from_torrent(&new_torrent);
         *torrent.lock().unwrap() = Some(new_torrent);
         *tree.lock().unwrap() = new_tree;

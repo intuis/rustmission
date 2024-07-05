@@ -1,15 +1,16 @@
 use std::sync::{Arc, Mutex};
 
+use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::{mpsc::UnboundedReceiver, oneshot};
 use transmission_rpc::types::{
-    Id, SessionGet, Torrent, TorrentAction as RPCAction, TorrentAddArgs, TorrentSetArgs,
+    FreeSpace, Id, SessionGet, SessionStats, Torrent, TorrentAction as RPCAction, TorrentAddArgs,
+    TorrentGetField, TorrentSetArgs,
 };
+use transmission_rpc::TransClient;
 
-use crate::app;
 use rm_shared::action::Action;
 use rm_shared::action::ErrorMessage;
 
-#[derive(Debug)]
 pub enum TorrentAction {
     // Magnet/URL, Directory
     Add(String, Option<String>),
@@ -22,10 +23,17 @@ pub enum TorrentAction {
     SetArgs(Box<TorrentSetArgs>, Option<Vec<Id>>),
     // Torrent ID, Directory to move to
     Move(Vec<Id>, String),
+    GetSessionStats(oneshot::Sender<SessionStats>),
+    GetFreeSpace(String, oneshot::Sender<FreeSpace>),
+    GetTorrents(Vec<TorrentGetField>, oneshot::Sender<Vec<Torrent>>),
+    GetTorrentsById(Vec<Id>, oneshot::Sender<Vec<Torrent>>),
 }
 
-// TODO: make all the options use the same type of interface. Probably use a sender everywhere
-pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<TorrentAction>) {
+pub async fn action_handler(
+    mut client: TransClient,
+    mut trans_rx: UnboundedReceiver<TorrentAction>,
+    action_tx: UnboundedSender<Action>,
+) {
     while let Some(action) = trans_rx.recv().await {
         match action {
             TorrentAction::Add(ref url, directory) => {
@@ -41,9 +49,9 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                     download_dir: directory,
                     ..Default::default()
                 };
-                match ctx.client.lock().await.torrent_add(args).await {
+                match client.torrent_add(args).await {
                     Ok(_) => {
-                        ctx.send_action(Action::TaskSuccess);
+                        action_tx.send(Action::TaskSuccess).unwrap();
                     }
                     Err(e) => {
                         let error_title = "Failed to add a torrent";
@@ -55,49 +63,34 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                             title: error_title.to_string(),
                             message: msg,
                         };
-                        ctx.send_action(Action::Error(Box::new(error_message)));
+                        action_tx
+                            .send(Action::Error(Box::new(error_message)))
+                            .unwrap();
                     }
                 }
             }
             TorrentAction::Stop(ids) => {
-                ctx.client
-                    .lock()
-                    .await
+                client
                     .torrent_action(RPCAction::Stop, ids.clone())
                     .await
                     .unwrap();
             }
             TorrentAction::Start(ids) => {
-                ctx.client
-                    .lock()
-                    .await
+                client
                     .torrent_action(RPCAction::Start, ids.clone())
                     .await
                     .unwrap();
             }
             TorrentAction::DeleteWithFiles(ids) => {
-                ctx.client
-                    .lock()
-                    .await
-                    .torrent_remove(ids, true)
-                    .await
-                    .unwrap();
-                ctx.send_action(Action::TaskSuccess)
+                client.torrent_remove(ids, true).await.unwrap();
+                action_tx.send(Action::TaskSuccess).unwrap();
             }
             TorrentAction::DeleteWithoutFiles(ids) => {
-                ctx.client
-                    .lock()
-                    .await
-                    .torrent_remove(ids, false)
-                    .await
-                    .unwrap();
-                ctx.send_action(Action::TaskSuccess)
+                client.torrent_remove(ids, false).await.unwrap();
+                action_tx.send(Action::TaskSuccess).unwrap();
             }
             TorrentAction::GetTorrentInfo(id, torrent_info) => {
-                let new_torrent_info = ctx
-                    .client
-                    .lock()
-                    .await
+                let new_torrent_info = client
                     .torrent_get(None, Some(vec![id]))
                     .await
                     .unwrap()
@@ -108,29 +101,14 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                 *torrent_info.lock().unwrap() = Some(new_torrent_info);
             }
             TorrentAction::SetArgs(args, ids) => {
-                ctx.client
-                    .lock()
-                    .await
-                    .torrent_set(*args, ids)
-                    .await
-                    .unwrap();
+                client.torrent_set(*args, ids).await.unwrap();
             }
             TorrentAction::GetSessionGet(sender) => {
-                let session_get = ctx
-                    .client
-                    .lock()
-                    .await
-                    .session_get()
-                    .await
-                    .unwrap()
-                    .arguments;
+                let session_get = client.session_get().await.unwrap().arguments;
                 sender.send(session_get).unwrap();
             }
             TorrentAction::Move(ids, new_directory) => {
-                if let Err(e) = ctx
-                    .client
-                    .lock()
-                    .await
+                if let Err(e) = client
                     .torrent_set_location(ids, new_directory.clone(), Option::from(true))
                     .await
                 {
@@ -143,8 +121,44 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                         title: error_title.to_string(),
                         message: msg,
                     };
-                    ctx.send_action(Action::Error(Box::new(error_message)));
+                    action_tx
+                        .send(Action::Error(Box::new(error_message)))
+                        .unwrap();
                 }
+            }
+            TorrentAction::GetSessionStats(sender) => {
+                sender
+                    .send(client.session_stats().await.unwrap().arguments)
+                    .unwrap();
+            }
+            TorrentAction::GetFreeSpace(path, sender) => {
+                sender
+                    .send(client.free_space(path).await.unwrap().arguments)
+                    .unwrap();
+            }
+            TorrentAction::GetTorrents(fields, sender) => {
+                sender
+                    .send(
+                        client
+                            .torrent_get(Some(fields), None)
+                            .await
+                            .unwrap()
+                            .arguments
+                            .torrents,
+                    )
+                    .unwrap();
+            }
+            TorrentAction::GetTorrentsById(ids, sender) => {
+                sender
+                    .send(
+                        client
+                            .torrent_get(None, Some(ids))
+                            .await
+                            .unwrap()
+                            .arguments
+                            .torrents,
+                    )
+                    .unwrap();
             }
         }
     }
