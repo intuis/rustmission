@@ -25,31 +25,32 @@ pub struct RustmissionTorrent {
 }
 
 impl RustmissionTorrent {
-    pub fn to_row(&self, headers: &Vec<Header>) -> ratatui::widgets::Row {
-        let mut cells = vec![];
-        for header in headers {
-            let cell = {
-                match header {
-                    Header::Name => Line::from(self.torrent_name.as_str()),
-                    Header::SizeWhenDone => Line::from(self.size_when_done.as_str()),
-                    Header::Progress => Line::from(self.progress.as_str()),
-                    Header::Eta => Line::from(self.eta_secs.as_str()),
-                    Header::DownloadRate => Line::from(download_speed_format(&self.download_speed)),
-                    Header::UploadRate => Line::from(upload_speed_format(&self.upload_speed)),
-                    Header::DownloadDir => Line::from(self.download_dir.as_str()),
-                    Header::Padding => Line::raw(""),
-                }
-            };
-            cells.push(cell);
+    fn header_to_line(&self, header: Header) -> Line {
+        match header {
+            Header::Name => Line::from(self.torrent_name.as_str()),
+            Header::SizeWhenDone => Line::from(self.size_when_done.as_str()),
+            Header::Progress => Line::from(self.progress.as_str()),
+            Header::Eta => Line::from(self.eta_secs.as_str()),
+            Header::DownloadRate => Line::from(download_speed_format(&self.download_speed)),
+            Header::UploadRate => Line::from(upload_speed_format(&self.upload_speed)),
+            Header::DownloadDir => Line::from(self.download_dir.as_str()),
+            Header::Padding => Line::raw(""),
         }
+    }
 
-        Row::new(cells).style(self.style)
+    pub fn to_row(&self, headers: &Vec<Header>) -> ratatui::widgets::Row {
+        headers
+            .iter()
+            .map(|header| self.header_to_line(*header))
+            .collect::<Row>()
+            .style(self.style)
     }
 
     pub fn to_row_with_higlighted_indices(
         &self,
         highlighted_indices: Vec<usize>,
         highlight_style: Style,
+        headers: &Vec<Header>,
     ) -> ratatui::widgets::Row {
         let mut torrent_name_line = Line::default();
 
@@ -61,16 +62,17 @@ impl RustmissionTorrent {
             }
         }
 
-        Row::new([
-            Line::from(torrent_name_line),
-            Line::from(""),
-            Line::from(self.size_when_done.as_str()),
-            Line::from(self.progress.as_str()),
-            Line::from(self.eta_secs.as_str()),
-            Line::from(download_speed_format(&self.download_speed)),
-            Line::from(upload_speed_format(&self.upload_speed)),
-            Line::from(self.download_dir.as_str()),
-        ])
+        let mut cells = vec![];
+
+        for header in headers {
+            if *header == Header::Name {
+                cells.push(Line::from(torrent_name_line.clone()))
+            } else {
+                cells.push(self.header_to_line(*header))
+            }
+        }
+
+        Row::new(cells)
     }
 
     pub const fn status(&self) -> TorrentStatus {

@@ -94,7 +94,11 @@ impl TableManager {
 
         for torrent in torrents {
             if let Some((_, indices)) = matcher.fuzzy_indices(&torrent.torrent_name, filter) {
-                rows.push(torrent.to_row_with_higlighted_indices(indices, highlight_style))
+                rows.push(torrent.to_row_with_higlighted_indices(
+                    indices,
+                    highlight_style,
+                    &self.ctx.config.torrents_tab.headers,
+                ))
             }
         }
 

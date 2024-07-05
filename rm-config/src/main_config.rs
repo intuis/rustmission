@@ -52,7 +52,7 @@ fn default_refresh() -> u64 {
     5
 }
 
-#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum Header {
     Name,
     SizeWhenDone,
