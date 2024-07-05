@@ -28,19 +28,18 @@ impl RustmissionTorrent {
     pub fn to_row(&self, headers: &Vec<Header>) -> ratatui::widgets::Row {
         let mut cells = vec![];
         for header in headers {
-            match header {
-                Header::Name => cells.push(Line::from(self.torrent_name.as_str())),
-                Header::SizeWhenDone => cells.push(Line::from(self.size_when_done.as_str())),
-                Header::Progress => cells.push(Line::from(self.progress.as_str())),
-                Header::Eta => cells.push(Line::from(self.eta_secs.as_str())),
-                Header::DownloadRate => {
-                    cells.push(Line::from(download_speed_format(&self.download_speed)))
+            let cell = {
+                match header {
+                    Header::Name => Line::from(self.torrent_name.as_str()),
+                    Header::SizeWhenDone => Line::from(self.size_when_done.as_str()),
+                    Header::Progress => Line::from(self.progress.as_str()),
+                    Header::Eta => Line::from(self.eta_secs.as_str()),
+                    Header::DownloadRate => Line::from(download_speed_format(&self.download_speed)),
+                    Header::UploadRate => Line::from(upload_speed_format(&self.upload_speed)),
+                    Header::DownloadDir => Line::from(self.download_dir.as_str()),
                 }
-                Header::UploadRate => {
-                    cells.push(Line::from(upload_speed_format(&self.upload_speed)))
-                }
-                Header::DownloadDir => cells.push(Line::from(self.download_dir.as_str())),
             };
+            cells.push(cell);
         }
 
         Row::new(cells).style(self.style)
