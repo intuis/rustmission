@@ -65,6 +65,9 @@ pub enum Header {
     UploadRatio,
     UploadedEver,
     Id,
+    ActivityDate,
+    AddedDate,
+    PeersConnected,
 }
 
 impl Header {
@@ -81,6 +84,9 @@ impl Header {
             Header::UploadRatio => Constraint::Length(6),
             Header::UploadedEver => Constraint::Length(12),
             Header::Id => Constraint::Length(4),
+            Header::ActivityDate => Constraint::Length(14),
+            Header::AddedDate => Constraint::Length(12),
+            Header::PeersConnected => Constraint::Length(6),
         }
     }
 
@@ -97,6 +103,9 @@ impl Header {
             Header::UploadRatio => "Ratio",
             Header::UploadedEver => "Up Ever",
             Header::Id => "Id",
+            Header::ActivityDate => "Last active",
+            Header::AddedDate => "Added",
+            Header::PeersConnected => "Peers",
         }
     }
 }

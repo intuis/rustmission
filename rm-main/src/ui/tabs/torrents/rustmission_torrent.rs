@@ -1,3 +1,4 @@
+use chrono::{Datelike, NaiveDateTime};
 use ratatui::{
     style::{Style, Stylize},
     text::{Line, Span},
@@ -24,6 +25,9 @@ pub struct RustmissionTorrent {
     pub style: Style,
     pub id: Id,
     pub download_dir: String,
+    pub activity_date: NaiveDateTime,
+    pub added_date: NaiveDateTime,
+    pub peers_connected: i64,
 }
 
 impl RustmissionTorrent {
@@ -80,6 +84,9 @@ impl RustmissionTorrent {
             },
             Header::UploadRatio => Line::from(self.upload_ratio.as_str()),
             Header::UploadedEver => Line::from(self.uploaded_ever.as_str()),
+            Header::ActivityDate => time_to_line(self.activity_date),
+            Header::AddedDate => time_to_line(self.added_date),
+            Header::PeersConnected => Line::from(self.peers_connected.to_string()),
         }
     }
 
@@ -139,9 +146,25 @@ impl From<&Torrent> for RustmissionTorrent {
         let uploaded_ever = bytes_to_human_format(t.uploaded_ever.expect("field requested"));
 
         let upload_ratio = {
-            let ratio = t.upload_ratio.expect("field requested");
-            format!("{:.1}", ratio)
+            let raw = t.upload_ratio.expect("field requested");
+            format!("{:.1}", raw)
         };
+
+        let activity_date = {
+            let raw = t.activity_date.expect("field requested");
+            chrono::DateTime::from_timestamp(raw, 0)
+                .unwrap()
+                .naive_local()
+        };
+
+        let added_date = {
+            let raw = t.added_date.expect("field requested");
+            chrono::DateTime::from_timestamp(raw, 0)
+                .unwrap()
+                .naive_local()
+        };
+
+        let peers_connected = t.peers_connected.expect("field requested");
 
         Self {
             torrent_name,
@@ -156,6 +179,18 @@ impl From<&Torrent> for RustmissionTorrent {
             download_dir,
             uploaded_ever,
             upload_ratio,
+            activity_date,
+            added_date,
+            peers_connected,
         }
+    }
+}
+
+fn time_to_line<'a>(time: NaiveDateTime) -> Line<'a> {
+    let today = chrono::Local::now();
+    if time.year() == today.year() && time.month() == today.month() && time.day() == today.day() {
+        Line::from(time.format("Today %H:%M").to_string())
+    } else {
+        Line::from(time.format("%y|%m|%d %H:%M").to_string())
     }
 }
