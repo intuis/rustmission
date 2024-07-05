@@ -29,6 +29,6 @@ free_space_refresh = 10
 
 [torrents_tab]
 # Available fields:
-# Name, SizeWhenDone, Progress, DownloadRate, UploadRate, DownloadDir,
-# Padding
+# Id, Name, SizeWhenDone, Progress, DownloadRate, UploadRate, DownloadDir,
+# Padding, UploadRatio, UploadedEver
 headers = ["Name", "SizeWhenDone", "Progress", "DownloadRate", "UploadRate"]

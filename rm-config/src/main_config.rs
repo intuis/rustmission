@@ -62,6 +62,9 @@ pub enum Header {
     UploadRate,
     DownloadDir,
     Padding,
+    UploadRatio,
+    UploadedEver,
+    Id,
 }
 
 impl Header {
@@ -75,6 +78,9 @@ impl Header {
             Header::UploadRate => Constraint::Length(12),
             Header::DownloadDir => Constraint::Max(70),
             Header::Padding => Constraint::Length(2),
+            Header::UploadRatio => Constraint::Length(6),
+            Header::UploadedEver => Constraint::Length(12),
+            Header::Id => Constraint::Length(4),
         }
     }
 
@@ -88,6 +94,9 @@ impl Header {
             Header::UploadRate => "Upload",
             Header::DownloadDir => "Directory",
             Header::Padding => "",
+            Header::UploadRatio => "Ratio",
+            Header::UploadedEver => "Up Ever",
+            Header::Id => "Id",
         }
     }
 }

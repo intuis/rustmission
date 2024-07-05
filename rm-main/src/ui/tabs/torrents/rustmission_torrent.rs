@@ -18,6 +18,8 @@ pub struct RustmissionTorrent {
     pub eta_secs: String,
     pub download_speed: String,
     pub upload_speed: String,
+    pub uploaded_ever: String,
+    pub upload_ratio: String,
     status: TorrentStatus,
     pub style: Style,
     pub id: Id,
@@ -25,19 +27,6 @@ pub struct RustmissionTorrent {
 }
 
 impl RustmissionTorrent {
-    fn header_to_line(&self, header: Header) -> Line {
-        match header {
-            Header::Name => Line::from(self.torrent_name.as_str()),
-            Header::SizeWhenDone => Line::from(self.size_when_done.as_str()),
-            Header::Progress => Line::from(self.progress.as_str()),
-            Header::Eta => Line::from(self.eta_secs.as_str()),
-            Header::DownloadRate => Line::from(download_speed_format(&self.download_speed)),
-            Header::UploadRate => Line::from(upload_speed_format(&self.upload_speed)),
-            Header::DownloadDir => Line::from(self.download_dir.as_str()),
-            Header::Padding => Line::raw(""),
-        }
-    }
-
     pub fn to_row(&self, headers: &Vec<Header>) -> ratatui::widgets::Row {
         headers
             .iter()
@@ -73,6 +62,25 @@ impl RustmissionTorrent {
         }
 
         Row::new(cells)
+    }
+
+    fn header_to_line(&self, header: Header) -> Line {
+        match header {
+            Header::Name => Line::from(self.torrent_name.as_str()),
+            Header::SizeWhenDone => Line::from(self.size_when_done.as_str()),
+            Header::Progress => Line::from(self.progress.as_str()),
+            Header::Eta => Line::from(self.eta_secs.as_str()),
+            Header::DownloadRate => Line::from(download_speed_format(&self.download_speed)),
+            Header::UploadRate => Line::from(upload_speed_format(&self.upload_speed)),
+            Header::DownloadDir => Line::from(self.download_dir.as_str()),
+            Header::Padding => Line::raw(""),
+            Header::Id => match &self.id {
+                Id::Id(id) => Line::from(id.to_string()),
+                Id::Hash(hash) => Line::from(hash.as_str()),
+            },
+            Header::UploadRatio => Line::from(self.upload_ratio.as_str()),
+            Header::UploadedEver => Line::from(self.uploaded_ever.as_str()),
+        }
     }
 
     pub const fn status(&self) -> TorrentStatus {
@@ -128,6 +136,13 @@ impl From<&Torrent> for RustmissionTorrent {
 
         let download_dir = t.download_dir.clone().expect("field requested");
 
+        let uploaded_ever = bytes_to_human_format(t.uploaded_ever.expect("field requested"));
+
+        let upload_ratio = {
+            let ratio = t.upload_ratio.expect("field requested");
+            format!("{:.1}", ratio)
+        };
+
         Self {
             torrent_name,
             size_when_done,
@@ -139,6 +154,8 @@ impl From<&Torrent> for RustmissionTorrent {
             style,
             id,
             download_dir,
+            uploaded_ever,
+            upload_ratio,
         }
     }
 }
