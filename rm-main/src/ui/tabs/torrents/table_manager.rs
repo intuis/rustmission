@@ -2,7 +2,7 @@ use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{prelude::*, widgets::Row};
 use rm_config::main_config::Header;
 use std::{
-    collections::BTreeMap,
+    collections::HashMap,
     sync::{Arc, Mutex},
 };
 
@@ -117,7 +117,7 @@ impl TableManager {
             return Self::default_widths(&headers);
         }
 
-        let mut map = BTreeMap::new();
+        let mut map = HashMap::new();
 
         for header in headers {
             map.insert(header, header.default_constraint());
@@ -155,6 +155,12 @@ impl TableManager {
             }
         }
 
-        map.values().cloned().collect()
+        let mut constraints = vec![];
+
+        for header in headers {
+            constraints.push(map.remove(header).expect("this header exists"))
+        }
+
+        constraints
     }
 }

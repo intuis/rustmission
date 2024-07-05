@@ -52,7 +52,7 @@ fn default_refresh() -> u64 {
     5
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub enum Header {
     Name,
     SizeWhenDone,
@@ -61,6 +61,7 @@ pub enum Header {
     DownloadRate,
     UploadRate,
     DownloadDir,
+    Padding,
 }
 
 impl Header {
@@ -73,6 +74,7 @@ impl Header {
             Header::DownloadRate => Constraint::Length(12),
             Header::UploadRate => Constraint::Length(12),
             Header::DownloadDir => Constraint::Max(70),
+            Header::Padding => Constraint::Length(2),
         }
     }
 
@@ -85,6 +87,7 @@ impl Header {
             Header::DownloadRate => "Download",
             Header::UploadRate => "Upload",
             Header::DownloadDir => "Directory",
+            Header::Padding => "",
         }
     }
 }

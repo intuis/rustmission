@@ -37,6 +37,7 @@ impl RustmissionTorrent {
                     Header::DownloadRate => Line::from(download_speed_format(&self.download_speed)),
                     Header::UploadRate => Line::from(upload_speed_format(&self.upload_speed)),
                     Header::DownloadDir => Line::from(self.download_dir.as_str()),
+                    Header::Padding => Line::raw(""),
                 }
             };
             cells.push(cell);
