@@ -78,14 +78,21 @@ headers_hide = false
 [connection]
 url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 
+# Refresh timings (in seconds)
+torrents_refresh = 5
+stats_refresh = 5
+free_space_refresh = 10
+
 # If you need username and password to authenticate:
 # username = "CHANGE_ME"
 # password = "CHANGE_ME"
 
-# Refresh timings (in seconds)
-torrents_refresh = 5
-stats_refresh = 10
-free_space_refresh = 10
+[torrents_tab]
+# Available fields:
+# Id, Name, SizeWhenDone, Progress, DownloadRate, UploadRate, DownloadDir,
+# Padding, UploadRatio, UploadedEver, AddedDate, ActivityDate, PeersConnected
+headers = ["Name", "SizeWhenDone", "Progress", "DownloadRate", "UploadRate"]
+
 ```
 
 There's also a self-documenting keymap config located at `~/.config/rustmission/keymap.toml` with sane defaults.
