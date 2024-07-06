@@ -21,6 +21,11 @@ It boasts a rich feature set that surpasses many other clients, offering a seaml
 - **Asynchronous**: UI is always responsive.
 - **RSS**: Fetch torrents automatically with a cronjob using `--fetch-rss`
 
+## Requirements
+
+- Running [Transmission](https://github.com/transmission/transmission) daemon and its IP address
+- [Nerd Fonts](https://www.nerdfonts.com/)
+
 ## Installation
 
 <a href="https://repology.org/project/rustmission/versions">
@@ -46,7 +51,7 @@ brew install intuis/tap/rustmission
 
 ## Usage
 
-Launch Rustmission in your terminal to initialize the config and make adjustments as needed. Subsequently, run Rustmission again. For a list of keybindings, press `?` or `F1`.
+Run `rustmission` in your terminal to initialize the config and make adjustments as needed. Subsequently, run `rustmission` again. For a list of keybindings, press `?` or `F1`.
 
 ## Configuration
 
