@@ -87,6 +87,21 @@ impl RustmissionTorrent {
             Header::ActivityDate => time_to_line(self.activity_date),
             Header::AddedDate => time_to_line(self.added_date),
             Header::PeersConnected => Line::from(self.peers_connected.to_string()),
+            Header::SmallStatus => match self.status() {
+                TorrentStatus::Stopped => Line::from("󰏤"),
+                TorrentStatus::QueuedToVerify => Line::from("󱥸"),
+                TorrentStatus::Verifying => Line::from("󰑓"),
+                TorrentStatus::QueuedToDownload => Line::from("󱥸"),
+                TorrentStatus::QueuedToSeed => Line::from("󱥸"),
+                TorrentStatus::Seeding => {
+                    if !self.upload_speed.is_empty() {
+                        Line::from("")
+                    } else {
+                        Line::from("󰄬")
+                    }
+                }
+                TorrentStatus::Downloading => Line::from(""),
+            },
         }
     }
 

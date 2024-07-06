@@ -68,44 +68,47 @@ pub enum Header {
     ActivityDate,
     AddedDate,
     PeersConnected,
+    SmallStatus,
 }
 
 impl Header {
     pub fn default_constraint(&self) -> Constraint {
         match self {
-            Header::Name => Constraint::Max(70),
-            Header::SizeWhenDone => Constraint::Length(12),
-            Header::Progress => Constraint::Length(12),
-            Header::Eta => Constraint::Length(12),
-            Header::DownloadRate => Constraint::Length(12),
-            Header::UploadRate => Constraint::Length(12),
-            Header::DownloadDir => Constraint::Max(70),
-            Header::Padding => Constraint::Length(2),
-            Header::UploadRatio => Constraint::Length(6),
-            Header::UploadedEver => Constraint::Length(12),
-            Header::Id => Constraint::Length(4),
-            Header::ActivityDate => Constraint::Length(14),
-            Header::AddedDate => Constraint::Length(12),
-            Header::PeersConnected => Constraint::Length(6),
+            Self::Name => Constraint::Max(70),
+            Self::SizeWhenDone => Constraint::Length(12),
+            Self::Progress => Constraint::Length(12),
+            Self::Eta => Constraint::Length(12),
+            Self::DownloadRate => Constraint::Length(12),
+            Self::UploadRate => Constraint::Length(12),
+            Self::DownloadDir => Constraint::Max(70),
+            Self::Padding => Constraint::Length(2),
+            Self::UploadRatio => Constraint::Length(6),
+            Self::UploadedEver => Constraint::Length(12),
+            Self::Id => Constraint::Length(4),
+            Self::ActivityDate => Constraint::Length(14),
+            Self::AddedDate => Constraint::Length(12),
+            Self::PeersConnected => Constraint::Length(6),
+            Self::SmallStatus => Constraint::Length(1),
         }
     }
 
     pub fn header_name(&self) -> &'static str {
-        match self {
-            Header::Name => "Name",
-            Header::SizeWhenDone => "Size",
-            Header::Progress => "Progress",
-            Header::Eta => "ETA",
-            Header::DownloadRate => "Download",
-            Header::UploadRate => "Upload",
-            Header::DownloadDir => "Directory",
-            Header::Padding => "",
-            Header::UploadRatio => "Ratio",
-            Header::UploadedEver => "Up Ever",
-            Header::Id => "Id",
-            Header::ActivityDate => "Last active",
-            Header::AddedDate => "Added",
-            Header::PeersConnected => "Peers",
+        match *self {
+            Self::Name => "Name",
+            Self::SizeWhenDone => "Size",
+            Self::Progress => "Progress",
+            Self::Eta => "ETA",
+            Self::DownloadRate => "Download",
+            Self::UploadRate => "Upload",
+            Self::DownloadDir => "Directory",
+            Self::Padding => "",
+            Self::UploadRatio => "Ratio",
+            Self::UploadedEver => "Up Ever",
+            Self::Id => "Id",
+            Self::ActivityDate => "Last active",
+            Self::AddedDate => "Added",
+            Self::PeersConnected => "Peers",
+            Self::SmallStatus => "",
         }
     }
 }

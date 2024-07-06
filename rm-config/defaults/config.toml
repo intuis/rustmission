@@ -31,4 +31,5 @@ free_space_refresh = 10
 # Available fields:
 # Id, Name, SizeWhenDone, Progress, DownloadRate, UploadRate, DownloadDir,
 # Padding, UploadRatio, UploadedEver, AddedDate, ActivityDate, PeersConnected
+# SmallStatus
 headers = ["Name", "SizeWhenDone", "Progress", "DownloadRate", "UploadRate"]
