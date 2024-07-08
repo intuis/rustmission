@@ -40,7 +40,7 @@ impl Component for BottomStats {
             let download = bytes_to_human_format(stats.download_speed);
             let upload = bytes_to_human_format(stats.upload_speed);
 
-            let mut text = format!("▼ {download} | ▲ {upload}");
+            let mut text = format!(" {download} |  {upload}");
 
             if let Some(free_space) = &*self.free_space.lock().unwrap() {
                 let free_space = bytes_to_human_format(free_space.size_bytes);
