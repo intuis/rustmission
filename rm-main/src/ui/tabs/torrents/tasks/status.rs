@@ -40,6 +40,10 @@ impl Component for StatusBar {
                         let display_name = format_display_name(&name);
                         format!("Deleting {display_name}")
                     }
+                    StatusTask::Move(name) => {
+                        let display_name = format_display_name(&name);
+                        format!("Moving to {display_name}")
+                    }
                 };
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label(status_text)
@@ -61,6 +65,10 @@ impl Component for StatusBar {
                             let display_name = format_display_name(&name);
                             format!(" Error deleting {display_name}")
                         }
+                        StatusTask::Move(name) => {
+                            let display_name = format_display_name(&name);
+                            format!(" Error moving to {display_name}")
+                        }
                     },
                     CurrentTaskState::Success(_) => match &self.task {
                         StatusTask::Add(name) => {
@@ -70,6 +78,10 @@ impl Component for StatusBar {
                         StatusTask::Delete(name) => {
                             let display_name = format_display_name(&name);
                             format!(" Deleted {display_name}")
+                        }
+                        StatusTask::Move(name) => {
+                            let display_name = format_display_name(&name);
+                            format!(" Location moved to {display_name}")
                         }
                     },
                     _ => return,

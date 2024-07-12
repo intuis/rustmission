@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
-use rm_shared::action::Action;
+use rm_shared::{action::Action, status_task::StatusTask};
 use transmission_rpc::types::Id;
 
 use crate::{
@@ -31,8 +31,8 @@ impl MoveBar {
             let new_location = self.input_mgr.text();
             let torrents_to_move = self.torrents_to_move.clone();
             self.ctx
-                .send_torrent_action(TorrentAction::Move(torrents_to_move, new_location));
-            return Some(Action::Quit);
+                .send_torrent_action(TorrentAction::Move(torrents_to_move, new_location.clone()));
+            return Some(Action::TaskPending(StatusTask::Move(new_location)));
         }
 
         if input.code == KeyCode::Esc {

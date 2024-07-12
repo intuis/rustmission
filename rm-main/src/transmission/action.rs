@@ -127,23 +127,26 @@ pub async fn action_handler(ctx: app::Ctx, mut trans_rx: UnboundedReceiver<Torre
                 sender.send(session_get).unwrap();
             }
             TorrentAction::Move(ids, new_directory) => {
-                if let Err(e) = ctx
+                match ctx
                     .client
                     .lock()
                     .await
                     .torrent_set_location(ids, new_directory.clone(), Option::from(true))
                     .await
                 {
-                    let error_title = "Failed to move torrent";
-                    let msg = "Failed to move torrent to new directory:\n\"".to_owned()
-                        + new_directory.as_str()
-                        + "\"\n"
-                        + &e.to_string();
-                    let error_message = ErrorMessage {
-                        title: error_title.to_string(),
-                        message: msg,
-                    };
-                    ctx.send_action(Action::Error(Box::new(error_message)));
+                    Ok(_) => ctx.send_action(Action::TaskSuccess),
+                    Err(e) => {
+                        let error_title = "Failed to move torrent";
+                        let msg = "Failed to move torrent to new directory:\n\"".to_owned()
+                            + new_directory.as_str()
+                            + "\"\n"
+                            + &e.to_string();
+                        let error_message = ErrorMessage {
+                            title: error_title.to_string(),
+                            message: msg,
+                        };
+                        ctx.send_action(Action::Error(Box::new(error_message)));
+                    }
                 }
             }
         }
