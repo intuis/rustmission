@@ -28,8 +28,6 @@ pub enum Action {
     Pause,
     DeleteWithoutFiles,
     DeleteWithFiles,
-    SwitchToInputMode,
-    SwitchToNormalMode,
     ChangeFocus,
     AddMagnet,
     MoveTorrent,
@@ -38,6 +36,12 @@ pub enum Action {
     Error(Box<ErrorMessage>),
     TaskPending(StatusTask),
     TaskSuccess,
+}
+
+pub enum UpdateAction {
+    SwitchToInputMode,
+    SwitchToNormalMode,
+    TaskClear,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

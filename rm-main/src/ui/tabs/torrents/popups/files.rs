@@ -19,7 +19,7 @@ use tui_tree_widget::{Tree, TreeItem, TreeState};
 use crate::{
     app,
     transmission::TorrentAction,
-    ui::{centered_rect, components::Component},
+    ui::{centered_rect, components::{Component, ComponentAction}},
 };
 use rm_shared::action::Action;
 
@@ -100,15 +100,15 @@ impl FilesPopup {
 
 impl Component for FilesPopup {
     #[must_use]
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
         match (action, self.current_focus) {
-            (action, _) if action.is_soft_quit() => Some(A::Quit),
+            (action, _) if action.is_soft_quit() => self.ctx.send_action(Action::Render),
             (A::ChangeFocus, _) => {
                 self.switch_focus();
-                Some(A::Render)
+                self.ctx.send_action(A::Render);
             }
-            (A::Confirm, CurrentFocus::CloseButton) => Some(A::Quit),
+            (A::Confirm, CurrentFocus::CloseButton) => return ComponentAction::Quit,
             (A::Select | A::Confirm, CurrentFocus::Files) => {
                 if let Some(torrent) = &mut *self.torrent.lock().unwrap() {
                     let wanted_ids = torrent.wanted.as_mut().unwrap();
@@ -122,7 +122,8 @@ impl Component for FilesPopup {
 
                     if selected_ids.is_empty() {
                         self.tree_state.toggle_selected();
-                        return Some(A::Render);
+                        self.ctx.send_action(A::Render);
+                        return ComponentAction::Nothing;
                     }
 
                     let mut wanted_in_selection_no = 0;
@@ -173,23 +174,22 @@ impl Component for FilesPopup {
                         Some(vec![self.torrent_id.clone()]),
                     ));
 
-                    Some(A::Render)
-                } else {
-                    None
+                    self.ctx.send_action(Action::Render);
                 }
             }
 
             (A::Up, CurrentFocus::Files) => {
                 self.tree_state.key_up();
-                Some(Action::Render)
+                self.ctx.send_action(Action::Render);
             }
             (A::Down, CurrentFocus::Files) => {
                 self.tree_state.key_down();
-                Some(Action::Render)
+                self.ctx.send_action(Action::Render);
             }
 
-            _ => None,
+            _ => (),
         }
+        ComponentAction::Nothing
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {

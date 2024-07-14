@@ -10,7 +10,7 @@ use ratatui::{
 
 use crate::{
     app,
-    ui::{centered_rect, components::Component},
+    ui::{centered_rect, components::{Component, ComponentAction}},
 };
 use rm_config::keymap::{actions::UserAction, Keybinding};
 use rm_shared::action::Action;
@@ -54,11 +54,11 @@ impl HelpPopup {
 }
 
 impl Component for HelpPopup {
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
-            action if action.is_soft_quit() => Some(Action::Close),
-            Action::Confirm | Action::ShowHelp => Some(Action::Close),
-            _ => None,
+            action if action.is_soft_quit() => ComponentAction::Quit,
+            Action::Confirm | Action::ShowHelp => ComponentAction::Quit,
+            _ => ComponentAction::Nothing,
         }
     }
 

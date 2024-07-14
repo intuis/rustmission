@@ -6,7 +6,7 @@ use transmission_rpc::types::Id;
 use crate::{
     app,
     transmission::TorrentAction,
-    ui::{components::Component, tabs::torrents::input_manager::InputManager, to_input_request},
+    ui::{components::{Component, ComponentAction}, tabs::torrents::input_manager::InputManager, to_input_request},
 };
 
 pub struct MoveBar {
@@ -26,33 +26,34 @@ impl MoveBar {
         }
     }
 
-    fn handle_input(&mut self, input: KeyEvent) -> Option<Action> {
+    fn handle_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
             let new_location = self.input_mgr.text();
             let torrents_to_move = self.torrents_to_move.clone();
             self.ctx
                 .send_torrent_action(TorrentAction::Move(torrents_to_move, new_location.clone()));
-            return Some(Action::TaskPending(StatusTask::Move(new_location)));
+            // return Some(Action::TaskPending(StatusTask::Move(new_location)));
+            return ComponentAction::Quit;
         }
 
         if input.code == KeyCode::Esc {
-            return Some(Action::Quit);
+            return ComponentAction::Quit;
         }
 
         if let Some(req) = to_input_request(input) {
             self.input_mgr.handle(req);
-            return Some(Action::Render);
+            self.ctx.send_action(Action::Render);
         }
 
-        None
+        ComponentAction::Nothing
     }
 }
 
 impl Component for MoveBar {
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
             Action::Input(input) => self.handle_input(input),
-            _ => None,
+            _ => ComponentAction::Nothing,
         }
     }
 

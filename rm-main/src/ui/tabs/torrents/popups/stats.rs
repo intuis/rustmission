@@ -10,7 +10,7 @@ use transmission_rpc::types::SessionStats;
 
 use crate::{
     app,
-    ui::{centered_rect, components::Component},
+    ui::{centered_rect, components::{Component, ComponentAction}},
     utils::bytes_to_human_format,
 };
 use rm_shared::action::Action;
@@ -27,12 +27,12 @@ impl StatisticsPopup {
 }
 
 impl Component for StatisticsPopup {
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
         match action {
-            _ if action.is_soft_quit() => Some(action),
-            A::Confirm => Some(Action::Close),
-            _ => None,
+            _ if action.is_soft_quit() => ComponentAction::Quit,
+            A::Confirm => ComponentAction::Quit,
+            _ => ComponentAction::Nothing,
         }
     }
 

@@ -3,7 +3,7 @@ use ratatui::{
     widgets::{Block, Clear, Paragraph, Wrap},
 };
 
-use crate::ui::{centered_rect, components::Component};
+use crate::ui::{centered_rect, components::{Component, ComponentAction}};
 use rm_shared::action::Action;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,11 +23,11 @@ impl ErrorPopup {
 }
 
 impl Component for ErrorPopup {
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
-            _ if action.is_soft_quit() => Some(action),
-            Action::Confirm => Some(Action::Close),
-            _ => None,
+            _ if action.is_soft_quit() => ComponentAction::Quit,
+            Action::Confirm => ComponentAction::Quit,
+            _ => ComponentAction::Nothing,
         }
     }
 

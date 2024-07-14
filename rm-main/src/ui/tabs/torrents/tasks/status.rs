@@ -1,20 +1,21 @@
 use std::sync::{Arc, Mutex};
 
-use crate::ui::components::Component;
+use crate::{app, ui::components::{Component, ComponentAction}};
 
 use ratatui::{prelude::*, widgets::Paragraph};
-use rm_shared::{action::Action, status_task::StatusTask};
+use rm_shared::{action::{Action, UpdateAction}, status_task::StatusTask};
 use throbber_widgets_tui::ThrobberState;
 use tokio::time::{self, Instant};
 
 pub struct StatusBar {
     task: StatusTask,
     pub task_status: CurrentTaskState,
+    ctx: app::Ctx,
 }
 
 impl StatusBar {
-    pub const fn new(task: StatusTask, task_status: CurrentTaskState) -> Self {
-        Self { task, task_status }
+    pub const fn new(ctx: app::Ctx, task: StatusTask, task_status: CurrentTaskState) -> Self {
+        Self { task, task_status, ctx, }
     }
 }
 
@@ -103,35 +104,36 @@ impl Component for StatusBar {
         }
     }
 
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
-            Action::Tick => self.tick(),
+            Action::Tick => {self.tick(); ComponentAction::Nothing },
             Action::TaskSuccess => {
-                self.task_status.set_success(time::Instant::now());
-                Some(Action::Render)
+                self.task_status.set_success();
+                self.ctx.send_action(Action::Render);
+                ComponentAction::Nothing
             }
             Action::Error(_) => {
                 self.task_status.set_failure();
-                Some(Action::Render)
+                self.ctx.send_action(Action::Render);
+                ComponentAction::Nothing
             }
-            _ => Some(action),
+            _ => ComponentAction::Nothing,
         }
     }
 
-    fn tick(&mut self) -> Option<Action> {
+    fn tick(&mut self) {
         match &self.task_status {
             CurrentTaskState::Loading(state) => {
                 state.lock().unwrap().calc_next();
-                Some(Action::Render)
+                self.ctx.send_action(Action::Render);
             }
             CurrentTaskState::Success(start) => {
                 let expiration_duration = time::Duration::from_secs(5);
                 if start.elapsed() >= expiration_duration {
-                    return Some(Action::Quit);
+                    self.ctx.send_update_action(UpdateAction::TaskClear);
                 }
-                None
             }
-            _ => None,
+            _ => (),
         }
     }
 }
@@ -148,7 +150,7 @@ impl CurrentTaskState {
         *self = Self::Failure;
     }
 
-    fn set_success(&mut self, start: Instant) {
-        *self = Self::Success(start);
+    fn set_success(&mut self) {
+        *self = Self::Success(time::Instant::now());
     }
 }

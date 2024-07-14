@@ -40,10 +40,6 @@ impl InputManager {
 }
 
 impl Component for InputManager {
-    fn handle_actions(&mut self, _action: Action) -> Option<Action> {
-        None
-    }
-
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         f.render_widget(Clear, rect);
 

@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 use ratatui::prelude::*;
 use throbber_widgets_tui::ThrobberState;
 
-use crate::{app, ui::components::Component};
-use rm_shared::{action::Action, status_task::StatusTask};
+use crate::{app, ui::components::{Component, ComponentAction}};
+use rm_shared::{action::{Action, UpdateAction}, status_task::StatusTask};
 
 use super::{
     tasks::{
@@ -44,70 +44,63 @@ pub enum CurrentTask {
 }
 
 impl CurrentTask {
-    fn tick(&mut self) -> Option<Action> {
+    fn tick(&mut self) {
         if let Self::Status(status_bar) = self {
             status_bar.tick()
-        } else {
-            None
         }
     }
 }
 
 impl Component for TaskManager {
     #[must_use]
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
-                Some(A::TaskPending(task)) => self.pending_task(task),
-                Some(A::Quit) => self.cancel_task(),
-                Some(A::Render) => Some(A::Render),
-                _ => None,
+                // Some(A::TaskPending(task)) => self.pending_task(task),
+                ComponentAction::Quit => self.cancel_task(),
+                _ => (),
             },
 
             CurrentTask::DeleteBar(delete_bar) => match delete_bar.handle_actions(action) {
-                Some(A::TaskPending(task)) => {
-                    let selected = self
-                        .table_manager
-                        .lock()
-                        .unwrap()
-                        .table
-                        .state
-                        .borrow()
-                        .selected();
+                // Some(A::TaskPending(task)) => {
+                //     let selected = self
+                //         .table_manager
+                //         .lock()
+                //         .unwrap()
+                //         .table
+                //         .state
+                //         .borrow()
+                //         .selected();
 
-                    // select closest existing torrent
-                    if let Some(idx) = selected {
-                        if idx > 0 {
-                            self.table_manager.lock().unwrap().table.previous();
-                        }
-                    }
-                    self.pending_task(task)
-                }
-                Some(A::Quit) => self.cancel_task(),
-                Some(A::Render) => Some(A::Render),
-                _ => None,
+                //     // select closest existing torrent
+                //     if let Some(idx) = selected {
+                //         if idx > 0 {
+                //             self.table_manager.lock().unwrap().table.previous();
+                //         }
+                //     }
+                //     self.pending_task(task)
+                // }
+                ComponentAction::Quit => self.cancel_task(),
+                _ => (),
             },
             CurrentTask::MoveBar(move_bar) => match move_bar.handle_actions(action) {
-                Some(A::TaskPending(task)) => self.pending_task(task),
-                Some(A::Quit) => self.cancel_task(),
-                Some(A::Render) => Some(A::Render),
-                _ => None,
+                // Some(A::TaskPending(task)) => self.pending_task(task),
+                ComponentAction::Quit => self.cancel_task(),
+                _ => (),
             },
             CurrentTask::FilterBar(filter_bar) => match filter_bar.handle_actions(action) {
-                Some(A::Quit) => self.cancel_task(),
-                Some(A::Render) => Some(A::Render),
-                _ => None,
+                ComponentAction::Quit => self.cancel_task(),
+                _ => (),
             },
 
             CurrentTask::Status(status_bar) => match status_bar.handle_actions(action) {
-                Some(A::Quit) => self.cancel_task(),
-                Some(A::Render) => Some(A::Render),
-                Some(action) => self.handle_events_to_manager(&action),
-                _ => None,
+                ComponentAction::Quit => self.cancel_task(),
+                _ => (),
             },
             CurrentTask::Default(_) => self.handle_events_to_manager(&action),
-        }
+        };
+        ComponentAction::Nothing
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
@@ -121,18 +114,18 @@ impl Component for TaskManager {
         }
     }
 
-    fn tick(&mut self) -> Option<Action> {
+    fn tick(&mut self) {
         self.current_task.tick()
     }
 }
 
 impl TaskManager {
     #[must_use]
-    fn handle_events_to_manager(&mut self, action: &Action) -> Option<Action> {
+    fn handle_events_to_manager(&mut self, action: &Action) {
         match action {
             Action::AddMagnet => {
                 self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new(self.ctx.clone()));
-                Some(Action::SwitchToInputMode)
+                self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
             }
             Action::DeleteWithFiles => self.delete_torrent(delete_torrent::Mode::WithFiles),
             Action::DeleteWithoutFiles => self.delete_torrent(delete_torrent::Mode::WithoutFiles),
@@ -142,13 +135,13 @@ impl TaskManager {
                     self.ctx.clone(),
                     self.table_manager.clone(),
                 ));
-                Some(Action::SwitchToInputMode)
+                self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
             }
-            _ => None,
+            _ => (),
         }
     }
 
-    fn delete_torrent(&mut self, mode: delete_torrent::Mode) -> Option<Action> {
+    fn delete_torrent(&mut self, mode: delete_torrent::Mode) {
         if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
             self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
                 self.ctx.clone(),
@@ -158,40 +151,38 @@ impl TaskManager {
                 }],
                 mode,
             ));
-            Some(Action::SwitchToInputMode)
-        } else {
-            None
+            self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
         }
     }
 
-    fn move_torrent(&mut self) -> Option<Action> {
+    fn move_torrent(&mut self) {
         if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
             self.current_task = CurrentTask::MoveBar(MoveBar::new(
                 self.ctx.clone(),
                 vec![torrent.id.clone()],
                 torrent.download_dir.to_string(),
             ));
-            Some(Action::SwitchToInputMode)
-        } else {
-            None
+            self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
         }
     }
 
-    fn pending_task(&mut self, task: StatusTask) -> Option<Action> {
+    fn pending_task(&mut self, task: StatusTask) {
         if matches!(self.current_task, CurrentTask::Status(_)) {
-            return None;
+            return;
         }
+
         let state = Arc::new(Mutex::new(ThrobberState::default()));
         self.current_task =
-            CurrentTask::Status(StatusBar::new(task, CurrentTaskState::Loading(state)));
-        Some(Action::SwitchToNormalMode)
+            CurrentTask::Status(StatusBar::new(self.ctx.clone(), task, CurrentTaskState::Loading(state)));
+        self.ctx.send_update_action(UpdateAction::SwitchToNormalMode);
     }
 
-    fn cancel_task(&mut self) -> Option<Action> {
+    fn cancel_task(&mut self) {
         if matches!(self.current_task, CurrentTask::Default(_)) {
-            return None;
+            return;
         }
+
         self.current_task = CurrentTask::Default(DefaultBar::new(self.ctx.clone()));
-        Some(Action::SwitchToNormalMode)
+        self.ctx.send_update_action(UpdateAction::SwitchToNormalMode);
     }
 }

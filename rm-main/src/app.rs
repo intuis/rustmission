@@ -2,6 +2,7 @@ use rm_config::Config;
 use rm_shared::action::event_to_action;
 use rm_shared::action::Action;
 use rm_shared::action::Mode;
+use rm_shared::action::UpdateAction;
 use std::sync::Arc;
 
 use crate::{
@@ -19,6 +20,7 @@ pub struct Ctx {
     pub config: Arc<Config>,
     pub session_info: Arc<SessionGet>,
     action_tx: UnboundedSender<Action>,
+    update_tx: UnboundedSender<UpdateAction>,
     trans_tx: UnboundedSender<TorrentAction>,
 }
 
@@ -27,6 +29,7 @@ impl Ctx {
         client: &mut TransClient,
         config: Config,
         action_tx: UnboundedSender<Action>,
+        update_tx: UnboundedSender<UpdateAction>,
         trans_tx: UnboundedSender<TorrentAction>,
     ) -> Result<Self> {
         let response = client.session_get().await;
@@ -37,6 +40,7 @@ impl Ctx {
                     config: Arc::new(config),
                     action_tx,
                     trans_tx,
+                    update_tx,
                     session_info,
                 });
             }
@@ -57,12 +61,17 @@ impl Ctx {
     pub(crate) fn send_torrent_action(&self, action: TorrentAction) {
         self.trans_tx.send(action).unwrap();
     }
+
+    pub(crate) fn send_update_action(&self, action: UpdateAction) {
+        self.update_tx.send(action).unwrap();
+    }
 }
 
 pub struct App {
     should_quit: bool,
     ctx: Ctx,
     action_rx: UnboundedReceiver<Action>,
+    update_rx: UnboundedReceiver<UpdateAction>,
     main_window: MainWindow,
     mode: Mode,
 }
@@ -70,17 +79,19 @@ pub struct App {
 impl App {
     pub async fn new(config: Config) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
+        let (update_tx, update_rx) = mpsc::unbounded_channel();
 
         let mut client = transmission::utils::client_from_config(&config);
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
-        let ctx = Ctx::new(&mut client, config, action_tx.clone(), trans_tx).await?;
+        let ctx = Ctx::new(&mut client, config, action_tx.clone(), update_tx, trans_tx).await?;
 
         tokio::spawn(transmission::action_handler(client, trans_rx, action_tx));
         Ok(Self {
             should_quit: false,
             main_window: MainWindow::new(ctx.clone()),
             action_rx,
+            update_rx,
             ctx,
             mode: Mode::Normal,
         })
@@ -104,6 +115,7 @@ impl App {
         loop {
             let tui_event = tui.next();
             let action = self.action_rx.recv();
+            let update_action = self.update_rx.recv();
             let tick_action = interval.tick();
 
             tokio::select! {
@@ -113,11 +125,11 @@ impl App {
 
                 event = tui_event => {
                     if let Some(action) = event_to_action(self.mode, event.unwrap(), &self.ctx.config.keybindings.keymap) {
-                        if let Some(action) = self.update(action).await {
-                            self.ctx.action_tx.send(action).unwrap();
-                        }
+                        self.handle_user_action(action).await
                     };
                 },
+
+                update_action = update_action => self.handle_update_action(update_action.unwrap()).await,
 
                 action = action => {
                     if let Some(action) = action {
@@ -125,8 +137,8 @@ impl App {
                             self.render(tui)?;
                         } else if action.is_quit() {
                             self.should_quit = true;
-                        } else if let Some(action) = self.update(action).await {
-                            self.ctx.action_tx.send(action).unwrap();
+                        } else {
+                            self.handle_user_action(action).await
                         }
                     }
                 }
@@ -146,27 +158,32 @@ impl App {
     }
 
     #[must_use]
-    async fn update(&mut self, action: Action) -> Option<Action> {
+    async fn handle_user_action(&mut self, action: Action) {
         use Action as A;
         match &action {
-            A::Render => Some(A::Render),
 
             A::HardQuit => {
                 self.should_quit = true;
-                None
             }
 
-            A::SwitchToInputMode => {
+            _ => {self.main_window.handle_actions(action);},
+        }
+    }
+
+    async fn handle_update_action(&mut self, action: UpdateAction) {
+        match &action {
+            UpdateAction::SwitchToInputMode => {
                 self.mode = Mode::Input;
-                Some(A::Render)
-            }
-
-            A::SwitchToNormalMode => {
+                self.ctx.send_action(Action::Render);
+            },
+            UpdateAction::SwitchToNormalMode => {
                 self.mode = Mode::Normal;
-                Some(A::Render)
-            }
+                self.ctx.send_action(Action::Render);
+            },
 
-            _ => self.main_window.handle_actions(action),
+            UpdateAction::TaskClear => {
+                self.main_window.handle_update_action(action)
+            }
         }
     }
 }

@@ -1,7 +1,7 @@
 use crate::app;
 use rm_shared::action::Action;
 
-use super::Component;
+use super::{Component, ComponentAction};
 use ratatui::{layout::Flex, prelude::*, widgets::Tabs};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -55,7 +55,7 @@ impl Component for TabComponent {
         f.render_widget(tabs, center_rect);
     }
 
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
             Action::ChangeTab(tab) => match tab {
                 1 => self.current_tab = CurrentTab::Torrents,
@@ -74,6 +74,6 @@ impl Component for TabComponent {
             },
             _ => (),
         }
-        None
+        ComponentAction::Nothing
     }
 }
