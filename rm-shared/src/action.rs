@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use transmission_rpc::types::SessionStats;
 
 use crate::status_task::StatusTask;
 
@@ -42,6 +43,7 @@ pub enum UpdateAction {
     SwitchToInputMode,
     SwitchToNormalMode,
     TaskClear,
+    SessionStats(Arc<SessionStats>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

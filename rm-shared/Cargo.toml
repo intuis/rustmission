@@ -12,3 +12,4 @@ license.workspace = true
 
 [dependencies]
 crossterm.workspace = true
+transmission-rpc.workspace = true

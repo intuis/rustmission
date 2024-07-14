@@ -4,24 +4,24 @@ use std::{
 };
 
 use tokio::sync::oneshot;
-use transmission_rpc::types::{FreeSpace, SessionStats, TorrentGetField};
+use transmission_rpc::types::{FreeSpace, TorrentGetField};
 
 use crate::{
     app,
     ui::tabs::torrents::{rustmission_torrent::RustmissionTorrent, table_manager::TableManager},
 };
-use rm_shared::action::Action;
+use rm_shared::action::{Action, UpdateAction};
 
 use super::TorrentAction;
 
-pub async fn stats(ctx: app::Ctx, stats: Arc<Mutex<Option<SessionStats>>>) {
+pub async fn stats(ctx: app::Ctx) {
     loop {
         let (stats_tx, stats_rx) = oneshot::channel();
         ctx.send_torrent_action(TorrentAction::GetSessionStats(stats_tx));
         let new_stats = stats_rx.await.unwrap();
 
-        *stats.lock().unwrap() = Some(new_stats);
-        ctx.send_action(Action::Render);
+        ctx.send_update_action(UpdateAction::SessionStats(new_stats));
+
         tokio::time::sleep(Duration::from_secs(ctx.config.connection.stats_refresh)).await;
     }
 }

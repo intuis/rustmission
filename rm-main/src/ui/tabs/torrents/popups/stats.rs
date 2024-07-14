@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ratatui::{
     prelude::*,
     style::Styled,
@@ -10,18 +12,21 @@ use transmission_rpc::types::SessionStats;
 
 use crate::{
     app,
-    ui::{centered_rect, components::{Component, ComponentAction}},
+    ui::{
+        centered_rect,
+        components::{Component, ComponentAction},
+    },
     utils::bytes_to_human_format,
 };
 use rm_shared::action::Action;
 
 pub struct StatisticsPopup {
-    stats: SessionStats,
+    stats: Arc<SessionStats>,
     ctx: app::Ctx,
 }
 
 impl StatisticsPopup {
-    pub const fn new(ctx: app::Ctx, stats: SessionStats) -> Self {
+    pub const fn new(ctx: app::Ctx, stats: Arc<SessionStats>) -> Self {
         Self { ctx, stats }
     }
 }

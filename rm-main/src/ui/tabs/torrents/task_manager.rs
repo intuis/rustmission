@@ -60,7 +60,6 @@ impl CurrentTask {
 impl Component for TaskManager {
     #[must_use]
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
-        use Action as A;
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => {
                 if magnet_bar.handle_actions(action).is_quit() {

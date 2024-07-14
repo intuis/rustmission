@@ -172,7 +172,7 @@ impl App {
     }
 
     async fn handle_update_action(&mut self, action: UpdateAction) {
-        match &action {
+        match action {
             UpdateAction::SwitchToInputMode => {
                 self.mode = Mode::Input;
                 self.ctx.send_action(Action::Render);
@@ -182,7 +182,7 @@ impl App {
                 self.ctx.send_action(Action::Render);
             }
 
-            UpdateAction::TaskClear => self.main_window.handle_update_action(action),
+            _ => self.main_window.handle_update_action(action),
         }
     }
 }

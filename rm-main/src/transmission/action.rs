@@ -23,7 +23,7 @@ pub enum TorrentAction {
     SetArgs(Box<TorrentSetArgs>, Option<Vec<Id>>),
     // Torrent ID, Directory to move to
     Move(Vec<Id>, String),
-    GetSessionStats(oneshot::Sender<SessionStats>),
+    GetSessionStats(oneshot::Sender<Arc<SessionStats>>),
     GetFreeSpace(String, oneshot::Sender<FreeSpace>),
     GetTorrents(Vec<TorrentGetField>, oneshot::Sender<Vec<Torrent>>),
     GetTorrentsById(Vec<Id>, oneshot::Sender<Vec<Torrent>>),
@@ -124,13 +124,11 @@ pub async fn action_handler(
                     action_tx
                         .send(Action::Error(Box::new(error_message)))
                         .unwrap();
-
                 }
             }
             TorrentAction::GetSessionStats(sender) => {
-                sender
-                    .send(client.session_stats().await.unwrap().arguments)
-                    .unwrap();
+                let stats = client.session_stats().await.unwrap().arguments;
+                sender.send(Arc::new(stats)).unwrap();
             }
             TorrentAction::GetFreeSpace(path, sender) => {
                 sender

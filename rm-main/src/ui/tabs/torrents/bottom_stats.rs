@@ -15,28 +15,31 @@ use crate::{ui::components::Component, utils::bytes_to_human_format};
 use super::table_manager::TableManager;
 
 pub(super) struct BottomStats {
-    // TODO: get rid of the Option
-    pub(super) stats: Arc<Mutex<Option<SessionStats>>>,
+    // TODO: get rid of the Option (requires changes in transmission-rpc so SessionStats impls Default
+    pub(super) stats: Option<Arc<SessionStats>>,
     pub(super) free_space: Arc<Mutex<Option<FreeSpace>>>,
     pub(super) table_manager: Arc<Mutex<TableManager>>,
 }
 
 impl BottomStats {
     pub fn new(
-        stats: Arc<Mutex<Option<SessionStats>>>,
         free_space: Arc<Mutex<Option<FreeSpace>>>,
         table_manager: Arc<Mutex<TableManager>>,
     ) -> Self {
         Self {
-            stats,
+            stats: None,
             free_space,
             table_manager,
         }
     }
+
+    pub fn set_stats(&mut self, stats: Arc<SessionStats>) {
+        self.stats = Some(stats);
+    }
 }
 impl Component for BottomStats {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        if let Some(stats) = &*self.stats.lock().unwrap() {
+        if let Some(stats) = &self.stats {
             let download = bytes_to_human_format(stats.download_speed);
             let upload = bytes_to_human_format(stats.upload_speed);
 

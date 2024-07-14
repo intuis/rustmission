@@ -38,14 +38,10 @@ impl TorrentsTab {
     pub fn new(ctx: app::Ctx) -> Self {
         let table = GenericTable::new(vec![]);
         let table_manager = Arc::new(Mutex::new(TableManager::new(ctx.clone(), table)));
-        let stats = Arc::new(Mutex::new(None));
         let free_space = Arc::new(Mutex::new(None));
-        let bottom_stats = BottomStats::new(stats, free_space, Arc::clone(&table_manager));
+        let bottom_stats = BottomStats::new(free_space, Arc::clone(&table_manager));
 
-        tokio::spawn(transmission::fetchers::stats(
-            ctx.clone(),
-            Arc::clone(&bottom_stats.stats),
-        ));
+        tokio::spawn(transmission::fetchers::stats(ctx.clone()));
 
         tokio::spawn(transmission::fetchers::torrents(
             ctx.clone(),
@@ -87,7 +83,7 @@ impl Component for TorrentsTab {
 
         if self.popup_manager.is_showing_popup() {
             self.popup_manager.handle_actions(action);
-            return ComponentAction::Nothing
+            return ComponentAction::Nothing;
         }
 
         if action.is_quit() {
@@ -104,16 +100,19 @@ impl Component for TorrentsTab {
             A::ShowStats => self.show_statistics_popup(),
             A::ShowFiles => self.show_files_popup(),
             A::Pause => self.pause_current_torrent(),
-            other => {self.task_manager.handle_actions(other);},
+            other => {
+                self.task_manager.handle_actions(other);
+            }
         };
 
         ComponentAction::Nothing
     }
 
     fn handle_update_action(&mut self, action: UpdateAction) {
-        // match action {
-        //     UpdateAction::TaskClear => self.task_manager,
-        // }
+        match action {
+            UpdateAction::SessionStats(stats) => self.bottom_stats.set_stats(stats),
+            _ => (),
+        }
     }
 }
 
@@ -156,7 +155,7 @@ impl TorrentsTab {
     }
 
     fn show_statistics_popup(&mut self) {
-        if let Some(stats) = &*self.bottom_stats.stats.lock().unwrap() {
+        if let Some(stats) = &self.bottom_stats.stats {
             let popup = StatisticsPopup::new(self.ctx.clone(), stats.clone());
             self.popup_manager.show_popup(CurrentPopup::Stats(popup));
             self.ctx.send_action(Action::Render)
