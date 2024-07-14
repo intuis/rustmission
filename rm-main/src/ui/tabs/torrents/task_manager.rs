@@ -89,6 +89,7 @@ impl Component for TaskManager {
                 _ => None,
             },
             CurrentTask::MoveBar(move_bar) => match move_bar.handle_actions(action) {
+                Some(A::TaskPending(task)) => self.pending_task(task),
                 Some(A::Quit) => self.cancel_task(),
                 Some(A::Render) => Some(A::Render),
                 _ => None,
