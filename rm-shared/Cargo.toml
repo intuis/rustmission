@@ -1,5 +1,6 @@
 [package]
 name = "rm-shared"
+description = "shared things for rustmission"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

@@ -42,9 +42,9 @@ pub fn fetch_config<T: DeserializeOwned>(config_name: &str) -> Result<T, ConfigF
 pub fn put_config<T: DeserializeOwned>(
     content: &'static str,
     filename: &str,
-) -> Result<T, io::Error> {
+) -> Result<T, ConfigFetchingError> {
     let config_path = get_config_path(filename);
     let mut config_file = File::create(config_path)?;
     config_file.write_all(content.as_bytes())?;
-    Ok(toml::from_str(content).expect("default configs are correct"))
+    Ok(toml::from_str(content)?)
 }

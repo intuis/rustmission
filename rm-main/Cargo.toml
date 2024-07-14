@@ -1,6 +1,6 @@
 [package]
 name = "rustmission"
-version = "0.3.3"
+version = "0.4.3"
 edition = "2021"
 description = "TUI for Transmission daemon"
 repository = "https://github.com/intuis/rustmission"
@@ -34,3 +34,4 @@ rss.workspace = true
 reqwest.workspace = true
 regex.workspace = true
 throbber-widgets-tui.workspace = true 
+chrono.workspace = true

@@ -1,5 +1,5 @@
 pub mod keymap;
-mod main_config;
+pub mod main_config;
 mod utils;
 
 use std::path::PathBuf;
@@ -11,6 +11,7 @@ use main_config::MainConfig;
 pub struct Config {
     pub general: main_config::General,
     pub connection: main_config::Connection,
+    pub torrents_tab: main_config::TorrentsTab,
     pub keybindings: KeymapConfig,
     pub directories: Directories,
 }
@@ -33,6 +34,7 @@ impl Config {
         Ok(Self {
             general: main_config.general,
             connection: main_config.connection,
+            torrents_tab: main_config.torrents_tab,
             keybindings: keybindings.clone(),
             directories,
         })

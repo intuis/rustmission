@@ -1,21 +1,36 @@
+<img align="left" width="100" height="100" src="https://github.com/micielski/rustmission/assets/73398428/91bb8875-2ce9-41d0-9e91-5705c521a825">
+
+**Rustmission**
+
+Performant TUI client for Transmission daemon capable of managing hundreds of torrents.   
+It boasts a rich feature set that surpasses many other clients, offering a seamless torrenting experience :3
+
+
+# 
 <div align="center">
-    <h1><strong>Rustmission</strong></h1>
+    <img src="https://github.com/micielski/rustmission/assets/73398428/68422239-aa35-45e6-a521-d8e259f7702e" />
     <p>
-	    <strong>TUI for the Transmission daemon</strong>
-    </p>
-    <img src="https://raw.githubusercontent.com/intuis/rustmission/main/imgs/preview.png" />
-    <p>
-        <small>⚠️ I DO NOT PIRATE MOVIES. THE TORRENTS YOU SEE IN THIS IMAGE ARE SAMPLE DATA FABRICATED BY ARTIFICIAL INTELLIGENCE. I DO NOT CONDONE PIRACY, AND I WOULD NEVER, EVER DO SUCH THING</small>
+        <small>⚠️ Torrents you see are just samples fabricated by AI. Piracy is not something we tolerate here at Intuis.</small>
     </p>
 </div>
 
 ## Features
 
-- **Built-in Search**: Seamlessly search for magnets directly. This is a killer feature of Rustmission.
-- **Async Rust**: Utilizes Rust's async/await syntax for efficient, non-blocking IO operations.
-- **Basic Operations**: Allows to add, pause, remove, fuzzy filter your torrents.
+- **Basic operations**: Allows to add, pause, remove, fuzzy filter your torrents.
+- **Built-in magnet search**: Search for magnets without leaving your terminal.
+- **Asynchronous**: UI is always responsive.
+- **RSS**: Fetch torrents automatically with a cronjob using `--fetch-rss`
+
+## Requirements
+
+- Running [Transmission](https://github.com/transmission/transmission) daemon and its IP address
+- [Nerd Fonts](https://www.nerdfonts.com/)
 
 ## Installation
+
+<a href="https://repology.org/project/rustmission/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/rustmission.svg" alt="Packaging status" align="right">
+</a>
 
 To install Rustmission, ensure you have Rust and Cargo installed on your system, and then run:
 
@@ -23,25 +38,25 @@ To install Rustmission, ensure you have Rust and Cargo installed on your system,
 cargo install rustmission
 ```
 
-or with Nix:
+or with Nix ( :heart: [@0x61nas](https://github.com/0x61nas) ):
 
 ```bash
-nix run .
+nix-shell -p rustmission
 ```
 
-or with Brew:
+or with Brew ( :heart: [@aidanaden](https://github.com/aidanaden) ):
 ```bash
 brew install intuis/tap/rustmission
 ```
 
 ## Usage
 
-Launch Rustmission in your terminal to initialize the configuration and make adjustments as needed. Subsequently, run Rustmission again. For a list of keybindings, press '?'.
+Run `rustmission` in your terminal to initialize the config and make adjustments as needed. Subsequently, run `rustmission` again. For a list of keybindings, press `?` or `F1`.
 
 ## Configuration
 
-Rustmission stores its configuration in a TOML file located at ~/.config/rustmission/config.toml by default. You can modify this file to
-set the daemon's IP address.
+Rustmission stores its configuration in a TOML file located at `~/.config/rustmission/config.toml` by default. You can modify this file to
+set the daemon's address.
 
 ```toml
 [general]
@@ -53,17 +68,35 @@ auto_hide = false
 # It can also be a hex, e.g. "#3cb371"
 accent_color = "LightMagenta"
 
-# If enabled, shows various keybindings throughout the program at the cost of a
-# little bit cluttered interface.
+# If enabled, shows various keybindings throughout the program at the cost of
+# a little bit cluttered interface.
 beginner_mode = true
+
+# If enabled, hides header row of torrents tab
+headers_hide = false
 
 [connection]
 url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 
+# Refresh timings (in seconds)
+torrents_refresh = 5
+stats_refresh = 5
+free_space_refresh = 10
+
 # If you need username and password to authenticate:
 # username = "CHANGE_ME"
 # password = "CHANGE_ME"
+
+[torrents_tab]
+# Available fields:
+# Id, Name, SizeWhenDone, Progress, DownloadRate, UploadRate, DownloadDir,
+# Padding, UploadRatio, UploadedEver, AddedDate, ActivityDate, PeersConnected
+# SmallStatus
+headers = ["Name", "SizeWhenDone", "Progress", "DownloadRate", "UploadRate"]
+
 ```
+
+There's also a self-documenting keymap config located at `~/.config/rustmission/keymap.toml` with sane defaults.
 
 ## Alternatives
 - [Transgression](https://github.com/PanAeon/transg-tui)
@@ -72,5 +105,5 @@ url = "http://CHANGE_ME:9091/transmission/rpc" # REQUIRED!
 - [stig](https://github.com/rndusr/stig)
 
 ## Contributing
-
-Contributions are welcome! If you'd like to contribute to Rustmission, please fork the repository, make your changes, and submit a pull request!
+If you'd like to contribute make sure you fork [this repo](https://github.com/intuis/rustmission) and submit a PR!  
+If you want to implement something major, create an issue first so it can be discussed.

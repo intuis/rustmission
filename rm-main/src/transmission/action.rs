@@ -124,6 +124,7 @@ pub async fn action_handler(
                     action_tx
                         .send(Action::Error(Box::new(error_message)))
                         .unwrap();
+
                 }
             }
             TorrentAction::GetSessionStats(sender) => {

@@ -1,6 +1,10 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{prelude::*, widgets::Row};
-use std::sync::{Arc, Mutex};
+use rm_config::main_config::Header;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use crate::{app, ui::components::table::GenericTable};
 
@@ -9,31 +13,27 @@ use super::rustmission_torrent::RustmissionTorrent;
 pub struct TableManager {
     ctx: app::Ctx,
     pub table: GenericTable<RustmissionTorrent>,
-    pub widths: [Constraint; 8],
+    pub widths: Vec<Constraint>,
     pub filter: Arc<Mutex<Option<String>>>,
     pub torrents_displaying_no: u16,
-    header: Vec<String>,
+    headers: Vec<&'static str>,
 }
 
 impl TableManager {
     pub fn new(ctx: app::Ctx, table: GenericTable<RustmissionTorrent>) -> Self {
-        let widths = Self::default_widths();
+        let widths = Self::default_widths(&ctx.config.torrents_tab.headers);
+        let mut headers = vec![];
+        for header in &ctx.config.torrents_tab.headers {
+            headers.push(header.header_name());
+        }
+
         Self {
             ctx,
             table,
             widths,
             filter: Arc::new(Mutex::new(None)),
             torrents_displaying_no: 0,
-            header: vec![
-                "Name".to_owned(),
-                "".to_owned(),
-                "Size".to_owned(),
-                "Progress".to_owned(),
-                "ETA".to_owned(),
-                "Download".to_owned(),
-                "Upload".to_owned(),
-                "Directory".to_owned(),
-            ],
+            headers,
         }
     }
 
@@ -46,13 +46,13 @@ impl TableManager {
             self.table
                 .items
                 .iter()
-                .map(RustmissionTorrent::to_row)
+                .map(|t| t.to_row(&self.ctx.config.torrents_tab.headers))
                 .collect()
         }
     }
 
-    pub const fn header(&self) -> &Vec<String> {
-        &self.header
+    pub const fn header(&self) -> &Vec<&'static str> {
+        &self.headers
     }
 
     pub fn current_torrent(&mut self) -> Option<&mut RustmissionTorrent> {
@@ -94,61 +94,77 @@ impl TableManager {
 
         for torrent in torrents {
             if let Some((_, indices)) = matcher.fuzzy_indices(&torrent.torrent_name, filter) {
-                rows.push(torrent.to_row_with_higlighted_indices(indices, highlight_style))
+                rows.push(torrent.to_row_with_higlighted_indices(
+                    indices,
+                    highlight_style,
+                    &self.ctx.config.torrents_tab.headers,
+                ))
             }
         }
 
         rows
     }
 
-    const fn default_widths() -> [Constraint; 8] {
-        [
-            Constraint::Max(70),    // Name
-            Constraint::Length(5),  // <padding>
-            Constraint::Length(12), // Size
-            Constraint::Length(12), // Progress
-            Constraint::Length(12), // ETA
-            Constraint::Length(12), // Download
-            Constraint::Length(12), // Upload
-            Constraint::Max(70),    // Download directory
-        ]
+    fn default_widths(headers: &Vec<Header>) -> Vec<Constraint> {
+        let mut constraints = vec![];
+
+        for header in headers {
+            constraints.push(header.default_constraint())
+        }
+        constraints
     }
 
-    fn header_widths(&self, rows: &[RustmissionTorrent]) -> [Constraint; 8] {
+    fn header_widths(&self, rows: &[RustmissionTorrent]) -> Vec<Constraint> {
+        let headers = &self.ctx.config.torrents_tab.headers;
+
         if !self.ctx.config.general.auto_hide {
-            return Self::default_widths();
+            return Self::default_widths(&headers);
         }
 
-        let mut download_width = 0;
-        let mut upload_width = 0;
-        let mut progress_width = 0;
-        let mut eta_width = 0;
+        let mut map = HashMap::new();
+
+        for header in headers {
+            map.insert(header, header.default_constraint());
+        }
+
+        let hidable_headers = [
+            Header::Progress,
+            Header::UploadRate,
+            Header::DownloadRate,
+            Header::Eta,
+        ];
+
+        for hidable_header in &hidable_headers {
+            map.entry(hidable_header)
+                .and_modify(|c| *c = Constraint::Length(0));
+        }
 
         for row in rows {
             if !row.download_speed.is_empty() {
-                download_width = 11;
+                map.entry(&Header::DownloadRate)
+                    .and_modify(|c| *c = Header::DownloadRate.default_constraint());
             }
             if !row.upload_speed.is_empty() {
-                upload_width = 11;
+                map.entry(&Header::UploadRate)
+                    .and_modify(|c| *c = Header::UploadRate.default_constraint());
             }
             if !row.progress.is_empty() {
-                progress_width = 11;
+                map.entry(&Header::Progress)
+                    .and_modify(|c| *c = Header::Progress.default_constraint());
             }
 
             if !row.eta_secs.is_empty() {
-                eta_width = 11;
+                map.entry(&Header::Eta)
+                    .and_modify(|c| *c = Header::Eta.default_constraint());
             }
         }
 
-        [
-            Constraint::Max(70),                // Name
-            Constraint::Length(5),              // <padding>
-            Constraint::Length(11),             // Size
-            Constraint::Length(progress_width), // Progress
-            Constraint::Length(eta_width),      // ETA
-            Constraint::Length(download_width), // Download
-            Constraint::Length(upload_width),   // Upload
-            Constraint::Max(70),                // Download directory
-        ]
+        let mut constraints = vec![];
+
+        for header in headers {
+            constraints.push(map.remove(header).expect("this header exists"))
+        }
+
+        constraints
     }
 }
