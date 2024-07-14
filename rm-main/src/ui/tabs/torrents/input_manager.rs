@@ -43,14 +43,13 @@ impl Component for InputManager {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         f.render_widget(Clear, rect);
 
-        let mut spans = vec![];
-
-        spans.push(Span::styled(
-            self.prompt.as_str(),
-            Style::default().fg(self.ctx.config.general.accent_color),
-        ));
-
-        spans.push(Span::raw(self.text()));
+        let spans = vec![
+            Span::styled(
+                self.prompt.as_str(),
+                Style::default().fg(self.ctx.config.general.accent_color),
+            ),
+            Span::raw(self.text()),
+        ];
 
         let input = self.input.to_string();
         let prefix_len = self.prompt.len() + self.text().len() - input.len();

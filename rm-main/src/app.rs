@@ -36,20 +36,20 @@ impl Ctx {
         match response {
             Ok(res) => {
                 let session_info = Arc::new(res.arguments);
-                return Ok(Self {
+                Ok(Self {
                     config: Arc::new(config),
                     action_tx,
                     trans_tx,
                     update_tx,
                     session_info,
-                });
+                })
             }
             Err(e) => {
                 let config_path = config.directories.main_path;
-                return Err(Error::msg(format!(
+                Err(Error::msg(format!(
                     "{e}\nIs the connection info in {:?} correct?",
                     config_path
-                )));
+                )))
             }
         }
     }
@@ -161,12 +161,13 @@ impl App {
     async fn handle_user_action(&mut self, action: Action) {
         use Action as A;
         match &action {
-
             A::HardQuit => {
                 self.should_quit = true;
             }
 
-            _ => {self.main_window.handle_actions(action);},
+            _ => {
+                self.main_window.handle_actions(action);
+            }
         }
     }
 
@@ -175,15 +176,13 @@ impl App {
             UpdateAction::SwitchToInputMode => {
                 self.mode = Mode::Input;
                 self.ctx.send_action(Action::Render);
-            },
+            }
             UpdateAction::SwitchToNormalMode => {
                 self.mode = Mode::Normal;
                 self.ctx.send_action(Action::Render);
-            },
-
-            UpdateAction::TaskClear => {
-                self.main_window.handle_update_action(action)
             }
+
+            UpdateAction::TaskClear => self.main_window.handle_update_action(action),
         }
     }
 }

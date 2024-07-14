@@ -144,7 +144,7 @@ impl MainConfig {
 
     pub(crate) fn init() -> Result<Self> {
         match utils::fetch_config::<Self>(Self::FILENAME) {
-            Ok(config) => return Ok(config),
+            Ok(config) => Ok(config),
             Err(e) => match e {
                 utils::ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
                     utils::put_config::<Self>(Self::DEFAULT_CONFIG, Self::FILENAME)?;
@@ -153,7 +153,7 @@ impl MainConfig {
                 }
                 _ => anyhow::bail!(e),
             },
-        };
+        }
     }
 
     pub(crate) fn path() -> &'static PathBuf {

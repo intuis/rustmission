@@ -62,16 +62,8 @@ impl Component for TabComponent {
                 2 => self.current_tab = CurrentTab::Search,
                 _ => (),
             },
-            // left only works on right-most tab (search)
-            Action::Left => match self.current_tab {
-                CurrentTab::Search => self.current_tab = CurrentTab::Torrents,
-                _ => (),
-            },
-            // right only works on left-most tab (torrents)
-            Action::Right => match self.current_tab {
-                CurrentTab::Torrents => self.current_tab = CurrentTab::Search,
-                _ => (),
-            },
+            Action::Left => self.current_tab = CurrentTab::Torrents,
+            Action::Right => self.current_tab = CurrentTab::Search,
             _ => (),
         }
         ComponentAction::Nothing

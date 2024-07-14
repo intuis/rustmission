@@ -3,8 +3,14 @@ use std::sync::{Arc, Mutex};
 use ratatui::prelude::*;
 use throbber_widgets_tui::ThrobberState;
 
-use crate::{app, ui::components::{Component, ComponentAction}};
-use rm_shared::{action::{Action, UpdateAction}, status_task::StatusTask};
+use crate::{
+    app,
+    ui::components::{Component, ComponentAction},
+};
+use rm_shared::{
+    action::{Action, UpdateAction},
+    status_task::StatusTask,
+};
 
 use super::{
     tasks::{
@@ -56,48 +62,53 @@ impl Component for TaskManager {
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
         match &mut self.current_task {
-            CurrentTask::AddMagnetBar(magnet_bar) => match magnet_bar.handle_actions(action) {
-                // Some(A::TaskPending(task)) => self.pending_task(task),
-                ComponentAction::Quit => self.cancel_task(),
-                _ => (),
-            },
+            CurrentTask::AddMagnetBar(magnet_bar) => {
+                if magnet_bar.handle_actions(action).is_quit() {
+                    // Some(A::TaskPending(task)) => self.pending_task(task),
+                    self.cancel_task()
+                }
+            }
 
-            CurrentTask::DeleteBar(delete_bar) => match delete_bar.handle_actions(action) {
-                // Some(A::TaskPending(task)) => {
-                //     let selected = self
-                //         .table_manager
-                //         .lock()
-                //         .unwrap()
-                //         .table
-                //         .state
-                //         .borrow()
-                //         .selected();
+            CurrentTask::DeleteBar(delete_bar) => {
+                if delete_bar.handle_actions(action).is_quit() {
+                    // Some(A::TaskPending(task)) => {
+                    //     let selected = self
+                    //         .table_manager
+                    //         .lock()
+                    //         .unwrap()
+                    //         .table
+                    //         .state
+                    //         .borrow()
+                    //         .selected();
 
-                //     // select closest existing torrent
-                //     if let Some(idx) = selected {
-                //         if idx > 0 {
-                //             self.table_manager.lock().unwrap().table.previous();
-                //         }
-                //     }
-                //     self.pending_task(task)
-                // }
-                ComponentAction::Quit => self.cancel_task(),
-                _ => (),
-            },
-            CurrentTask::MoveBar(move_bar) => match move_bar.handle_actions(action) {
-                // Some(A::TaskPending(task)) => self.pending_task(task),
-                ComponentAction::Quit => self.cancel_task(),
-                _ => (),
-            },
-            CurrentTask::FilterBar(filter_bar) => match filter_bar.handle_actions(action) {
-                ComponentAction::Quit => self.cancel_task(),
-                _ => (),
-            },
+                    //     // select closest existing torrent
+                    //     if let Some(idx) = selected {
+                    //         if idx > 0 {
+                    //             self.table_manager.lock().unwrap().table.previous();
+                    //         }
+                    //     }
+                    //     self.pending_task(task)
+                    // }
+                    self.cancel_task()
+                }
+            }
+            CurrentTask::MoveBar(move_bar) => {
+                if move_bar.handle_actions(action).is_quit() {
+                    self.cancel_task()
+                    // Some(A::TaskPending(task)) => self.pending_task(task),
+                }
+            }
+            CurrentTask::FilterBar(filter_bar) => {
+                if filter_bar.handle_actions(action).is_quit() {
+                    self.cancel_task()
+                }
+            }
 
-            CurrentTask::Status(status_bar) => match status_bar.handle_actions(action) {
-                ComponentAction::Quit => self.cancel_task(),
-                _ => (),
-            },
+            CurrentTask::Status(status_bar) => {
+                if status_bar.handle_actions(action).is_quit() {
+                    self.cancel_task()
+                }
+            }
             CurrentTask::Default(_) => self.handle_events_to_manager(&action),
         };
         ComponentAction::Nothing
@@ -120,7 +131,6 @@ impl Component for TaskManager {
 }
 
 impl TaskManager {
-    #[must_use]
     fn handle_events_to_manager(&mut self, action: &Action) {
         match action {
             Action::AddMagnet => {
@@ -172,9 +182,13 @@ impl TaskManager {
         }
 
         let state = Arc::new(Mutex::new(ThrobberState::default()));
-        self.current_task =
-            CurrentTask::Status(StatusBar::new(self.ctx.clone(), task, CurrentTaskState::Loading(state)));
-        self.ctx.send_update_action(UpdateAction::SwitchToNormalMode);
+        self.current_task = CurrentTask::Status(StatusBar::new(
+            self.ctx.clone(),
+            task,
+            CurrentTaskState::Loading(state),
+        ));
+        self.ctx
+            .send_update_action(UpdateAction::SwitchToNormalMode);
     }
 
     fn cancel_task(&mut self) {
@@ -183,6 +197,7 @@ impl TaskManager {
         }
 
         self.current_task = CurrentTask::Default(DefaultBar::new(self.ctx.clone()));
-        self.ctx.send_update_action(UpdateAction::SwitchToNormalMode);
+        self.ctx
+            .send_update_action(UpdateAction::SwitchToNormalMode);
     }
 }

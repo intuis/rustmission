@@ -6,7 +6,11 @@ use transmission_rpc::types::Id;
 use crate::{
     app,
     transmission::TorrentAction,
-    ui::{components::{Component, ComponentAction}, tabs::torrents::input_manager::InputManager, to_input_request},
+    ui::{
+        components::{Component, ComponentAction},
+        tabs::torrents::input_manager::InputManager,
+        to_input_request,
+    },
 };
 
 pub struct MoveBar {
@@ -17,7 +21,7 @@ pub struct MoveBar {
 
 impl MoveBar {
     pub fn new(ctx: app::Ctx, torrents_to_move: Vec<Id>, existing_location: String) -> Self {
-        let prompt = format!("New directory: ");
+        let prompt = "New directory: ".to_string();
 
         Self {
             torrents_to_move,

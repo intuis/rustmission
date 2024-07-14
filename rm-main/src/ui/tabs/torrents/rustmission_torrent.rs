@@ -31,7 +31,7 @@ pub struct RustmissionTorrent {
 }
 
 impl RustmissionTorrent {
-    pub fn to_row(&self, headers: &Vec<Header>) -> ratatui::widgets::Row {
+    pub fn to_row(&self, headers: &[Header]) -> ratatui::widgets::Row {
         headers
             .iter()
             .map(|header| self.header_to_line(*header))
@@ -59,7 +59,7 @@ impl RustmissionTorrent {
 
         for header in headers {
             if *header == Header::Name {
-                cells.push(Line::from(torrent_name_line.clone()))
+                cells.push(torrent_name_line.clone())
             } else {
                 cells.push(self.header_to_line(*header))
             }

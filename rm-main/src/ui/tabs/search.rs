@@ -91,7 +91,6 @@ impl SearchTab {
         ])
     }
 
-    #[must_use]
     fn change_focus(&mut self) {
         if self.search_focus == SearchFocus::Search {
             self.search_focus = SearchFocus::List;
@@ -121,11 +120,13 @@ impl SearchTab {
             KeyCode::Enter => {
                 self.req_sender.send(self.input.to_string()).unwrap();
                 self.search_focus = SearchFocus::List;
-                self.ctx.send_update_action(UpdateAction::SwitchToNormalMode);
+                self.ctx
+                    .send_update_action(UpdateAction::SwitchToNormalMode);
             }
             KeyCode::Esc => {
                 self.search_focus = SearchFocus::List;
-                self.ctx.send_update_action(UpdateAction::SwitchToNormalMode);
+                self.ctx
+                    .send_update_action(UpdateAction::SwitchToNormalMode);
             }
             _ => {
                 if let Some(req) = to_input_request(input) {
@@ -193,7 +194,9 @@ impl Component for SearchTab {
             A::Home => self.scroll_to_home(),
             A::End => self.scroll_to_end(),
             A::Confirm => self.add_torrent(),
-            A::Tick => {self.tick();},
+            A::Tick => {
+                self.tick();
+            }
 
             _ => (),
         };
@@ -329,7 +332,7 @@ impl SearchResultState {
 impl Component for SearchResultState {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         match &self.status {
-            SearchResultStatus::Nothing => return,
+            SearchResultStatus::Nothing => (),
             SearchResultStatus::Searching(state) => {
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label("Searching...")
@@ -358,12 +361,9 @@ impl Component for SearchResultState {
     }
 
     fn tick(&mut self) {
-        match &self.status {
-            SearchResultStatus::Searching(state) => {
-                state.lock().unwrap().calc_next();
-                self.ctx.send_action(Action::Render);
-            }
-            _ => (),
+        if let SearchResultStatus::Searching(state) = &self.status {
+            state.lock().unwrap().calc_next();
+            self.ctx.send_action(Action::Render);
         }
     }
 }

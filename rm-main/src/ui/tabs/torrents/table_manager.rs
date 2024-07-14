@@ -118,7 +118,7 @@ impl TableManager {
         let headers = &self.ctx.config.torrents_tab.headers;
 
         if !self.ctx.config.general.auto_hide {
-            return Self::default_widths(&headers);
+            return Self::default_widths(headers);
         }
 
         let mut map = HashMap::new();

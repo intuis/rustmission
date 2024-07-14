@@ -8,7 +8,7 @@ use rm_shared::action::Action;
 use rm_shared::action::UpdateAction;
 pub use tabs::TabComponent;
 
-#[derive(Clone, Copy,PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ComponentAction {
     Nothing,
     Quit,
@@ -29,7 +29,5 @@ pub trait Component {
 
     fn render(&mut self, _f: &mut Frame, _rect: Rect) {}
 
-    fn tick(&mut self) {
-        ()
-    }
+    fn tick(&mut self) {}
 }

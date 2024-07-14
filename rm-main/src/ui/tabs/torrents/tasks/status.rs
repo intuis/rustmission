@@ -1,9 +1,15 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{app, ui::components::{Component, ComponentAction}};
+use crate::{
+    app,
+    ui::components::{Component, ComponentAction},
+};
 
 use ratatui::{prelude::*, widgets::Paragraph};
-use rm_shared::{action::{Action, UpdateAction}, status_task::StatusTask};
+use rm_shared::{
+    action::{Action, UpdateAction},
+    status_task::StatusTask,
+};
 use throbber_widgets_tui::ThrobberState;
 use tokio::time::{self, Instant};
 
@@ -15,7 +21,11 @@ pub struct StatusBar {
 
 impl StatusBar {
     pub const fn new(ctx: app::Ctx, task: StatusTask, task_status: CurrentTaskState) -> Self {
-        Self { task, task_status, ctx, }
+        Self {
+            task,
+            task_status,
+            ctx,
+        }
     }
 }
 
@@ -34,15 +44,15 @@ impl Component for StatusBar {
             CurrentTaskState::Loading(state) => {
                 let status_text = match &self.task {
                     StatusTask::Add(name) => {
-                        let display_name = format_display_name(&name);
+                        let display_name = format_display_name(name);
                         format!("Adding {display_name}")
                     }
                     StatusTask::Delete(name) => {
-                        let display_name = format_display_name(&name);
+                        let display_name = format_display_name(name);
                         format!("Deleting {display_name}")
                     }
                     StatusTask::Move(name) => {
-                        let display_name = format_display_name(&name);
+                        let display_name = format_display_name(name);
                         format!("Moving to {display_name}")
                     }
                 };
@@ -59,29 +69,29 @@ impl Component for StatusBar {
                 let status_text = match task_state {
                     CurrentTaskState::Failure => match &self.task {
                         StatusTask::Add(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Error adding {display_name}")
                         }
                         StatusTask::Delete(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Error deleting {display_name}")
                         }
                         StatusTask::Move(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Error moving to {display_name}")
                         }
                     },
                     CurrentTaskState::Success(_) => match &self.task {
                         StatusTask::Add(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Added {display_name}")
                         }
                         StatusTask::Delete(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Deleted {display_name}")
                         }
                         StatusTask::Move(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Location moved to {display_name}")
                         }
                     },
@@ -106,7 +116,10 @@ impl Component for StatusBar {
 
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
-            Action::Tick => {self.tick(); ComponentAction::Nothing },
+            Action::Tick => {
+                self.tick();
+                ComponentAction::Nothing
+            }
             Action::TaskSuccess => {
                 self.task_status.set_success();
                 self.ctx.send_action(Action::Render);

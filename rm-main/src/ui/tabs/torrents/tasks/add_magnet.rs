@@ -4,9 +4,16 @@ use ratatui::prelude::*;
 use crate::{
     app,
     transmission::TorrentAction,
-    ui::{components::{Component, ComponentAction}, tabs::torrents::input_manager::InputManager, to_input_request},
+    ui::{
+        components::{Component, ComponentAction},
+        tabs::torrents::input_manager::InputManager,
+        to_input_request,
+    },
 };
-use rm_shared::{action::{Action, UpdateAction}, status_task::StatusTask};
+use rm_shared::{
+    action::{Action, UpdateAction},
+    status_task::StatusTask,
+};
 
 pub struct AddMagnetBar {
     input_magnet_mgr: InputManager,
@@ -61,7 +68,7 @@ impl AddMagnetBar {
             return ComponentAction::Nothing;
         }
 
-        return ComponentAction::Nothing;
+        ComponentAction::Nothing
     }
 
     fn handle_location_input(&mut self, input: KeyEvent) -> ComponentAction {
@@ -73,7 +80,8 @@ impl AddMagnetBar {
             // return Some(Action::TaskPending(StatusTask::Add(
             //     self.input_magnet_mgr.text(),
             // )));
-            self.ctx.send_update_action(UpdateAction::SwitchToNormalMode);
+            self.ctx
+                .send_update_action(UpdateAction::SwitchToNormalMode);
             return ComponentAction::Quit;
         }
         if input.code == KeyCode::Esc {
