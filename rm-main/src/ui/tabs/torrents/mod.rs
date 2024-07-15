@@ -137,6 +137,8 @@ impl Component for TorrentsTab {
             }
             UpdateAction::UpdateTorrents(torrents) => {
                 self.table_manager.set_new_rows(torrents);
+                self.bottom_stats
+                    .update_selected_indicator(&self.table_manager);
             }
             _ => (),
         }
@@ -188,33 +190,45 @@ impl TorrentsTab {
 
     fn previous_torrent(&mut self) {
         self.table_manager.table.previous();
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
         self.ctx.send_action(Action::Render);
     }
 
     fn next_torrent(&mut self) {
         self.table_manager.table.next();
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
         self.ctx.send_action(Action::Render);
     }
 
     fn scroll_page_down(&mut self) {
         let scroll_by = self.table_manager.torrents_displaying_no;
         self.table_manager.table.scroll_down_by(scroll_by as usize);
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
         self.ctx.send_action(Action::Render);
     }
 
     fn scroll_page_up(&mut self) {
         let scroll_by = self.table_manager.torrents_displaying_no;
         self.table_manager.table.scroll_up_by(scroll_by as usize);
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
         self.ctx.send_action(Action::Render);
     }
 
     fn scroll_to_home(&mut self) {
         self.table_manager.table.scroll_to_home();
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
         self.ctx.send_action(Action::Render);
     }
 
     fn scroll_to_end(&mut self) {
         self.table_manager.table.scroll_to_end();
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
         self.ctx.send_action(Action::Render);
     }
 
