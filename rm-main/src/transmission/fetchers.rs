@@ -26,7 +26,7 @@ pub async fn stats(ctx: app::Ctx) {
     }
 }
 
-pub async fn free_space(ctx: app::Ctx, free_space: Arc<Mutex<Option<FreeSpace>>>) {
+pub async fn free_space(ctx: app::Ctx) {
     let (sess_tx, sess_rx) = oneshot::channel();
     ctx.send_torrent_action(TorrentAction::GetSessionGet(sess_tx));
     let download_dir = sess_rx.await.unwrap().download_dir.leak();
@@ -37,10 +37,9 @@ pub async fn free_space(ctx: app::Ctx, free_space: Arc<Mutex<Option<FreeSpace>>>
             download_dir.to_string(),
             space_tx,
         ));
-        let new_free_space = space_rx.await.unwrap();
+        let free_space = space_rx.await.unwrap();
 
-        *free_space.lock().unwrap() = Some(new_free_space);
-        ctx.send_action(Action::Render);
+        ctx.send_update_action(UpdateAction::FreeSpace(Arc::new(free_space)));
         tokio::time::sleep(Duration::from_secs(
             ctx.config.connection.free_space_refresh,
         ))

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-use transmission_rpc::types::SessionStats;
+use transmission_rpc::types::{FreeSpace, SessionStats};
 
 use crate::status_task::StatusTask;
 
@@ -44,6 +44,7 @@ pub enum UpdateAction {
     SwitchToNormalMode,
     TaskClear,
     SessionStats(Arc<SessionStats>),
+    FreeSpace(Arc<FreeSpace>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

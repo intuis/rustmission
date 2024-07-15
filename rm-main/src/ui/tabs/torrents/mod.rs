@@ -38,8 +38,7 @@ impl TorrentsTab {
     pub fn new(ctx: app::Ctx) -> Self {
         let table = GenericTable::new(vec![]);
         let table_manager = Arc::new(Mutex::new(TableManager::new(ctx.clone(), table)));
-        let free_space = Arc::new(Mutex::new(None));
-        let bottom_stats = BottomStats::new(free_space, Arc::clone(&table_manager));
+        let bottom_stats = BottomStats::new(Arc::clone(&table_manager));
 
         tokio::spawn(transmission::fetchers::stats(ctx.clone()));
 
@@ -48,10 +47,7 @@ impl TorrentsTab {
             Arc::clone(&bottom_stats.table_manager),
         ));
 
-        tokio::spawn(transmission::fetchers::free_space(
-            ctx.clone(),
-            Arc::clone(&bottom_stats.free_space),
-        ));
+        tokio::spawn(transmission::fetchers::free_space(ctx.clone()));
 
         Self {
             bottom_stats,
@@ -110,7 +106,14 @@ impl Component for TorrentsTab {
 
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
-            UpdateAction::SessionStats(stats) => self.bottom_stats.set_stats(stats),
+            UpdateAction::SessionStats(stats) => {
+                self.bottom_stats.set_stats(stats);
+                self.ctx.send_action(Action::Render);
+            }
+            UpdateAction::FreeSpace(free_space) => {
+                self.bottom_stats.set_free_space(free_space);
+                self.ctx.send_action(Action::Render);
+            }
             _ => (),
         }
     }

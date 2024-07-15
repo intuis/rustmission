@@ -16,25 +16,27 @@ use super::table_manager::TableManager;
 
 pub(super) struct BottomStats {
     // TODO: get rid of the Option (requires changes in transmission-rpc so SessionStats impls Default
+    // TODO: ^ The same thing with FreeSpace
     pub(super) stats: Option<Arc<SessionStats>>,
-    pub(super) free_space: Arc<Mutex<Option<FreeSpace>>>,
+    pub(super) free_space: Option<Arc<FreeSpace>>,
     pub(super) table_manager: Arc<Mutex<TableManager>>,
 }
 
 impl BottomStats {
-    pub fn new(
-        free_space: Arc<Mutex<Option<FreeSpace>>>,
-        table_manager: Arc<Mutex<TableManager>>,
-    ) -> Self {
+    pub fn new(table_manager: Arc<Mutex<TableManager>>) -> Self {
         Self {
             stats: None,
-            free_space,
+            free_space: None,
             table_manager,
         }
     }
 
     pub fn set_stats(&mut self, stats: Arc<SessionStats>) {
         self.stats = Some(stats);
+    }
+
+    pub fn set_free_space(&mut self, free_space: Arc<FreeSpace>) {
+        self.free_space = Some(free_space);
     }
 }
 impl Component for BottomStats {
@@ -45,7 +47,7 @@ impl Component for BottomStats {
 
             let mut text = format!(" {download} |  {upload}");
 
-            if let Some(free_space) = &*self.free_space.lock().unwrap() {
+            if let Some(free_space) = &self.free_space {
                 let free_space = bytes_to_human_format(free_space.size_bytes);
                 text = format!("󰋊 {free_space} | {text}")
             }
