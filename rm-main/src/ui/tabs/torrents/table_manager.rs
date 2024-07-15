@@ -1,11 +1,9 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{prelude::*, widgets::Row};
-use rm_config::main_config::Header;
+use rm_shared::{header::Header, rustmission_torrent::RustmissionTorrent};
 use std::collections::HashMap;
 
 use crate::{app, ui::components::table::GenericTable};
-
-use super::rustmission_torrent::RustmissionTorrent;
 
 pub struct TableManager {
     ctx: app::Ctx,
@@ -17,7 +15,8 @@ pub struct TableManager {
 }
 
 impl TableManager {
-    pub fn new(ctx: app::Ctx, table: GenericTable<RustmissionTorrent>) -> Self {
+    pub fn new(ctx: app::Ctx) -> Self {
+        let table = GenericTable::new(vec![]);
         let widths = Self::default_widths(&ctx.config.torrents_tab.headers);
         let mut headers = vec![];
         for header in &ctx.config.torrents_tab.headers {
@@ -48,7 +47,7 @@ impl TableManager {
         }
     }
 
-    pub const fn header(&self) -> &Vec<&'static str> {
+    pub const fn headers(&self) -> &Vec<&'static str> {
         &self.headers
     }
 

@@ -1,34 +1,30 @@
-use std::{
-    borrow::Borrow,
-    sync::{Arc, Mutex},
-};
+use std::sync::Arc;
 
 use ratatui::{
     layout::{Alignment, Rect},
     widgets::Paragraph,
     Frame,
 };
+use rm_shared::utils::bytes_to_human_format;
 use transmission_rpc::types::{FreeSpace, SessionStats};
 
-use crate::{ui::components::Component, utils::bytes_to_human_format};
+use crate::ui::components::Component;
 
 use super::table_manager::TableManager;
 
+#[derive(Default)]
 pub(super) struct BottomStats {
     // TODO: get rid of the Option (requires changes in transmission-rpc so SessionStats impls Default
     // TODO: ^ The same thing with FreeSpace
     pub(super) stats: Option<Arc<SessionStats>>,
     pub(super) free_space: Option<Arc<FreeSpace>>,
-    pub(super) table_manager: Arc<Mutex<TableManager>>,
+    torrent_count: u16,
+    torrent_currently_selected: u16,
 }
 
 impl BottomStats {
-    pub fn new(table_manager: Arc<Mutex<TableManager>>) -> Self {
-        Self {
-            stats: None,
-            free_space: None,
-            table_manager,
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn set_stats(&mut self, stats: Arc<SessionStats>) {
@@ -37,6 +33,11 @@ impl BottomStats {
 
     pub fn set_free_space(&mut self, free_space: Arc<FreeSpace>) {
         self.free_space = Some(free_space);
+    }
+
+    pub fn update_selected_indicator(&mut self, table_manager: &TableManager) {
+        self.torrent_count = table_manager.torrents_displaying_no;
+        self.torrent_currently_selected = u16::try_from(table_manager.table.get_len()).unwrap() + 1;
     }
 }
 impl Component for BottomStats {
@@ -52,20 +53,14 @@ impl Component for BottomStats {
                 text = format!("󰋊 {free_space} | {text}")
             }
 
-            let table_manager = &*self.table_manager.lock().unwrap();
-            let table = table_manager.table.borrow();
-            let all = table.get_len();
-
-            if let Some(current) = table.state.borrow().selected() {
-                if all > 0 {
-                    let current_idx = current + 1;
-                    text = format!(" {current_idx}/{all} | {text}");
-                } else {
-                    // dont display index if no items in table
-                    text = format!(" {all} | {text}");
-                }
+            if self.torrent_count > 0 {
+                text = format!(
+                    " {}/{} | {text}",
+                    self.torrent_currently_selected, self.torrent_count
+                );
             } else {
-                text = format!(" {all} | {text}");
+                // dont display index if nothing is selected
+                text = format!(" {} | {text}", self.torrent_count);
             }
 
             let paragraph = Paragraph::new(text).alignment(Alignment::Right);

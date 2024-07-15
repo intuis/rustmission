@@ -1,12 +1,9 @@
 mod bottom_stats;
 mod input_manager;
 pub mod popups;
-pub mod rustmission_torrent;
 pub mod table_manager;
 pub mod task_manager;
 pub mod tasks;
-
-use std::sync::{Arc, Mutex};
 
 use crate::transmission::TorrentAction;
 use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
@@ -15,7 +12,6 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
 use transmission_rpc::types::TorrentStatus;
 
-use crate::ui::components::table::GenericTable;
 use crate::ui::components::{Component, ComponentAction};
 use crate::{app, transmission};
 use rm_shared::action::{Action, UpdateAction};
@@ -28,7 +24,7 @@ use self::task_manager::TaskManager;
 
 pub struct TorrentsTab {
     ctx: app::Ctx,
-    table_manager: Arc<Mutex<TableManager>>,
+    table_manager: TableManager,
     popup_manager: PopupManager,
     task_manager: TaskManager,
     bottom_stats: BottomStats,
@@ -36,17 +32,11 @@ pub struct TorrentsTab {
 
 impl TorrentsTab {
     pub fn new(ctx: app::Ctx) -> Self {
-        let table = GenericTable::new(vec![]);
-        let table_manager = Arc::new(Mutex::new(TableManager::new(ctx.clone(), table)));
-        let bottom_stats = BottomStats::new(Arc::clone(&table_manager));
+        let table_manager = TableManager::new(ctx.clone());
+        let bottom_stats = BottomStats::new();
 
         tokio::spawn(transmission::fetchers::stats(ctx.clone()));
-
-        tokio::spawn(transmission::fetchers::torrents(
-            ctx.clone(),
-            Arc::clone(&bottom_stats.table_manager),
-        ));
-
+        tokio::spawn(transmission::fetchers::torrents(ctx.clone()));
         tokio::spawn(transmission::fetchers::free_space(ctx.clone()));
 
         Self {
@@ -97,15 +87,13 @@ impl Component for TorrentsTab {
             A::ShowFiles => self.show_files_popup(),
             A::Pause => self.pause_current_torrent(),
             A::DeleteWithFiles => {
-                let mut table_manager_lock = self.table_manager.lock().unwrap();
-                if let Some(torrent) = table_manager_lock.current_torrent() {
+                if let Some(torrent) = self.table_manager.current_torrent() {
                     self.task_manager
                         .delete_torrent(torrent, tasks::delete_torrent::Mode::WithFiles);
                 }
             }
             A::DeleteWithoutFiles => {
-                let mut table_manager_lock = self.table_manager.lock().unwrap();
-                if let Some(torrent) = table_manager_lock.current_torrent() {
+                if let Some(torrent) = self.table_manager.current_torrent() {
                     self.task_manager
                         .delete_torrent(torrent, tasks::delete_torrent::Mode::WithoutFiles);
                 }
@@ -113,12 +101,9 @@ impl Component for TorrentsTab {
             A::AddMagnet => {
                 self.task_manager.add_magnet();
             }
-            A::Search => self
-                .task_manager
-                .search(self.table_manager.lock().unwrap().filter.clone()),
+            A::Search => self.task_manager.search(self.table_manager.filter.clone()),
             A::MoveTorrent => {
-                let mut table_manager_lock = self.table_manager.lock().unwrap();
-                if let Some(torrent) = table_manager_lock.current_torrent() {
+                if let Some(torrent) = self.table_manager.current_torrent() {
                     self.task_manager.move_torrent(torrent);
                 }
             }
@@ -141,16 +126,17 @@ impl Component for TorrentsTab {
                 self.ctx.send_action(Action::Render);
             }
             UpdateAction::SearchFilterApply(filter) => {
-                let mut table_manager_lock = self.table_manager.lock().unwrap();
-                table_manager_lock.filter.replace(filter);
-                table_manager_lock.table.state.borrow_mut().select(Some(0));
+                self.table_manager.filter.replace(filter);
+                self.table_manager.table.state.borrow_mut().select(Some(0));
                 self.ctx.send_action(Action::Render);
             }
             UpdateAction::SearchFilterClear => {
-                let mut table_manager_lock = self.table_manager.lock().unwrap();
-                table_manager_lock.filter = None;
-                table_manager_lock.table.state.borrow_mut().select(Some(0));
+                self.table_manager.filter = None;
+                self.table_manager.table.state.borrow_mut().select(Some(0));
                 self.ctx.send_action(Action::Render);
+            }
+            UpdateAction::UpdateTorrents(torrents) => {
+                self.table_manager.set_new_rows(torrents);
             }
             _ => (),
         }
@@ -159,10 +145,7 @@ impl Component for TorrentsTab {
 
 impl TorrentsTab {
     fn render_table(&mut self, f: &mut Frame, rect: Rect) {
-        let table_manager_lock = &mut *self.table_manager.lock().unwrap();
-        table_manager_lock.torrents_displaying_no = rect.height;
-
-        let torrent_rows = table_manager_lock.rows();
+        self.table_manager.torrents_displaying_no = rect.height;
 
         let highlight_table_style = Style::default().on_black().bold().fg(self
             .ctx
@@ -171,10 +154,10 @@ impl TorrentsTab {
             .accent_color);
 
         let table_widget = {
-            let table = Table::new(torrent_rows, &table_manager_lock.widths)
+            let table = Table::new(self.table_manager.rows(), &self.table_manager.widths)
                 .highlight_style(highlight_table_style);
             if !self.ctx.config.general.headers_hide {
-                table.header(Row::new(table_manager_lock.header().iter().cloned()))
+                table.header(Row::new(self.table_manager.headers().iter().cloned()))
             } else {
                 table
             }
@@ -183,12 +166,12 @@ impl TorrentsTab {
         f.render_stateful_widget(
             table_widget,
             rect,
-            &mut table_manager_lock.table.state.borrow_mut(),
+            &mut self.table_manager.table.state.borrow_mut(),
         );
     }
 
     fn show_files_popup(&mut self) {
-        if let Some(highlighted_torrent) = self.table_manager.lock().unwrap().current_torrent() {
+        if let Some(highlighted_torrent) = self.table_manager.current_torrent() {
             let popup = FilesPopup::new(self.ctx.clone(), highlighted_torrent.id.clone());
             self.popup_manager.show_popup(CurrentPopup::Files(popup));
             self.ctx.send_action(Action::Render);
@@ -203,44 +186,40 @@ impl TorrentsTab {
         }
     }
 
-    fn previous_torrent(&self) {
-        self.table_manager.lock().unwrap().table.previous();
+    fn previous_torrent(&mut self) {
+        self.table_manager.table.previous();
         self.ctx.send_action(Action::Render);
     }
 
-    fn next_torrent(&self) {
-        self.table_manager.lock().unwrap().table.next();
+    fn next_torrent(&mut self) {
+        self.table_manager.table.next();
         self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_page_down(&self) {
-        let table_manager = &mut self.table_manager.lock().unwrap();
-        let scroll_by = table_manager.torrents_displaying_no;
-        table_manager.table.scroll_down_by(scroll_by as usize);
+    fn scroll_page_down(&mut self) {
+        let scroll_by = self.table_manager.torrents_displaying_no;
+        self.table_manager.table.scroll_down_by(scroll_by as usize);
         self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_page_up(&self) {
-        let table_manager = &mut self.table_manager.lock().unwrap();
-        let scroll_by = table_manager.torrents_displaying_no;
-        table_manager.table.scroll_up_by(scroll_by as usize);
+    fn scroll_page_up(&mut self) {
+        let scroll_by = self.table_manager.torrents_displaying_no;
+        self.table_manager.table.scroll_up_by(scroll_by as usize);
         self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_to_home(&self) {
-        let table_manager = &mut self.table_manager.lock().unwrap();
-        table_manager.table.scroll_to_home();
+    fn scroll_to_home(&mut self) {
+        self.table_manager.table.scroll_to_home();
         self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_to_end(&self) {
-        let table_manager = &mut self.table_manager.lock().unwrap();
-        table_manager.table.scroll_to_end();
+    fn scroll_to_end(&mut self) {
+        self.table_manager.table.scroll_to_end();
         self.ctx.send_action(Action::Render);
     }
 
     fn pause_current_torrent(&mut self) {
-        if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
+        if let Some(torrent) = self.table_manager.current_torrent() {
             let torrent_id = torrent.id.clone();
             match torrent.status() {
                 TorrentStatus::Stopped => {

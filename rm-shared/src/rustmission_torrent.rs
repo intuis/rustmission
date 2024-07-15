@@ -4,11 +4,13 @@ use ratatui::{
     text::{Line, Span},
     widgets::Row,
 };
-use rm_config::main_config::Header;
 use transmission_rpc::types::{Id, Torrent, TorrentStatus};
 
-use crate::utils::{
-    bytes_to_human_format, download_speed_format, seconds_to_human_format, upload_speed_format,
+use crate::{
+    header::Header,
+    utils::{
+        bytes_to_human_format, download_speed_format, seconds_to_human_format, upload_speed_format,
+    },
 };
 
 #[derive(Clone)]

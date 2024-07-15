@@ -16,9 +16,8 @@ use crate::{
         centered_rect,
         components::{Component, ComponentAction},
     },
-    utils::bytes_to_human_format,
 };
-use rm_shared::action::Action;
+use rm_shared::{action::Action, utils::bytes_to_human_format};
 
 pub struct StatisticsPopup {
     stats: Arc<SessionStats>,

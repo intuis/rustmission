@@ -4,7 +4,7 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use magnetease::Magnet;
 use transmission_rpc::types::{FreeSpace, SessionStats};
 
-use crate::status_task::StatusTask;
+use crate::{rustmission_torrent::RustmissionTorrent, status_task::StatusTask};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
@@ -46,6 +46,7 @@ pub enum UpdateAction {
     TaskClear,
     SessionStats(Arc<SessionStats>),
     FreeSpace(Arc<FreeSpace>),
+    UpdateTorrents(Vec<RustmissionTorrent>),
     SearchFilterApply(String),
     SearchFilterClear,
     // Search Tab

@@ -18,9 +18,11 @@ use crate::{
         components::{table::GenericTable, Component, ComponentAction},
         to_input_request,
     },
+};
+use rm_shared::{
+    action::{Action, UpdateAction},
     utils::bytes_to_human_format,
 };
-use rm_shared::action::{Action, UpdateAction};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum SearchTabFocus {

@@ -1,16 +1,10 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use tokio::sync::oneshot;
-use transmission_rpc::types::{FreeSpace, TorrentGetField};
+use transmission_rpc::types::TorrentGetField;
 
-use crate::{
-    app,
-    ui::tabs::torrents::{rustmission_torrent::RustmissionTorrent, table_manager::TableManager},
-};
-use rm_shared::action::{Action, UpdateAction};
+use crate::app;
+use rm_shared::{action::UpdateAction, rustmission_torrent::RustmissionTorrent};
 
 use super::TorrentAction;
 
@@ -47,7 +41,7 @@ pub async fn free_space(ctx: app::Ctx) {
     }
 }
 
-pub async fn torrents(ctx: app::Ctx, table_manager: Arc<Mutex<TableManager>>) {
+pub async fn torrents(ctx: app::Ctx) {
     loop {
         let fields = vec![
             TorrentGetField::Id,
@@ -69,14 +63,16 @@ pub async fn torrents(ctx: app::Ctx, table_manager: Arc<Mutex<TableManager>>) {
         ];
         let (torrents_tx, torrents_rx) = oneshot::channel();
         ctx.send_torrent_action(TorrentAction::GetTorrents(fields, torrents_tx));
-        let new_torrents = torrents_rx.await.unwrap();
 
-        {
-            let mut table_manager_lock = table_manager.lock().unwrap();
-            table_manager_lock
-                .set_new_rows(new_torrents.iter().map(RustmissionTorrent::from).collect());
-        }
-        ctx.send_action(Action::Render);
+        let torrents = torrents_rx
+            .await
+            .unwrap()
+            .iter()
+            .map(RustmissionTorrent::from)
+            .collect();
+
+        ctx.send_update_action(UpdateAction::UpdateTorrents(torrents));
+
         tokio::time::sleep(Duration::from_secs(ctx.config.connection.torrents_refresh)).await;
     }
 }
