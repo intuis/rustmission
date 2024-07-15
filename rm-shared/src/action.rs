@@ -46,6 +46,8 @@ pub enum UpdateAction {
     TaskClear,
     SessionStats(Arc<SessionStats>),
     FreeSpace(Arc<FreeSpace>),
+    SearchFilterApply(String),
+    SearchFilterClear,
     // Search Tab
     SearchStarted,
     SearchResults(Vec<Magnet>),

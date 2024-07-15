@@ -142,7 +142,7 @@ impl TaskManager {
             Action::Search => {
                 self.current_task = CurrentTask::FilterBar(FilterBar::new(
                     self.ctx.clone(),
-                    self.table_manager.clone(),
+                    self.table_manager.lock().unwrap().filter.clone(),
                 ));
                 self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
             }

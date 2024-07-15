@@ -114,6 +114,18 @@ impl Component for TorrentsTab {
                 self.bottom_stats.set_free_space(free_space);
                 self.ctx.send_action(Action::Render);
             }
+            UpdateAction::SearchFilterApply(filter) => {
+                let mut table_manager_lock = self.table_manager.lock().unwrap();
+                table_manager_lock.filter.replace(filter);
+                table_manager_lock.table.state.borrow_mut().select(Some(0));
+                self.ctx.send_action(Action::Render);
+            }
+            UpdateAction::SearchFilterClear => {
+                let mut table_manager_lock = self.table_manager.lock().unwrap();
+                table_manager_lock.filter = None;
+                table_manager_lock.table.state.borrow_mut().select(Some(0));
+                self.ctx.send_action(Action::Render);
+            }
             _ => (),
         }
     }
