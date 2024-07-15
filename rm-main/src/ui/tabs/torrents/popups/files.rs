@@ -1,8 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{collections::BTreeMap, time::Duration};
 
 use ratatui::{
     prelude::*,
@@ -24,36 +20,32 @@ use crate::{
         components::{Component, ComponentAction},
     },
 };
-use rm_shared::action::Action;
+use rm_shared::action::{Action, UpdateAction};
 
 pub struct FilesPopup {
     ctx: app::Ctx,
-    torrent: Arc<Mutex<Option<Torrent>>>,
+    torrent: Option<Torrent>,
     torrent_id: Id,
     tree_state: TreeState<String>,
-    tree: Arc<Mutex<Node>>,
+    tree: Node,
     current_focus: CurrentFocus,
     switched_after_fetched_data: bool,
 }
 
-async fn fetch_new_files(
-    tree: Arc<Mutex<Node>>,
-    torrent: Arc<Mutex<Option<Torrent>>>,
-    torrent_id: Id,
-    ctx: app::Ctx,
-) {
+async fn fetch_new_files(ctx: app::Ctx, torrent_id: Id) {
     loop {
         let (torrent_tx, torrent_rx) = oneshot::channel();
         ctx.send_torrent_action(TorrentAction::GetTorrentsById(
             vec![torrent_id.clone()],
             torrent_tx,
         ));
-        let new_torrent = torrent_rx.await.unwrap().pop().unwrap();
+        let torrent = torrent_rx
+            .await
+            .unwrap()
+            .pop()
+            .expect("1 torrent must have been returned");
 
-        let new_tree = Node::new_from_torrent(&new_torrent);
-        *torrent.lock().unwrap() = Some(new_torrent);
-        *tree.lock().unwrap() = new_tree;
-        ctx.send_action(Action::Render);
+        ctx.send_update_action(UpdateAction::UpdateCurrentTorrent(torrent));
         tokio::time::sleep(Duration::from_secs(6)).await;
     }
 }
@@ -66,21 +58,11 @@ enum CurrentFocus {
 
 impl FilesPopup {
     pub fn new(ctx: app::Ctx, torrent_id: Id) -> Self {
-        let torrent = Arc::new(Mutex::new(None));
+        let torrent = None;
         let tree_state = TreeState::default();
-        let tree = Arc::new(Mutex::new(Node::new()));
+        let tree = Node::new();
 
-        ctx.send_torrent_action(TorrentAction::GetTorrentInfo(
-            torrent_id.clone(),
-            Arc::clone(&torrent),
-        ));
-
-        tokio::task::spawn(fetch_new_files(
-            Arc::clone(&tree),
-            Arc::clone(&torrent),
-            torrent_id.clone(),
-            ctx.clone(),
-        ));
+        tokio::task::spawn(fetch_new_files(ctx.clone(), torrent_id.clone()));
 
         Self {
             ctx,
@@ -113,7 +95,7 @@ impl Component for FilesPopup {
             }
             (A::Confirm, CurrentFocus::CloseButton) => return ComponentAction::Quit,
             (A::Select | A::Confirm, CurrentFocus::Files) => {
-                if let Some(torrent) = &mut *self.torrent.lock().unwrap() {
+                if let Some(torrent) = &mut self.torrent {
                     let wanted_ids = torrent.wanted.as_mut().unwrap();
 
                     let selected_ids: Vec<_> = self
@@ -150,9 +132,7 @@ impl Component for FilesPopup {
 
                     let args = {
                         if wanted_in_selection_no > 0 {
-                            for transmission_file in
-                                self.tree.lock().unwrap().get_by_ids(&selected_ids)
-                            {
+                            for transmission_file in self.tree.get_by_ids(&selected_ids) {
                                 transmission_file.set_wanted(false);
                             }
                             TorrentSetArgs {
@@ -160,9 +140,7 @@ impl Component for FilesPopup {
                                 ..Default::default()
                             }
                         } else {
-                            for transmission_file in
-                                self.tree.lock().unwrap().get_by_ids(&selected_ids)
-                            {
+                            for transmission_file in self.tree.get_by_ids(&selected_ids) {
                                 transmission_file.set_wanted(true);
                             }
                             TorrentSetArgs {
@@ -195,6 +173,15 @@ impl Component for FilesPopup {
         ComponentAction::Nothing
     }
 
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        if let UpdateAction::UpdateCurrentTorrent(torrent) = action {
+            let new_tree = Node::new_from_torrent(&torrent);
+            self.torrent = Some(torrent);
+            self.tree = new_tree;
+            self.ctx.send_action(Action::Render);
+        }
+    }
+
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         let popup_rect = centered_rect(rect, 75, 75);
         let block_rect = popup_rect.inner(Margin::new(1, 0));
@@ -212,7 +199,7 @@ impl Component for FilesPopup {
             self.tree_state.select_first();
         }
 
-        if let Some(torrent) = &*self.torrent.lock().unwrap() {
+        if let Some(torrent) = &self.torrent {
             if !self.switched_after_fetched_data {
                 self.current_focus = CurrentFocus::Files;
                 self.switched_after_fetched_data = true;
@@ -257,8 +244,7 @@ impl Component for FilesPopup {
                         .position(Position::Bottom),
                 );
 
-            let tree_lock = self.tree.lock().unwrap();
-            let tree_items = tree_lock.make_tree();
+            let tree_items = self.tree.make_tree();
 
             let tree_widget = Tree::new(&tree_items)
                 .unwrap()

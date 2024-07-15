@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use magnetease::Magnet;
-use transmission_rpc::types::{FreeSpace, SessionStats};
+use transmission_rpc::types::{FreeSpace, SessionStats, Torrent};
 
 use crate::{rustmission_torrent::RustmissionTorrent, status_task::StatusTask};
 
@@ -47,6 +47,7 @@ pub enum UpdateAction {
     SessionStats(Arc<SessionStats>),
     FreeSpace(Arc<FreeSpace>),
     UpdateTorrents(Vec<RustmissionTorrent>),
+    UpdateCurrentTorrent(Torrent),
     SearchFilterApply(String),
     SearchFilterClear,
     // Search Tab

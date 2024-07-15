@@ -1,6 +1,9 @@
 use self::{files::FilesPopup, stats::StatisticsPopup};
-use crate::{app, ui::components::{Component, ComponentAction}};
-use rm_shared::action::Action;
+use crate::{
+    app,
+    ui::components::{Component, ComponentAction},
+};
+use rm_shared::action::{Action, UpdateAction};
 
 use ratatui::prelude::*;
 
@@ -39,7 +42,6 @@ impl PopupManager {
 }
 
 impl Component for PopupManager {
-    #[must_use]
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         if let Some(current_popup) = &mut self.current_popup {
             match current_popup {
@@ -58,6 +60,14 @@ impl Component for PopupManager {
             }
         }
         ComponentAction::Nothing
+    }
+
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        if let Some(current_popup) = &mut self.current_popup {
+            if let CurrentPopup::Files(popup) = current_popup {
+                popup.handle_update_action(action);
+            }
+        }
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {

@@ -140,6 +140,9 @@ impl Component for TorrentsTab {
                 self.bottom_stats
                     .update_selected_indicator(&self.table_manager);
             }
+            UpdateAction::UpdateCurrentTorrent(_) => {
+                self.popup_manager.handle_update_action(action)
+            }
             _ => (),
         }
     }
