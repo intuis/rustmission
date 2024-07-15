@@ -119,9 +119,7 @@ impl App {
             let tick_action = interval.tick();
 
             tokio::select! {
-                _ = tick_action => {
-                    self.ctx.action_tx.send(Action::Tick).unwrap();
-                },
+                _ = tick_action => self.tick(),
 
                 event = tui_event => {
                     if let Some(action) = event_to_action(self.mode, event.unwrap(), &self.ctx.config.keybindings.keymap) {
@@ -184,5 +182,9 @@ impl App {
 
             _ => self.main_window.handle_update_action(action),
         }
+    }
+
+    fn tick(&mut self) {
+        self.main_window.tick();
     }
 }

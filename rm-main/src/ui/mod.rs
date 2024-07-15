@@ -49,7 +49,9 @@ impl Component for MainWindow {
                 self.global_popup_manager.error_popup = Some(error_popup);
                 self.ctx.send_action(A::Render);
             }
-            A::ShowHelp => {self.global_popup_manager.handle_actions(action);},
+            A::ShowHelp => {
+                self.global_popup_manager.handle_actions(action);
+            }
             _ if self.global_popup_manager.needs_action() => {
                 self.global_popup_manager.handle_actions(action);
             }
@@ -74,6 +76,11 @@ impl Component for MainWindow {
             CurrentTab::Torrents => self.torrents_tab.handle_update_action(action),
             CurrentTab::Search => self.search_tab.handle_update_action(action),
         }
+    }
+
+    fn tick(&mut self) {
+        self.search_tab.tick();
+        self.torrents_tab.tick();
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {

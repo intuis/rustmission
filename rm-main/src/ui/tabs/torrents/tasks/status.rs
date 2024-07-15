@@ -116,10 +116,6 @@ impl Component for StatusBar {
 
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
-            Action::Tick => {
-                self.tick();
-                ComponentAction::Nothing
-            }
             Action::TaskSuccess => {
                 self.task_status.set_success();
                 self.ctx.send_action(Action::Render);

@@ -26,15 +26,15 @@ use crate::{
 use rm_shared::action::{Action, UpdateAction};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum SearchFocus {
+enum SearchTabFocus {
     Search,
     List,
 }
 
 pub(crate) struct SearchTab {
-    search_focus: SearchFocus,
+    focus: SearchTabFocus,
     input: Input,
-    req_sender: UnboundedSender<String>,
+    search_query_rx: UnboundedSender<String>,
     table: GenericTable<Magnet>,
     // TODO: Change it to enum, and combine table with search_result_info
     search_result_info: SearchResultState,
@@ -44,7 +44,7 @@ pub(crate) struct SearchTab {
 
 impl SearchTab {
     pub(crate) fn new(ctx: app::Ctx) -> Self {
-        let (tx, mut rx) = mpsc::unbounded_channel::<String>();
+        let (search_query_tx, mut search_query_rx) = mpsc::unbounded_channel::<String>();
         let table = GenericTable::new(vec![]);
         let search_result_info = SearchResultState::new(ctx.clone());
 
@@ -52,7 +52,7 @@ impl SearchTab {
             let ctx = ctx.clone();
             async move {
                 let magnetease = Magnetease::new();
-                while let Some(search_phrase) = rx.recv().await {
+                while let Some(search_phrase) = search_query_rx.recv().await {
                     ctx.send_update_action(UpdateAction::SearchStarted);
                     let magnets = magnetease.search(&search_phrase).await.unwrap();
                     ctx.send_update_action(UpdateAction::SearchResults(magnets));
@@ -61,11 +61,11 @@ impl SearchTab {
         });
 
         Self {
-            search_focus: SearchFocus::List,
+            focus: SearchTabFocus::List,
             input: Input::default(),
             table,
             search_result_info,
-            req_sender: tx,
+            search_query_rx: search_query_tx,
             currently_displaying_no: 0,
             ctx,
         }
@@ -81,10 +81,10 @@ impl SearchTab {
     }
 
     fn change_focus(&mut self) {
-        if self.search_focus == SearchFocus::Search {
-            self.search_focus = SearchFocus::List;
+        if self.focus == SearchTabFocus::Search {
+            self.focus = SearchTabFocus::List;
         } else {
-            self.search_focus = SearchFocus::Search;
+            self.focus = SearchTabFocus::Search;
         }
         self.ctx.send_action(Action::Render);
     }
@@ -102,13 +102,13 @@ impl SearchTab {
 
         match input.code {
             KeyCode::Enter => {
-                self.req_sender.send(self.input.to_string()).unwrap();
-                self.search_focus = SearchFocus::List;
+                self.search_query_rx.send(self.input.to_string()).unwrap();
+                self.focus = SearchTabFocus::List;
                 self.ctx
                     .send_update_action(UpdateAction::SwitchToNormalMode);
             }
             KeyCode::Esc => {
-                self.search_focus = SearchFocus::List;
+                self.focus = SearchTabFocus::List;
                 self.ctx
                     .send_update_action(UpdateAction::SwitchToNormalMode);
             }
@@ -122,7 +122,7 @@ impl SearchTab {
     }
 
     fn start_search(&mut self) {
-        self.search_focus = SearchFocus::Search;
+        self.focus = SearchTabFocus::Search;
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
@@ -174,9 +174,6 @@ impl Component for SearchTab {
             A::Home => self.scroll_to_home(),
             A::End => self.scroll_to_end(),
             A::Confirm => self.add_torrent(),
-            A::Tick => {
-                self.tick();
-            }
 
             _ => (),
         };
@@ -227,7 +224,7 @@ impl Component for SearchTab {
         .split(top_line)[1];
 
         let input = {
-            if self.input.value().is_empty() && self.search_focus != SearchFocus::Search {
+            if self.input.value().is_empty() && self.focus != SearchTabFocus::Search {
                 "press / to search"
             } else {
                 self.input.value()
@@ -235,7 +232,7 @@ impl Component for SearchTab {
         };
 
         let search_style = {
-            if self.search_focus == SearchFocus::Search {
+            if self.focus == SearchTabFocus::Search {
                 Style::default()
                     .underlined()
                     .fg(self.ctx.config.general.accent_color)
