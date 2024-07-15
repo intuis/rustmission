@@ -1497,6 +1497,7 @@ name = "rm-shared"
 version = "0.4.3"
 dependencies = [
  "crossterm",
+ "magnetease",
  "transmission-rpc",
 ]
 

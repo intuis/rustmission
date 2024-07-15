@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use magnetease::Magnet;
 use transmission_rpc::types::{FreeSpace, SessionStats};
 
 use crate::status_task::StatusTask;
@@ -42,9 +43,13 @@ pub enum Action {
 pub enum UpdateAction {
     SwitchToInputMode,
     SwitchToNormalMode,
+    // Torrents Tab
     TaskClear,
     SessionStats(Arc<SessionStats>),
     FreeSpace(Arc<FreeSpace>),
+    // Search Tab
+    SearchStarted,
+    SearchResults(Vec<Magnet>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

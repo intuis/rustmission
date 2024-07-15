@@ -35,9 +35,9 @@ pub(crate) struct SearchTab {
     search_focus: SearchFocus,
     input: Input,
     req_sender: UnboundedSender<String>,
-    table: Arc<Mutex<GenericTable<Magnet>>>,
-    // TODO: Change it to enum, and combine table with search_result_info, to be behind one mutex
-    search_result_info: Arc<Mutex<SearchResultState>>,
+    table: GenericTable<Magnet>,
+    // TODO: Change it to enum, and combine table with search_result_info
+    search_result_info: SearchResultState,
     currently_displaying_no: u16,
     ctx: app::Ctx,
 }
@@ -45,29 +45,18 @@ pub(crate) struct SearchTab {
 impl SearchTab {
     pub(crate) fn new(ctx: app::Ctx) -> Self {
         let (tx, mut rx) = mpsc::unbounded_channel::<String>();
-        let table = Arc::new(Mutex::new(GenericTable::new(vec![])));
-        let search_result_info = Arc::new(Mutex::new(SearchResultState::new(ctx.clone())));
+        let table = GenericTable::new(vec![]);
+        let search_result_info = SearchResultState::new(ctx.clone());
 
-        let ctx_clone = ctx.clone();
-        let table_clone = Arc::clone(&table);
-        let search_result_info_clone = Arc::clone(&search_result_info);
-        tokio::task::spawn(async move {
-            let magnetease = Magnetease::new();
-            while let Some(search_phrase) = rx.recv().await {
-                search_result_info_clone
-                    .lock()
-                    .unwrap()
-                    .searching(Arc::new(Mutex::new(ThrobberState::default())));
-                ctx_clone.send_action(Action::Render);
-                let res = magnetease.search(&search_phrase).await.unwrap();
-                if res.is_empty() {
-                    search_result_info_clone.lock().unwrap().not_found();
-                } else {
-                    search_result_info_clone.lock().unwrap().found(res.len());
+        tokio::task::spawn({
+            let ctx = ctx.clone();
+            async move {
+                let magnetease = Magnetease::new();
+                while let Some(search_phrase) = rx.recv().await {
+                    ctx.send_update_action(UpdateAction::SearchStarted);
+                    let magnets = magnetease.search(&search_phrase).await.unwrap();
+                    ctx.send_update_action(UpdateAction::SearchResults(magnets));
                 }
-
-                table_clone.lock().unwrap().set_items(res);
-                ctx_clone.send_action(Action::Render);
             }
         });
 
@@ -101,12 +90,7 @@ impl SearchTab {
     }
 
     fn add_torrent(&mut self) {
-        let magnet_url = self
-            .table
-            .lock()
-            .unwrap()
-            .current_item()
-            .map(|magnet| magnet.url);
+        let magnet_url = self.table.current_item().map(|magnet| magnet.url);
         if let Some(magnet_url) = magnet_url {
             self.ctx
                 .send_torrent_action(TorrentAction::Add(magnet_url, None));
@@ -143,38 +127,34 @@ impl SearchTab {
     }
 
     fn next_torrent(&mut self) {
-        self.table.lock().unwrap().next();
+        self.table.next();
         self.ctx.send_action(Action::Render);
     }
 
     fn previous_torrent(&mut self) {
-        self.table.lock().unwrap().previous();
+        self.table.previous();
         self.ctx.send_action(Action::Render);
     }
 
     fn scroll_down_page(&mut self) {
         self.table
-            .lock()
-            .unwrap()
             .scroll_down_by(self.currently_displaying_no as usize);
         self.ctx.send_action(Action::Render);
     }
 
     fn scroll_up_page(&mut self) {
         self.table
-            .lock()
-            .unwrap()
             .scroll_up_by(self.currently_displaying_no as usize);
         self.ctx.send_action(Action::Render);
     }
 
     fn scroll_to_end(&mut self) {
-        self.table.lock().unwrap().scroll_to_end();
+        self.table.scroll_to_end();
         self.ctx.send_action(Action::Render);
     }
 
     fn scroll_to_home(&mut self) {
-        self.table.lock().unwrap().scroll_to_home();
+        self.table.scroll_to_home();
         self.ctx.send_action(Action::Render);
     }
 }
@@ -203,8 +183,28 @@ impl Component for SearchTab {
         ComponentAction::Nothing
     }
 
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        match action {
+            UpdateAction::SearchStarted => {
+                self.search_result_info
+                    .searching(Arc::new(Mutex::new(ThrobberState::default())));
+                self.ctx.send_action(Action::Render);
+            }
+            UpdateAction::SearchResults(magnets) => {
+                if magnets.is_empty() {
+                    self.search_result_info.not_found();
+                } else {
+                    self.search_result_info.found(magnets.len());
+                }
+                self.table.set_items(magnets);
+                self.ctx.send_action(Action::Render);
+            }
+            _ => (),
+        }
+    }
+
     fn tick(&mut self) {
-        self.search_result_info.lock().unwrap().tick();
+        self.search_result_info.tick();
         self.ctx.send_action(Action::Render);
     }
 
@@ -258,8 +258,7 @@ impl Component for SearchTab {
 
         let header = Row::new(["S", "Title", "Size"]);
 
-        let table_lock = self.table.lock().unwrap();
-        let table_items = &table_lock.items;
+        let table_items = &self.table.items;
 
         let longest_title = table_items.iter().map(|magnet| magnet.title.len()).max();
         let items = table_items.iter().map(Self::magnet_to_row);
@@ -285,12 +284,9 @@ impl Component for SearchTab {
             }
         };
 
-        f.render_stateful_widget(table, rest, &mut *table_lock.state.borrow_mut());
+        f.render_stateful_widget(table, rest, &mut self.table.state.borrow_mut());
 
-        self.search_result_info
-            .lock()
-            .unwrap()
-            .render(f, bottom_line);
+        self.search_result_info.render(f, bottom_line);
     }
 }
 
