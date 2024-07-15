@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    sync::{Arc, Mutex},
-};
+use std::borrow::Cow;
 
 use crossterm::event::{KeyCode, KeyEvent};
 use magnetease::{Magnet, Magnetease};
@@ -183,8 +180,7 @@ impl Component for SearchTab {
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
             UpdateAction::SearchStarted => {
-                self.search_result_info
-                    .searching(Arc::new(Mutex::new(ThrobberState::default())));
+                self.search_result_info.searching(ThrobberState::default());
                 self.ctx.send_action(Action::Render);
             }
             UpdateAction::SearchResults(magnets) => {
@@ -291,7 +287,7 @@ impl Component for SearchTab {
 enum SearchResultStatus {
     Nothing,
     NoResults,
-    Searching(Arc<Mutex<ThrobberState>>),
+    Searching(ThrobberState),
     Found(usize),
 }
 
@@ -309,7 +305,7 @@ impl SearchResultState {
         }
     }
 
-    fn searching(&mut self, state: Arc<Mutex<ThrobberState>>) {
+    fn searching(&mut self, state: ThrobberState) {
         self.status = SearchResultStatus::Searching(state);
     }
 
@@ -324,17 +320,13 @@ impl SearchResultState {
 
 impl Component for SearchResultState {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        match &self.status {
+        match &mut self.status {
             SearchResultStatus::Nothing => (),
-            SearchResultStatus::Searching(state) => {
+            SearchResultStatus::Searching(ref mut state) => {
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label("Searching...")
                     .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
-                f.render_stateful_widget(
-                    default_throbber.clone(),
-                    rect,
-                    &mut state.lock().unwrap(),
-                );
+                f.render_stateful_widget(default_throbber.clone(), rect, state);
             }
             SearchResultStatus::NoResults => {
                 let mut line = Line::default();
@@ -354,8 +346,8 @@ impl Component for SearchResultState {
     }
 
     fn tick(&mut self) {
-        if let SearchResultStatus::Searching(state) = &self.status {
-            state.lock().unwrap().calc_next();
+        if let SearchResultStatus::Searching(state) = &mut self.status {
+            state.calc_next();
             self.ctx.send_action(Action::Render);
         }
     }
