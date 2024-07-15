@@ -51,7 +51,7 @@ impl TorrentsTab {
 
         Self {
             bottom_stats,
-            task_manager: TaskManager::new(table_manager.clone(), ctx.clone()),
+            task_manager: TaskManager::new(ctx.clone()),
             table_manager,
             popup_manager: PopupManager::new(ctx.clone()),
             ctx,
@@ -96,6 +96,32 @@ impl Component for TorrentsTab {
             A::ShowStats => self.show_statistics_popup(),
             A::ShowFiles => self.show_files_popup(),
             A::Pause => self.pause_current_torrent(),
+            A::DeleteWithFiles => {
+                let mut table_manager_lock = self.table_manager.lock().unwrap();
+                if let Some(torrent) = table_manager_lock.current_torrent() {
+                    self.task_manager
+                        .delete_torrent(torrent, tasks::delete_torrent::Mode::WithFiles);
+                }
+            }
+            A::DeleteWithoutFiles => {
+                let mut table_manager_lock = self.table_manager.lock().unwrap();
+                if let Some(torrent) = table_manager_lock.current_torrent() {
+                    self.task_manager
+                        .delete_torrent(torrent, tasks::delete_torrent::Mode::WithoutFiles);
+                }
+            }
+            A::AddMagnet => {
+                self.task_manager.add_magnet();
+            }
+            A::Search => self
+                .task_manager
+                .search(self.table_manager.lock().unwrap().filter.clone()),
+            A::MoveTorrent => {
+                let mut table_manager_lock = self.table_manager.lock().unwrap();
+                if let Some(torrent) = table_manager_lock.current_torrent() {
+                    self.task_manager.move_torrent(torrent);
+                }
+            }
             other => {
                 self.task_manager.handle_actions(other);
             }

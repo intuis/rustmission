@@ -42,15 +42,6 @@ impl Component for FilterBar {
                     self.input.handle(req);
                     self.ctx
                         .send_update_action(UpdateAction::SearchFilterApply(self.input.text()));
-                    // let table_manager_lock = self.table_manager.lock().unwrap();
-                    // table_manager_lock
-                    //     .filter
-                    //     .lock()
-                    //     .unwrap()
-                    //     .replace(self.input.text());
-                    // table_manager_lock.table.state.borrow_mut().select(Some(0));
-
-                    // self.ctx.send_action(Action::Render);
                 }
 
                 ComponentAction::Nothing

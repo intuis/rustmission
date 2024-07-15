@@ -19,7 +19,10 @@ use tui_tree_widget::{Tree, TreeItem, TreeState};
 use crate::{
     app,
     transmission::TorrentAction,
-    ui::{centered_rect, components::{Component, ComponentAction}},
+    ui::{
+        centered_rect,
+        components::{Component, ComponentAction},
+    },
 };
 use rm_shared::action::Action;
 
@@ -103,7 +106,7 @@ impl Component for FilesPopup {
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
         match (action, self.current_focus) {
-            (action, _) if action.is_soft_quit() => self.ctx.send_action(Action::Render),
+            (action, _) if action.is_soft_quit() => return ComponentAction::Quit,
             (A::ChangeFocus, _) => {
                 self.switch_focus();
                 self.ctx.send_action(A::Render);

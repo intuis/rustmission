@@ -13,6 +13,7 @@ use rm_shared::{
 };
 
 use super::{
+    rustmission_torrent::RustmissionTorrent,
     tasks::{
         add_magnet::AddMagnetBar,
         default::DefaultBar,
@@ -21,21 +22,18 @@ use super::{
         move_torrent::MoveBar,
         status::{CurrentTaskState, StatusBar},
     },
-    TableManager,
 };
 
 pub struct TaskManager {
     ctx: app::Ctx,
     current_task: CurrentTask,
-    table_manager: Arc<Mutex<TableManager>>,
 }
 
 impl TaskManager {
-    pub fn new(table_manager: Arc<Mutex<TableManager>>, ctx: app::Ctx) -> Self {
+    pub fn new(ctx: app::Ctx) -> Self {
         Self {
             current_task: CurrentTask::Default(DefaultBar::new(ctx.clone())),
             ctx,
-            table_manager,
         }
     }
 }
@@ -108,7 +106,8 @@ impl Component for TaskManager {
                     self.cancel_task()
                 }
             }
-            CurrentTask::Default(_) => self.handle_events_to_manager(&action),
+
+            _ => (),
         };
         ComponentAction::Nothing
     }
@@ -130,49 +129,35 @@ impl Component for TaskManager {
 }
 
 impl TaskManager {
-    fn handle_events_to_manager(&mut self, action: &Action) {
-        match action {
-            Action::AddMagnet => {
-                self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new(self.ctx.clone()));
-                self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
-            }
-            Action::DeleteWithFiles => self.delete_torrent(delete_torrent::Mode::WithFiles),
-            Action::DeleteWithoutFiles => self.delete_torrent(delete_torrent::Mode::WithoutFiles),
-            Action::MoveTorrent => self.move_torrent(),
-            Action::Search => {
-                self.current_task = CurrentTask::FilterBar(FilterBar::new(
-                    self.ctx.clone(),
-                    self.table_manager.lock().unwrap().filter.clone(),
-                ));
-                self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
-            }
-            _ => (),
-        }
+    pub fn add_magnet(&mut self) {
+        self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new(self.ctx.clone()));
+        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    fn delete_torrent(&mut self, mode: delete_torrent::Mode) {
-        if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
-            self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
-                self.ctx.clone(),
-                vec![TorrentInfo {
-                    id: torrent.id.clone(),
-                    name: torrent.torrent_name.clone(),
-                }],
-                mode,
-            ));
-            self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
-        }
+    pub fn search(&mut self, filter: Option<String>) {
+        self.current_task = CurrentTask::FilterBar(FilterBar::new(self.ctx.clone(), filter));
+        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    fn move_torrent(&mut self) {
-        if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
-            self.current_task = CurrentTask::MoveBar(MoveBar::new(
-                self.ctx.clone(),
-                vec![torrent.id.clone()],
-                torrent.download_dir.to_string(),
-            ));
-            self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
-        }
+    pub fn delete_torrent(&mut self, torrent: &RustmissionTorrent, mode: delete_torrent::Mode) {
+        self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
+            self.ctx.clone(),
+            vec![TorrentInfo {
+                id: torrent.id.clone(),
+                name: torrent.torrent_name.clone(),
+            }],
+            mode,
+        ));
+        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+    }
+
+    pub fn move_torrent(&mut self, torrent: &RustmissionTorrent) {
+        self.current_task = CurrentTask::MoveBar(MoveBar::new(
+            self.ctx.clone(),
+            vec![torrent.id.clone()],
+            torrent.download_dir.to_string(),
+        ));
+        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     fn pending_task(&mut self, task: StatusTask) {
