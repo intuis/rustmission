@@ -180,15 +180,14 @@ impl App {
         match action {
             UpdateAction::SwitchToInputMode => {
                 self.mode = Mode::Input;
-                self.ctx.send_action(Action::Render);
             }
             UpdateAction::SwitchToNormalMode => {
                 self.mode = Mode::Normal;
-                self.ctx.send_action(Action::Render);
             }
 
             _ => self.main_window.handle_update_action(action),
-        }
+        };
+        self.ctx.send_action(Action::Render);
     }
 
     fn tick(&mut self) {

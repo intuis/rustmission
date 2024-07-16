@@ -119,21 +119,17 @@ impl Component for TorrentsTab {
         match action {
             UpdateAction::SessionStats(stats) => {
                 self.bottom_stats.set_stats(stats);
-                self.ctx.send_action(Action::Render);
             }
             UpdateAction::FreeSpace(free_space) => {
                 self.bottom_stats.set_free_space(free_space);
-                self.ctx.send_action(Action::Render);
             }
             UpdateAction::SearchFilterApply(filter) => {
                 self.table_manager.filter.replace(filter);
                 self.table_manager.table.state.borrow_mut().select(Some(0));
-                self.ctx.send_action(Action::Render);
             }
             UpdateAction::SearchFilterClear => {
                 self.table_manager.filter = None;
                 self.table_manager.table.state.borrow_mut().select(Some(0));
-                self.ctx.send_action(Action::Render);
             }
             UpdateAction::UpdateTorrents(torrents) => {
                 self.table_manager.set_new_rows(torrents);

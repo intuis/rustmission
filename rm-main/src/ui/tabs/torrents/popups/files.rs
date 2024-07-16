@@ -178,7 +178,6 @@ impl Component for FilesPopup {
             let new_tree = Node::new_from_torrent(&torrent);
             self.torrent = Some(torrent);
             self.tree = new_tree;
-            self.ctx.send_action(Action::Render);
         }
     }
 

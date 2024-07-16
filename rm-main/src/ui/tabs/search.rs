@@ -183,7 +183,6 @@ impl Component for SearchTab {
         match action {
             UpdateAction::SearchStarted => {
                 self.search_result_info.searching(ThrobberState::default());
-                self.ctx.send_action(Action::Render);
             }
             UpdateAction::SearchResults(magnets) => {
                 if magnets.is_empty() {
@@ -192,7 +191,6 @@ impl Component for SearchTab {
                     self.search_result_info.found(magnets.len());
                 }
                 self.table.set_items(magnets);
-                self.ctx.send_action(Action::Render);
             }
             _ => (),
         }
@@ -200,7 +198,6 @@ impl Component for SearchTab {
 
     fn tick(&mut self) {
         self.search_result_info.tick();
-        self.ctx.send_action(Action::Render);
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {

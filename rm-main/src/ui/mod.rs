@@ -71,7 +71,6 @@ impl Component for MainWindow {
             UpdateAction::Error(err) => {
                 let error_popup = ErrorPopup::new(err.title, err.description, err.source);
                 self.global_popup_manager.error_popup = Some(error_popup);
-                self.ctx.send_action(Action::Render);
             }
             action if self.tabs.current_tab == CurrentTab::Torrents => {
                 self.torrents_tab.handle_update_action(action)
