@@ -163,7 +163,7 @@ impl TaskManager {
             return;
         }
 
-        let state = Arc::new(Mutex::new(ThrobberState::default()));
+        let state = ThrobberState::default();
         self.current_task = CurrentTask::Status(StatusBar::new(
             self.ctx.clone(),
             task,

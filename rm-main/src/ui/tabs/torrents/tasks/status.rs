@@ -40,8 +40,8 @@ fn format_display_name(name: &str) -> String {
 
 impl Component for StatusBar {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        match &self.task_status {
-            CurrentTaskState::Loading(state) => {
+        match &mut self.task_status {
+            CurrentTaskState::Loading(ref mut state) => {
                 let status_text = match &self.task {
                     StatusTask::Add(name) => {
                         let display_name = format_display_name(name);
@@ -59,11 +59,7 @@ impl Component for StatusBar {
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label(status_text)
                     .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
-                f.render_stateful_widget(
-                    default_throbber.clone(),
-                    rect,
-                    &mut state.lock().unwrap(),
-                );
+                f.render_stateful_widget(default_throbber.clone(), rect, state);
             }
             task_state => {
                 let status_text = match task_state {
@@ -131,9 +127,9 @@ impl Component for StatusBar {
     }
 
     fn tick(&mut self) {
-        match &self.task_status {
+        match &mut self.task_status {
             CurrentTaskState::Loading(state) => {
-                state.lock().unwrap().calc_next();
+                state.calc_next();
                 self.ctx.send_action(Action::Render);
             }
             CurrentTaskState::Success(start) => {
@@ -149,7 +145,7 @@ impl Component for StatusBar {
 
 #[derive(Clone)]
 pub enum CurrentTaskState {
-    Loading(Arc<Mutex<ThrobberState>>),
+    Loading(ThrobberState),
     Success(Instant),
     Failure,
 }
