@@ -34,7 +34,7 @@ impl StatusBar {
         self.task_status = CurrentTaskState::Failure(Instant::now());
     }
 
-    fn set_success(&mut self) {
+    pub fn set_success(&mut self) {
         self.task_status = CurrentTaskState::Success(Instant::now());
     }
 }

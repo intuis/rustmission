@@ -90,9 +90,14 @@ impl Component for TaskManager {
         match action {
             UpdateAction::TaskClear => self.cancel_task(),
             UpdateAction::TaskSet(task) => self.pending_task(task),
+            UpdateAction::TaskSuccess => {
+                if let CurrentTask::Status(status_bar) = &mut self.current_task {
+                    status_bar.set_success();
+                }
+            }
             UpdateAction::TaskFailure => {
                 if let CurrentTask::Status(status_bar) = &mut self.current_task {
-                    status_bar.set_failure()
+                    status_bar.set_failure();
                 }
             }
             _ => (),
