@@ -34,7 +34,6 @@ pub enum Action {
     MoveTorrent,
     ChangeTab(u8),
     Input(KeyEvent),
-    TaskPending(StatusTask),
 }
 
 pub enum UpdateAction {
