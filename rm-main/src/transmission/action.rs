@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::{mpsc::UnboundedReceiver, oneshot};
@@ -11,21 +11,32 @@ use transmission_rpc::TransClient;
 use rm_shared::action::Action;
 use rm_shared::action::ErrorMessage;
 
+const FAILED_TO_COMMUNICATE: &'static str = "Failed to communicate with Transmission";
+
 pub enum TorrentAction {
-    // Magnet/URL, Directory
+    // Add a torrent with this Magnet/URL, Directory
     Add(String, Option<String>),
+    // Stop Torrents with these given IDs
     Stop(Vec<Id>),
+    // Start Torrents with these given IDs
     Start(Vec<Id>),
-    DeleteWithoutFiles(Vec<Id>),
-    DeleteWithFiles(Vec<Id>),
-    GetTorrentInfo(Id, Arc<Mutex<Option<Torrent>>>),
-    GetSessionGet(oneshot::Sender<SessionGet>),
-    SetArgs(Box<TorrentSetArgs>, Option<Vec<Id>>),
     // Torrent ID, Directory to move to
     Move(Vec<Id>, String),
+    // Delete Torrents with these given IDs (without files)
+    DeleteWithoutFiles(Vec<Id>),
+    // Delete Torrents with these given IDs (with files)
+    DeleteWithFiles(Vec<Id>),
+    // Set various properties to Torrents with these given IDs
+    SetArgs(Box<TorrentSetArgs>, Option<Vec<Id>>),
+    // Get info about current Transmission session
+    GetSessionGet(oneshot::Sender<SessionGet>),
+    // Get info about current Transmission session statistics
     GetSessionStats(oneshot::Sender<Arc<SessionStats>>),
+    // Get info about available space on the disk
     GetFreeSpace(String, oneshot::Sender<FreeSpace>),
+    // Get info about all Torrents with these given Fields.
     GetTorrents(Vec<TorrentGetField>, oneshot::Sender<Vec<Torrent>>),
+    // Get info about specific torrents with these given IDs
     GetTorrentsById(Vec<Id>, oneshot::Sender<Vec<Torrent>>),
 }
 
@@ -53,111 +64,148 @@ pub async fn action_handler(
                     Ok(_) => {
                         action_tx.send(Action::TaskSuccess).unwrap();
                     }
-                    Err(e) => {
-                        let error_title = "Failed to add a torrent";
-                        let msg = "Failed to add torrent with URL/Path:\n\"".to_owned()
-                            + url
-                            + "\"\n"
-                            + &e.to_string();
-                        let error_message = ErrorMessage {
-                            title: error_title.to_string(),
-                            message: msg,
-                        };
+                    Err(err) => {
+                        let msg = format!("Failed to add torrent with URL/Path: \"{url}\"");
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         action_tx
-                            .send(Action::Error(Box::new(error_message)))
+                            .send(Action::Error(Box::new(err_message)))
                             .unwrap();
                     }
                 }
             }
             TorrentAction::Stop(ids) => {
-                client
-                    .torrent_action(RPCAction::Stop, ids.clone())
-                    .await
-                    .unwrap();
+                match client.torrent_action(RPCAction::Stop, ids.clone()).await {
+                    Ok(_) => (),
+                    Err(err) => {
+                        let msg = format!("Failed to stop torrents with these IDs: {:?}", ids);
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                        action_tx
+                            .send(Action::Error(Box::new(err_message)))
+                            .unwrap();
+                    }
+                }
             }
             TorrentAction::Start(ids) => {
-                client
-                    .torrent_action(RPCAction::Start, ids.clone())
-                    .await
-                    .unwrap();
+                match client.torrent_action(RPCAction::Start, ids.clone()).await {
+                    Ok(_) => (),
+                    Err(err) => {
+                        let msg = format!("Failed to start torrents with these IDs: {:?}", ids);
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                        action_tx
+                            .send(Action::Error(Box::new(err_message)))
+                            .unwrap();
+                    }
+                }
             }
             TorrentAction::DeleteWithFiles(ids) => {
+                match client.torrent_remove(ids.clone(), true).await {
+                    Ok(_) => action_tx.send(Action::TaskSuccess).unwrap(),
+                    Err(err) => {
+                        let msg = format!("Failed to remove torrents with these IDs: {:?}", ids);
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                        action_tx
+                            .send(Action::Error(Box::new(err_message)))
+                            .unwrap();
+                    }
+                }
+
                 client.torrent_remove(ids, true).await.unwrap();
                 action_tx.send(Action::TaskSuccess).unwrap();
             }
             TorrentAction::DeleteWithoutFiles(ids) => {
-                client.torrent_remove(ids, false).await.unwrap();
-                action_tx.send(Action::TaskSuccess).unwrap();
-            }
-            TorrentAction::GetTorrentInfo(id, torrent_info) => {
-                let new_torrent_info = client
-                    .torrent_get(None, Some(vec![id]))
-                    .await
-                    .unwrap()
-                    .arguments
-                    .torrents
-                    .pop()
-                    .unwrap();
-                *torrent_info.lock().unwrap() = Some(new_torrent_info);
+                match client.torrent_remove(ids.clone(), false).await {
+                    Ok(_) => action_tx.send(Action::TaskSuccess).unwrap(),
+                    Err(err) => {
+                        let msg = format!("Failed to remove torrents with these IDs: {:?}", ids);
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                        action_tx
+                            .send(Action::Error(Box::new(err_message)))
+                            .unwrap();
+                    }
+                }
             }
             TorrentAction::SetArgs(args, ids) => {
-                client.torrent_set(*args, ids).await.unwrap();
+                match client.torrent_set(*args, ids.clone()).await {
+                    Ok(_) => (),
+                    Err(err) => {
+                        let msg = format!(
+                            "Failed to set some properties to torrents with these IDs: {:?}",
+                            ids
+                        );
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                        action_tx
+                            .send(Action::Error(Box::new(err_message)))
+                            .unwrap();
+                    }
+                }
             }
-            TorrentAction::GetSessionGet(sender) => {
-                let session_get = client.session_get().await.unwrap().arguments;
-                sender.send(session_get).unwrap();
-            }
+            TorrentAction::GetSessionGet(sender) => match client.session_get().await {
+                Ok(session_get) => {
+                    sender.send(session_get.arguments).unwrap();
+                }
+                Err(err) => {
+                    let msg = format!("Failed to get session data");
+                    let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                    action_tx
+                        .send(Action::Error(Box::new(err_message)))
+                        .unwrap();
+                }
+            },
             TorrentAction::Move(ids, new_directory) => {
-                if let Err(e) = client
-                    .torrent_set_location(ids, new_directory.clone(), Option::from(true))
+                if let Err(err) = client
+                    .torrent_set_location(ids, new_directory.clone(), Some(true))
                     .await
                 {
-                    let error_title = "Failed to move torrent";
-                    let msg = "Failed to move torrent to new directory:\n\"".to_owned()
-                        + new_directory.as_str()
-                        + "\"\n"
-                        + &e.to_string();
-                    let error_message = ErrorMessage {
-                        title: error_title.to_string(),
-                        message: msg,
-                    };
+                    let msg = format!("Failed to move torrent to new directory:\n{new_directory}");
+                    let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                     action_tx
-                        .send(Action::Error(Box::new(error_message)))
+                        .send(Action::Error(Box::new(err_message)))
                         .unwrap();
                 }
             }
-            TorrentAction::GetSessionStats(sender) => {
-                let stats = client.session_stats().await.unwrap().arguments;
-                sender.send(Arc::new(stats)).unwrap();
-            }
-            TorrentAction::GetFreeSpace(path, sender) => {
-                sender
-                    .send(client.free_space(path).await.unwrap().arguments)
-                    .unwrap();
-            }
+            TorrentAction::GetSessionStats(sender) => match client.session_stats().await {
+                Ok(stats) => sender.send(Arc::new(stats.arguments)).unwrap(),
+                Err(err) => {
+                    let msg = format!("Failed to get session stats");
+                    let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                    action_tx
+                        .send(Action::Error(Box::new(err_message)))
+                        .unwrap();
+                }
+            },
+            TorrentAction::GetFreeSpace(path, sender) => match client.free_space(path).await {
+                Ok(free_space) => sender.send(free_space.arguments).unwrap(),
+                Err(err) => {
+                    let msg = format!("Failed to get free space info");
+                    let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                    action_tx
+                        .send(Action::Error(Box::new(err_message)))
+                        .unwrap();
+                }
+            },
             TorrentAction::GetTorrents(fields, sender) => {
-                sender
-                    .send(
-                        client
-                            .torrent_get(Some(fields), None)
-                            .await
-                            .unwrap()
-                            .arguments
-                            .torrents,
-                    )
-                    .unwrap();
+                match client.torrent_get(Some(fields), None).await {
+                    Ok(torrents) => sender.send(torrents.arguments.torrents).unwrap(),
+                    Err(err) => {
+                        let msg = format!("Failed to fetch torrent data");
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                        action_tx
+                            .send(Action::Error(Box::new(err_message)))
+                            .unwrap();
+                    }
+                }
             }
             TorrentAction::GetTorrentsById(ids, sender) => {
-                sender
-                    .send(
-                        client
-                            .torrent_get(None, Some(ids))
-                            .await
-                            .unwrap()
-                            .arguments
-                            .torrents,
-                    )
-                    .unwrap();
+                match client.torrent_get(None, Some(ids.clone())).await {
+                    Ok(torrents) => sender.send(torrents.arguments.torrents).unwrap(),
+                    Err(err) => {
+                        let msg = format!("Failed to fetch torrents with these IDs: {:?}", ids);
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                        action_tx
+                            .send(Action::Error(Box::new(err_message)))
+                            .unwrap();
+                    }
+                }
             }
         }
     }

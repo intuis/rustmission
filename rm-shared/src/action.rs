@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, error::Error, sync::Arc};
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use magnetease::Magnet;
@@ -58,7 +58,22 @@ pub enum UpdateAction {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorMessage {
     pub title: String,
-    pub message: String,
+    pub description: String,
+    pub source: String,
+}
+
+impl ErrorMessage {
+    pub fn new(
+        title: impl Into<String>,
+        message: impl Into<String>,
+        error: Box<dyn Error>,
+    ) -> Self {
+        Self {
+            title: title.into(),
+            description: message.into(),
+            source: error.to_string(),
+        }
+    }
 }
 
 impl Action {

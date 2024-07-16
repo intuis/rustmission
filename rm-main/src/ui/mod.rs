@@ -45,7 +45,7 @@ impl Component for MainWindow {
 
         match action {
             A::Error(error) => {
-                let error_popup = ErrorPopup::new(&error.title, error.message);
+                let error_popup = ErrorPopup::new(error.title, error.description, error.source);
                 self.global_popup_manager.error_popup = Some(error_popup);
                 self.ctx.send_action(A::Render);
             }
