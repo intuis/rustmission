@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use ratatui::prelude::*;
 use throbber_widgets_tui::ThrobberState;
 
@@ -59,38 +57,17 @@ impl Component for TaskManager {
         match &mut self.current_task {
             CurrentTask::AddMagnetBar(magnet_bar) => {
                 if magnet_bar.handle_actions(action).is_quit() {
-                    // Some(A::TaskPending(task)) => self.pending_task(task),
                     self.cancel_task()
                 }
             }
-
             CurrentTask::DeleteBar(delete_bar) => {
                 if delete_bar.handle_actions(action).is_quit() {
-                    // Some(A::TaskPending(task)) => {
-                    //     let selected = self
-                    //         .table_manager
-                    //         .lock()
-                    //         .unwrap()
-                    //         .table
-                    //         .state
-                    //         .borrow()
-                    //         .selected();
-
-                    //     // select closest existing torrent
-                    //     if let Some(idx) = selected {
-                    //         if idx > 0 {
-                    //             self.table_manager.lock().unwrap().table.previous();
-                    //         }
-                    //     }
-                    //     self.pending_task(task)
-                    // }
                     self.cancel_task()
                 }
             }
             CurrentTask::MoveBar(move_bar) => {
                 if move_bar.handle_actions(action).is_quit() {
                     self.cancel_task()
-                    // Some(A::TaskPending(task)) => self.pending_task(task),
                 }
             }
             CurrentTask::FilterBar(filter_bar) => {
@@ -98,7 +75,6 @@ impl Component for TaskManager {
                     self.cancel_task()
                 }
             }
-
             CurrentTask::Status(status_bar) => {
                 if status_bar.handle_actions(action).is_quit() {
                     self.cancel_task()
@@ -108,6 +84,19 @@ impl Component for TaskManager {
             _ => (),
         };
         ComponentAction::Nothing
+    }
+
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        match action {
+            UpdateAction::TaskClear => self.cancel_task(),
+            UpdateAction::TaskSet(task) => self.pending_task(task),
+            UpdateAction::TaskFailure => {
+                if let CurrentTask::Status(status_bar) = &mut self.current_task {
+                    status_bar.set_failure()
+                }
+            }
+            _ => (),
+        }
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {

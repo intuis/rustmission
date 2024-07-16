@@ -77,9 +77,10 @@ impl AddMagnetBar {
                 self.input_magnet_mgr.text(),
                 Some(self.input_location_mgr.text()),
             ));
-            // return Some(Action::TaskPending(StatusTask::Add(
-            //     self.input_magnet_mgr.text(),
-            // )));
+            self.ctx
+                .send_update_action(UpdateAction::TaskSet(StatusTask::Add(
+                    self.input_magnet_mgr.text(),
+                )));
             self.ctx
                 .send_update_action(UpdateAction::SwitchToNormalMode);
             return ComponentAction::Quit;

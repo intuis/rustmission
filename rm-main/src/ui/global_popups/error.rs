@@ -1,5 +1,3 @@
-use std::ops::RemAssign;
-
 use ratatui::{
     prelude::*,
     widgets::{Block, Clear, Paragraph, Wrap},

@@ -1,11 +1,6 @@
-use std::sync::{Arc, Mutex};
+use crate::{app, ui::components::Component};
 
-use crate::{
-    app,
-    ui::components::{Component, ComponentAction},
-};
-
-use ratatui::{prelude::*, widgets::Paragraph};
+use ratatui::{prelude::*, style::Style, widgets::Paragraph};
 use rm_shared::{
     action::{Action, UpdateAction},
     status_task::StatusTask,
@@ -19,6 +14,13 @@ pub struct StatusBar {
     ctx: app::Ctx,
 }
 
+#[derive(Clone)]
+pub enum CurrentTaskState {
+    Loading(ThrobberState),
+    Success(Instant),
+    Failure(Instant),
+}
+
 impl StatusBar {
     pub const fn new(ctx: app::Ctx, task: StatusTask, task_status: CurrentTaskState) -> Self {
         Self {
@@ -26,6 +28,14 @@ impl StatusBar {
             task_status,
             ctx,
         }
+    }
+
+    pub fn set_failure(&mut self) {
+        self.task_status = CurrentTaskState::Failure(Instant::now());
+    }
+
+    fn set_success(&mut self) {
+        self.task_status = CurrentTaskState::Success(Instant::now());
     }
 }
 
@@ -58,12 +68,12 @@ impl Component for StatusBar {
                 };
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label(status_text)
-                    .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
+                    .style(Style::default().yellow());
                 f.render_stateful_widget(default_throbber.clone(), rect, state);
             }
             task_state => {
                 let status_text = match task_state {
-                    CurrentTaskState::Failure => match &self.task {
+                    CurrentTaskState::Failure(_) => match &self.task {
                         StatusTask::Add(name) => {
                             let display_name = format_display_name(name);
                             format!(" Error adding {display_name}")
@@ -95,7 +105,7 @@ impl Component for StatusBar {
                 };
                 let mut line = Line::default();
                 match task_state {
-                    CurrentTaskState::Failure => {
+                    CurrentTaskState::Failure(_) => {
                         line.push_span(Span::styled("", Style::default().red()));
                     }
                     CurrentTaskState::Success(_) => {
@@ -110,19 +120,17 @@ impl Component for StatusBar {
         }
     }
 
-    fn handle_actions(&mut self, action: Action) -> ComponentAction {
+    fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
-            Action::TaskSuccess => {
-                self.task_status.set_success();
+            UpdateAction::TaskSuccess => {
+                self.set_success();
                 self.ctx.send_action(Action::Render);
-                ComponentAction::Nothing
             }
-            Action::Error(_) => {
-                self.task_status.set_failure();
+            UpdateAction::Error(_) => {
+                self.set_failure();
                 self.ctx.send_action(Action::Render);
-                ComponentAction::Nothing
             }
-            _ => ComponentAction::Nothing,
+            _ => (),
         }
     }
 
@@ -138,24 +146,12 @@ impl Component for StatusBar {
                     self.ctx.send_update_action(UpdateAction::TaskClear);
                 }
             }
-            _ => (),
+            CurrentTaskState::Failure(start) => {
+                let expiration_duration = time::Duration::from_secs(5);
+                if start.elapsed() >= expiration_duration {
+                    self.ctx.send_update_action(UpdateAction::TaskClear);
+                }
+            }
         }
-    }
-}
-
-#[derive(Clone)]
-pub enum CurrentTaskState {
-    Loading(ThrobberState),
-    Success(Instant),
-    Failure,
-}
-
-impl CurrentTaskState {
-    fn set_failure(&mut self) {
-        *self = Self::Failure;
-    }
-
-    fn set_success(&mut self) {
-        *self = Self::Success(time::Instant::now());
     }
 }

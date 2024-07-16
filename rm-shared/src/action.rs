@@ -34,16 +34,19 @@ pub enum Action {
     MoveTorrent,
     ChangeTab(u8),
     Input(KeyEvent),
-    Error(Box<ErrorMessage>),
     TaskPending(StatusTask),
-    TaskSuccess,
 }
 
 pub enum UpdateAction {
+    // Global
     SwitchToInputMode,
     SwitchToNormalMode,
+    Error(Box<ErrorMessage>),
     // Torrents Tab
     TaskClear,
+    TaskSuccess,
+    TaskFailure,
+    TaskSet(StatusTask),
     SessionStats(Arc<SessionStats>),
     FreeSpace(Arc<FreeSpace>),
     UpdateTorrents(Vec<RustmissionTorrent>),

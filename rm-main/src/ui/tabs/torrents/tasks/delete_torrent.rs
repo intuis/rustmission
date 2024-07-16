@@ -5,9 +5,13 @@ use transmission_rpc::types::Id;
 use crate::{
     app,
     transmission::TorrentAction,
-    ui::{components::{Component, ComponentAction}, tabs::torrents::input_manager::InputManager, to_input_request},
+    ui::{
+        components::{Component, ComponentAction},
+        tabs::torrents::input_manager::InputManager,
+        to_input_request,
+    },
 };
-use rm_shared::action::Action;
+use rm_shared::action::{Action, UpdateAction};
 use rm_shared::status_task::StatusTask;
 
 #[derive(Clone)]
@@ -73,11 +77,12 @@ impl Component for DeleteBar {
                                     ))
                             }
                         }
-                        self.ctx.send_action(Action::TaskPending(StatusTask::Delete(
-                            self.torrents_to_delete[0].name.clone(),
-                        )));
+                        self.ctx
+                            .send_update_action(UpdateAction::TaskSet(StatusTask::Delete(
+                                self.torrents_to_delete[0].name.clone(),
+                            )));
                     } else if text == "n" || text == "no" {
-                        return ComponentAction::Quit
+                        return ComponentAction::Quit;
                     }
                 }
 

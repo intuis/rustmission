@@ -84,9 +84,16 @@ impl App {
         let mut client = transmission::utils::client_from_config(&config);
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
-        let ctx = Ctx::new(&mut client, config, action_tx.clone(), update_tx, trans_tx).await?;
+        let ctx = Ctx::new(
+            &mut client,
+            config,
+            action_tx.clone(),
+            update_tx.clone(),
+            trans_tx,
+        )
+        .await?;
 
-        tokio::spawn(transmission::action_handler(client, trans_rx, action_tx));
+        tokio::spawn(transmission::action_handler(client, trans_rx, update_tx));
         Ok(Self {
             should_quit: false,
             main_window: MainWindow::new(ctx.clone()),

@@ -143,8 +143,12 @@ impl Component for TorrentsTab {
             UpdateAction::UpdateCurrentTorrent(_) => {
                 self.popup_manager.handle_update_action(action)
             }
-            _ => (),
+            other => self.task_manager.handle_update_action(other),
         }
+    }
+
+    fn tick(&mut self) {
+        self.task_manager.tick();
     }
 }
 

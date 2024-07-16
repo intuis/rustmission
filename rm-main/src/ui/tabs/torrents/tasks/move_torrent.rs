@@ -1,6 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
-use rm_shared::{action::Action, status_task::StatusTask};
+use rm_shared::{
+    action::{Action, UpdateAction},
+    status_task::StatusTask,
+};
 use transmission_rpc::types::Id;
 
 use crate::{
@@ -36,7 +39,8 @@ impl MoveBar {
             let torrents_to_move = self.torrents_to_move.clone();
             self.ctx
                 .send_torrent_action(TorrentAction::Move(torrents_to_move, new_location.clone()));
-            // return Some(Action::TaskPending(StatusTask::Move(new_location)));
+            self.ctx
+                .send_update_action(UpdateAction::TaskSet(StatusTask::Move(new_location)));
             return ComponentAction::Quit;
         }
 

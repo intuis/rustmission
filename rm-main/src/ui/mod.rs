@@ -44,11 +44,6 @@ impl Component for MainWindow {
         use Action as A;
 
         match action {
-            A::Error(error) => {
-                let error_popup = ErrorPopup::new(error.title, error.description, error.source);
-                self.global_popup_manager.error_popup = Some(error_popup);
-                self.ctx.send_action(A::Render);
-            }
             A::ShowHelp => {
                 self.global_popup_manager.handle_actions(action);
             }
@@ -72,9 +67,19 @@ impl Component for MainWindow {
     }
 
     fn handle_update_action(&mut self, action: UpdateAction) {
-        match self.tabs.current_tab {
-            CurrentTab::Torrents => self.torrents_tab.handle_update_action(action),
-            CurrentTab::Search => self.search_tab.handle_update_action(action),
+        match action {
+            UpdateAction::Error(err) => {
+                let error_popup = ErrorPopup::new(err.title, err.description, err.source);
+                self.global_popup_manager.error_popup = Some(error_popup);
+                self.ctx.send_action(Action::Render);
+            }
+            action if self.tabs.current_tab == CurrentTab::Torrents => {
+                self.torrents_tab.handle_update_action(action)
+            }
+            action if self.tabs.current_tab == CurrentTab::Search => {
+                self.search_tab.handle_update_action(action)
+            }
+            _ => unreachable!(),
         }
     }
 
