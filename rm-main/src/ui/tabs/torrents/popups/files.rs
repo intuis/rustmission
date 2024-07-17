@@ -8,7 +8,7 @@ use ratatui::{
         Block, BorderType, Clear, Paragraph,
     },
 };
-use tokio::sync::oneshot;
+use tokio::{sync::oneshot, task::JoinHandle};
 use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
@@ -30,6 +30,7 @@ pub struct FilesPopup {
     tree: Node,
     current_focus: CurrentFocus,
     switched_after_fetched_data: bool,
+    torrent_info_task_handle: JoinHandle<()>,
 }
 
 async fn fetch_new_files(ctx: app::Ctx, torrent_id: Id) {
@@ -62,7 +63,8 @@ impl FilesPopup {
         let tree_state = TreeState::default();
         let tree = Node::new();
 
-        tokio::task::spawn(fetch_new_files(ctx.clone(), torrent_id.clone()));
+        let torrent_info_task_handle =
+            tokio::task::spawn(fetch_new_files(ctx.clone(), torrent_id.clone()));
 
         Self {
             ctx,
@@ -72,6 +74,7 @@ impl FilesPopup {
             current_focus: CurrentFocus::CloseButton,
             switched_after_fetched_data: false,
             torrent_id,
+            torrent_info_task_handle,
         }
     }
 
@@ -88,12 +91,18 @@ impl Component for FilesPopup {
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
         match (action, self.current_focus) {
-            (action, _) if action.is_soft_quit() => return ComponentAction::Quit,
+            (action, _) if action.is_soft_quit() => {
+                self.torrent_info_task_handle.abort();
+                return ComponentAction::Quit;
+            }
             (A::ChangeFocus, _) => {
                 self.switch_focus();
                 self.ctx.send_action(A::Render);
             }
-            (A::Confirm, CurrentFocus::CloseButton) => return ComponentAction::Quit,
+            (A::Confirm, CurrentFocus::CloseButton) => {
+                self.torrent_info_task_handle.abort();
+                return ComponentAction::Quit;
+            }
             (A::Select | A::Confirm, CurrentFocus::Files) => {
                 if let Some(torrent) = &mut self.torrent {
                     let wanted_ids = torrent.wanted.as_mut().unwrap();
