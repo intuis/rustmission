@@ -1,8 +1,7 @@
-use std::{collections::HashMap, error::Error, sync::Arc};
+use std::{error::Error, sync::Arc};
 
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::KeyEvent;
 use magnetease::Magnet;
-use tokio::sync::mpsc::UnboundedSender;
 use transmission_rpc::types::{FreeSpace, SessionStats, Torrent};
 
 use crate::{rustmission_torrent::RustmissionTorrent, status_task::StatusTask};
@@ -90,45 +89,5 @@ impl Action {
 
     pub fn is_soft_quit(&self) -> bool {
         self.is_quit() || *self == Self::Close
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Mode {
-    Input,
-    Normal,
-}
-
-pub fn event_to_action(
-    mode: Mode,
-    event: Event,
-    sender: &UnboundedSender<Action>,
-    keymap: &HashMap<(KeyCode, KeyModifiers), Action>,
-) {
-    // Handle CTRL+C first
-    if let Event::Key(key_event) = event {
-        if key_event.modifiers == KeyModifiers::CONTROL
-            && (key_event.code == KeyCode::Char('c') || key_event.code == KeyCode::Char('C'))
-        {
-            sender.send(Action::HardQuit).unwrap();
-        }
-    }
-
-    match event {
-        Event::Key(key) if mode == Mode::Input => sender.send(Action::Input(key)).unwrap(),
-        Event::Key(key) => {
-            if let KeyCode::Char(e) = key.code {
-                if e.is_uppercase() {
-                    if let Some(action) = keymap.get(&(key.code, KeyModifiers::NONE)).cloned() {
-                        sender.send(action).unwrap();
-                    }
-                }
-            }
-            if let Some(action) = keymap.get(&(key.code, key.modifiers)).cloned() {
-                sender.send(action).unwrap();
-            }
-        }
-        Event::Resize(_, _) => sender.send(Action::Render).unwrap(),
-        _ => (),
     }
 }

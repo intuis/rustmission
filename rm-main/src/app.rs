@@ -1,7 +1,8 @@
+use crossterm::event::Event;
+use crossterm::event::KeyCode;
+use crossterm::event::KeyModifiers;
 use rm_config::Config;
-use rm_shared::action::event_to_action;
 use rm_shared::action::Action;
-use rm_shared::action::Mode;
 use rm_shared::action::UpdateAction;
 use std::sync::Arc;
 
@@ -19,7 +20,7 @@ use transmission_rpc::{types::SessionGet, TransClient};
 pub struct Ctx {
     pub config: Arc<Config>,
     pub session_info: Arc<SessionGet>,
-    pub action_tx: UnboundedSender<Action>,
+    action_tx: UnboundedSender<Action>,
     update_tx: UnboundedSender<UpdateAction>,
     trans_tx: UnboundedSender<TorrentAction>,
 }
@@ -130,7 +131,7 @@ impl App {
                 _ = tick_action => self.tick(),
 
                 event = tui_event => {
-                    event_to_action(self.mode, event.unwrap(), &self.ctx.action_tx, &self.ctx.config.keybindings.keymap);
+                    event_to_action(&self.ctx, self.mode, event.unwrap());
                 },
 
                 update_action = update_action => self.handle_update_action(update_action.unwrap()).await,
@@ -191,5 +192,58 @@ impl App {
 
     fn tick(&mut self) {
         self.main_window.tick();
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    Input,
+    Normal,
+}
+
+pub fn event_to_action(
+    ctx: &Ctx,
+    mode: Mode,
+    event: Event,
+    // sender: &UnboundedSender<Action>,
+    // keymap: &HashMap<(KeyCode, KeyModifiers), Action>,
+) {
+    // Handle CTRL+C first
+    if let Event::Key(key_event) = event {
+        if key_event.modifiers == KeyModifiers::CONTROL
+            && (key_event.code == KeyCode::Char('c') || key_event.code == KeyCode::Char('C'))
+        {
+            ctx.send_action(Action::HardQuit);
+        }
+    }
+
+    match event {
+        Event::Key(key) if mode == Mode::Input => ctx.send_action(Action::Input(key)),
+        Event::Key(key) => {
+            if let KeyCode::Char(e) = key.code {
+                if e.is_uppercase() {
+                    if let Some(action) = ctx
+                        .config
+                        .keybindings
+                        .keymap
+                        .get(&(key.code, KeyModifiers::NONE))
+                        .cloned()
+                    {
+                        ctx.send_action(action);
+                    }
+                }
+            }
+            if let Some(action) = ctx
+                .config
+                .keybindings
+                .keymap
+                .get(&(key.code, key.modifiers))
+                .cloned()
+            {
+                ctx.send_action(action);
+            }
+        }
+        Event::Resize(_, _) => ctx.send_action(Action::Render),
+        _ => (),
     }
 }
