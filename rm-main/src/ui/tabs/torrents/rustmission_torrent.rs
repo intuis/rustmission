@@ -4,14 +4,13 @@ use ratatui::{
     text::{Line, Span},
     widgets::Row,
 };
-use transmission_rpc::types::{Id, Torrent, TorrentStatus};
-
-use crate::{
+use rm_shared::{
     header::Header,
     utils::{
         bytes_to_human_format, download_speed_format, seconds_to_human_format, upload_speed_format,
     },
 };
+use transmission_rpc::types::{Id, Torrent, TorrentStatus};
 
 #[derive(Clone)]
 pub struct RustmissionTorrent {
@@ -122,8 +121,8 @@ impl RustmissionTorrent {
     }
 }
 
-impl From<&Torrent> for RustmissionTorrent {
-    fn from(t: &Torrent) -> Self {
+impl From<Torrent> for RustmissionTorrent {
+    fn from(t: Torrent) -> Self {
         let id = t.id().expect("id requested");
 
         let torrent_name = t.name.clone().expect("name requested");

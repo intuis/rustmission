@@ -4,7 +4,7 @@ use crossterm::event::KeyEvent;
 use magnetease::Magnet;
 use transmission_rpc::types::{FreeSpace, SessionStats, Torrent};
 
-use crate::{rustmission_torrent::RustmissionTorrent, status_task::StatusTask};
+use crate::status_task::StatusTask;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
@@ -48,7 +48,7 @@ pub enum UpdateAction {
     TaskSet(StatusTask),
     SessionStats(Arc<SessionStats>),
     FreeSpace(Arc<FreeSpace>),
-    UpdateTorrents(Vec<RustmissionTorrent>),
+    UpdateTorrents(Vec<Torrent>),
     UpdateCurrentTorrent(Box<Torrent>),
     SearchFilterApply(String),
     SearchFilterClear,

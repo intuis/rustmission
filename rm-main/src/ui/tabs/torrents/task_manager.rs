@@ -7,17 +7,19 @@ use crate::{
 };
 use rm_shared::{
     action::{Action, UpdateAction},
-    rustmission_torrent::RustmissionTorrent,
     status_task::StatusTask,
 };
 
-use super::tasks::{
-    add_magnet::AddMagnetBar,
-    default::DefaultBar,
-    delete_torrent::{self, DeleteBar, TorrentInfo},
-    filter::FilterBar,
-    move_torrent::MoveBar,
-    status::{CurrentTaskState, StatusBar},
+use super::{
+    rustmission_torrent::RustmissionTorrent,
+    tasks::{
+        add_magnet::AddMagnetBar,
+        default::DefaultBar,
+        delete_torrent::{self, DeleteBar, TorrentInfo},
+        filter::FilterBar,
+        move_torrent::MoveBar,
+        status::{CurrentTaskState, StatusBar},
+    },
 };
 
 pub struct TaskManager {

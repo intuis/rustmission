@@ -1,6 +1,7 @@
 mod bottom_stats;
 mod input_manager;
 pub mod popups;
+pub mod rustmission_torrent;
 pub mod table_manager;
 pub mod task_manager;
 pub mod tasks;
@@ -10,6 +11,7 @@ use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
 
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
+use rustmission_torrent::RustmissionTorrent;
 use transmission_rpc::types::TorrentStatus;
 
 use crate::ui::components::{Component, ComponentAction};
@@ -132,6 +134,7 @@ impl Component for TorrentsTab {
                 self.table_manager.table.state.borrow_mut().select(Some(0));
             }
             UpdateAction::UpdateTorrents(torrents) => {
+                let torrents = torrents.into_iter().map(RustmissionTorrent::from).collect();
                 self.table_manager.set_new_rows(torrents);
                 self.bottom_stats
                     .update_selected_indicator(&self.table_manager);

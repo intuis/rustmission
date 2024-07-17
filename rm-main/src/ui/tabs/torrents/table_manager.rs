@@ -1,9 +1,11 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{prelude::*, widgets::Row};
-use rm_shared::{header::Header, rustmission_torrent::RustmissionTorrent};
+use rm_shared::header::Header;
 use std::collections::HashMap;
 
 use crate::{app, ui::components::table::GenericTable};
+
+use super::rustmission_torrent::RustmissionTorrent;
 
 pub struct TableManager {
     ctx: app::Ctx,

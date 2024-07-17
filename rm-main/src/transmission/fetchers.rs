@@ -4,7 +4,7 @@ use tokio::sync::oneshot;
 use transmission_rpc::types::TorrentGetField;
 
 use crate::app;
-use rm_shared::{action::UpdateAction, rustmission_torrent::RustmissionTorrent};
+use rm_shared::action::UpdateAction;
 
 use super::TorrentAction;
 
@@ -64,12 +64,7 @@ pub async fn torrents(ctx: app::Ctx) {
         let (torrents_tx, torrents_rx) = oneshot::channel();
         ctx.send_torrent_action(TorrentAction::GetTorrents(fields, torrents_tx));
 
-        let torrents = torrents_rx
-            .await
-            .unwrap()
-            .iter()
-            .map(RustmissionTorrent::from)
-            .collect();
+        let torrents = torrents_rx.await.unwrap();
 
         ctx.send_update_action(UpdateAction::UpdateTorrents(torrents));
 
