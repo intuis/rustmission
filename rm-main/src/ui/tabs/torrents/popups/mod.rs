@@ -63,10 +63,8 @@ impl Component for PopupManager {
     }
 
     fn handle_update_action(&mut self, action: UpdateAction) {
-        if let Some(current_popup) = &mut self.current_popup {
-            if let CurrentPopup::Files(popup) = current_popup {
-                popup.handle_update_action(action);
-            }
+        if let Some(CurrentPopup::Files(popup)) = &mut self.current_popup {
+            popup.handle_update_action(action);
         }
     }
 

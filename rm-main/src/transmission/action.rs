@@ -11,7 +11,7 @@ use transmission_rpc::TransClient;
 use rm_shared::action::ErrorMessage;
 use rm_shared::action::UpdateAction;
 
-const FAILED_TO_COMMUNICATE: &'static str = "Failed to communicate with Transmission";
+const FAILED_TO_COMMUNICATE: &str = "Failed to communicate with Transmission";
 
 pub enum TorrentAction {
     // Add a torrent with this Magnet/URL, Directory
@@ -144,7 +144,7 @@ pub async fn action_handler(
                     sender.send(session_get.arguments).unwrap();
                 }
                 Err(err) => {
-                    let msg = format!("Failed to get session data");
+                    let msg = "Failed to get session data";
                     let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                     action_tx
                         .send(UpdateAction::Error(Box::new(err_message)))
@@ -166,7 +166,7 @@ pub async fn action_handler(
             TorrentAction::GetSessionStats(sender) => match client.session_stats().await {
                 Ok(stats) => sender.send(Arc::new(stats.arguments)).unwrap(),
                 Err(err) => {
-                    let msg = format!("Failed to get session stats");
+                    let msg = "Failed to get session stats";
                     let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                     action_tx
                         .send(UpdateAction::Error(Box::new(err_message)))
@@ -176,7 +176,7 @@ pub async fn action_handler(
             TorrentAction::GetFreeSpace(path, sender) => match client.free_space(path).await {
                 Ok(free_space) => sender.send(free_space.arguments).unwrap(),
                 Err(err) => {
-                    let msg = format!("Failed to get free space info");
+                    let msg = "Failed to get free space info";
                     let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                     action_tx
                         .send(UpdateAction::Error(Box::new(err_message)))
@@ -187,7 +187,7 @@ pub async fn action_handler(
                 match client.torrent_get(Some(fields), None).await {
                     Ok(torrents) => sender.send(torrents.arguments.torrents).unwrap(),
                     Err(err) => {
-                        let msg = format!("Failed to fetch torrent data");
+                        let msg = "Failed to fetch torrent data";
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         action_tx
                             .send(UpdateAction::Error(Box::new(err_message)))

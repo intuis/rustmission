@@ -45,7 +45,7 @@ async fn fetch_new_files(ctx: app::Ctx, torrent_id: Id) {
             .pop()
             .expect("1 torrent must have been returned");
 
-        ctx.send_update_action(UpdateAction::UpdateCurrentTorrent(torrent));
+        ctx.send_update_action(UpdateAction::UpdateCurrentTorrent(Box::new(torrent)));
         tokio::time::sleep(Duration::from_secs(6)).await;
     }
 }
@@ -176,7 +176,7 @@ impl Component for FilesPopup {
     fn handle_update_action(&mut self, action: UpdateAction) {
         if let UpdateAction::UpdateCurrentTorrent(torrent) = action {
             let new_tree = Node::new_from_torrent(&torrent);
-            self.torrent = Some(torrent);
+            self.torrent = Some(*torrent);
             self.tree = new_tree;
         }
     }

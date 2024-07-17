@@ -49,7 +49,7 @@ pub enum UpdateAction {
     SessionStats(Arc<SessionStats>),
     FreeSpace(Arc<FreeSpace>),
     UpdateTorrents(Vec<RustmissionTorrent>),
-    UpdateCurrentTorrent(Torrent),
+    UpdateCurrentTorrent(Box<Torrent>),
     SearchFilterApply(String),
     SearchFilterClear,
     // Search Tab
