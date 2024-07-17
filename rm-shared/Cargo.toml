@@ -17,3 +17,4 @@ magnetease.workspace = true
 ratatui.workspace = true
 chrono.workspace = true
 serde.workspace = true
+tokio.workspace = true

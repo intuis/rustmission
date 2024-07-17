@@ -19,7 +19,7 @@ use transmission_rpc::{types::SessionGet, TransClient};
 pub struct Ctx {
     pub config: Arc<Config>,
     pub session_info: Arc<SessionGet>,
-    action_tx: UnboundedSender<Action>,
+    pub action_tx: UnboundedSender<Action>,
     update_tx: UnboundedSender<UpdateAction>,
     trans_tx: UnboundedSender<TorrentAction>,
 }
@@ -94,6 +94,7 @@ impl App {
         .await?;
 
         tokio::spawn(transmission::action_handler(client, trans_rx, update_tx));
+
         Ok(Self {
             should_quit: false,
             main_window: MainWindow::new(ctx.clone()),
@@ -129,9 +130,7 @@ impl App {
                 _ = tick_action => self.tick(),
 
                 event = tui_event => {
-                    if let Some(action) = event_to_action(self.mode, event.unwrap(), &self.ctx.config.keybindings.keymap) {
-                        self.handle_user_action(action).await
-                    };
+                    event_to_action(self.mode, event.unwrap(), &self.ctx.action_tx, &self.ctx.config.keybindings.keymap);
                 },
 
                 update_action = update_action => self.handle_update_action(update_action.unwrap()).await,
