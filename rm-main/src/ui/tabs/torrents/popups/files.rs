@@ -40,13 +40,18 @@ async fn fetch_new_files(ctx: app::Ctx, torrent_id: Id) {
             vec![torrent_id.clone()],
             torrent_tx,
         ));
-        let torrent = torrent_rx
-            .await
-            .unwrap()
-            .pop()
-            .expect("1 torrent must have been returned");
 
-        ctx.send_update_action(UpdateAction::UpdateCurrentTorrent(Box::new(torrent)));
+        match torrent_rx.await.unwrap() {
+            Ok(mut torrents) => {
+                ctx.send_update_action(UpdateAction::UpdateCurrentTorrent(Box::new(
+                    torrents.pop().unwrap(),
+                )));
+            }
+            Err(err_message) => {
+                ctx.send_update_action(UpdateAction::Error(err_message));
+            }
+        };
+
         tokio::time::sleep(Duration::from_secs(6)).await;
     }
 }

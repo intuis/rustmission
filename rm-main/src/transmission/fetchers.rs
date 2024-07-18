@@ -12,18 +12,34 @@ pub async fn stats(ctx: app::Ctx) {
     loop {
         let (stats_tx, stats_rx) = oneshot::channel();
         ctx.send_torrent_action(TorrentAction::GetSessionStats(stats_tx));
-        let new_stats = stats_rx.await.unwrap();
 
-        ctx.send_update_action(UpdateAction::SessionStats(new_stats));
+        match stats_rx.await.unwrap() {
+            Ok(stats) => {
+                ctx.send_update_action(UpdateAction::SessionStats(stats));
+            }
+            Err(err_message) => {
+                ctx.send_update_action(UpdateAction::Error(err_message));
+            }
+        };
 
         tokio::time::sleep(Duration::from_secs(ctx.config.connection.stats_refresh)).await;
     }
 }
 
 pub async fn free_space(ctx: app::Ctx) {
-    let (sess_tx, sess_rx) = oneshot::channel();
-    ctx.send_torrent_action(TorrentAction::GetSessionGet(sess_tx));
-    let download_dir = sess_rx.await.unwrap().download_dir.leak();
+    let download_dir = loop {
+        let (sess_tx, sess_rx) = oneshot::channel();
+        ctx.send_torrent_action(TorrentAction::GetSessionGet(sess_tx));
+        match sess_rx.await.unwrap() {
+            Ok(sess) => {
+                break sess.download_dir.leak();
+            }
+            Err(err_message) => {
+                ctx.send_update_action(UpdateAction::Error(err_message));
+                tokio::time::sleep(Duration::from_secs(10)).await;
+            }
+        };
+    };
 
     loop {
         let (space_tx, space_rx) = oneshot::channel();
@@ -31,9 +47,16 @@ pub async fn free_space(ctx: app::Ctx) {
             download_dir.to_string(),
             space_tx,
         ));
-        let free_space = space_rx.await.unwrap();
 
-        ctx.send_update_action(UpdateAction::FreeSpace(Arc::new(free_space)));
+        match space_rx.await.unwrap() {
+            Ok(free_space) => {
+                ctx.send_update_action(UpdateAction::FreeSpace(Arc::new(free_space)));
+            }
+            Err(err_message) => {
+                ctx.send_update_action(UpdateAction::Error(err_message));
+            }
+        }
+
         tokio::time::sleep(Duration::from_secs(
             ctx.config.connection.free_space_refresh,
         ))
@@ -64,9 +87,14 @@ pub async fn torrents(ctx: app::Ctx) {
         let (torrents_tx, torrents_rx) = oneshot::channel();
         ctx.send_torrent_action(TorrentAction::GetTorrents(fields, torrents_tx));
 
-        let torrents = torrents_rx.await.unwrap();
-
-        ctx.send_update_action(UpdateAction::UpdateTorrents(torrents));
+        match torrents_rx.await.unwrap() {
+            Ok(torrents) => {
+                ctx.send_update_action(UpdateAction::UpdateTorrents(torrents));
+            }
+            Err(err_message) => {
+                ctx.send_update_action(UpdateAction::Error(err_message));
+            }
+        };
 
         tokio::time::sleep(Duration::from_secs(ctx.config.connection.torrents_refresh)).await;
     }
