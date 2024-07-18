@@ -36,7 +36,7 @@ impl BottomStats {
     }
 
     pub fn update_selected_indicator(&mut self, table_manager: &TableManager) {
-        self.torrent_count = u16::try_from(table_manager.table.items.len()).unwrap();
+        self.torrent_count = u16::try_from(table_manager.table.get_len()).unwrap();
         if let Some(currently_selected) = table_manager.table.state.borrow().selected() {
             self.torrent_currently_selected = u16::try_from(currently_selected + 1).unwrap();
         }

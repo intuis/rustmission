@@ -128,10 +128,16 @@ impl Component for TorrentsTab {
             UpdateAction::SearchFilterApply(filter) => {
                 self.table_manager.filter.replace(filter);
                 self.table_manager.table.state.borrow_mut().select(Some(0));
+                self.table_manager.update_rows_number();
+                self.bottom_stats
+                    .update_selected_indicator(&self.table_manager);
             }
             UpdateAction::SearchFilterClear => {
                 self.table_manager.filter = None;
                 self.table_manager.table.state.borrow_mut().select(Some(0));
+                self.table_manager.update_rows_number();
+                self.bottom_stats
+                    .update_selected_indicator(&self.table_manager);
             }
             UpdateAction::UpdateTorrents(torrents) => {
                 let torrents = torrents.into_iter().map(RustmissionTorrent::from).collect();

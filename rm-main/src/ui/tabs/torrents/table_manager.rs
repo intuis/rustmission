@@ -35,6 +35,15 @@ impl TableManager {
         }
     }
 
+    pub fn update_rows_number(&mut self) {
+        if let Some(filter) = &self.filter {
+            let rows = self.filtered_torrents_rows(&self.table.items, filter);
+            self.table.overwrite_len(rows.len());
+        } else {
+            self.table.items.len();
+        }
+    }
+
     pub fn rows(&self) -> Vec<Row<'_>> {
         if let Some(filter) = &self.filter {
             let rows = self.filtered_torrents_rows(&self.table.items, filter);
