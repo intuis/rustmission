@@ -1,12 +1,19 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
-use rm_shared::{action::Action, status_task::StatusTask};
+use rm_shared::{
+    action::{Action, UpdateAction},
+    status_task::StatusTask,
+};
 use transmission_rpc::types::Id;
 
 use crate::{
     app,
     transmission::TorrentAction,
-    ui::{components::Component, tabs::torrents::input_manager::InputManager, to_input_request},
+    ui::{
+        components::{Component, ComponentAction},
+        tabs::torrents::input_manager::InputManager,
+        to_input_request,
+    },
 };
 
 pub struct MoveBar {
@@ -17,7 +24,7 @@ pub struct MoveBar {
 
 impl MoveBar {
     pub fn new(ctx: app::Ctx, torrents_to_move: Vec<Id>, existing_location: String) -> Self {
-        let prompt = format!("New directory: ");
+        let prompt = "New directory: ".to_string();
 
         Self {
             torrents_to_move,
@@ -26,33 +33,35 @@ impl MoveBar {
         }
     }
 
-    fn handle_input(&mut self, input: KeyEvent) -> Option<Action> {
+    fn handle_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
             let new_location = self.input_mgr.text();
             let torrents_to_move = self.torrents_to_move.clone();
             self.ctx
                 .send_torrent_action(TorrentAction::Move(torrents_to_move, new_location.clone()));
-            return Some(Action::TaskPending(StatusTask::Move(new_location)));
+            self.ctx
+                .send_update_action(UpdateAction::TaskSet(StatusTask::Move(new_location)));
+            return ComponentAction::Quit;
         }
 
         if input.code == KeyCode::Esc {
-            return Some(Action::Quit);
+            return ComponentAction::Quit;
         }
 
         if let Some(req) = to_input_request(input) {
             self.input_mgr.handle(req);
-            return Some(Action::Render);
+            self.ctx.send_action(Action::Render);
         }
 
-        None
+        ComponentAction::Nothing
     }
 }
 
 impl Component for MoveBar {
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
             Action::Input(input) => self.handle_input(input),
-            _ => None,
+            _ => ComponentAction::Nothing,
         }
     }
 

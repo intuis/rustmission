@@ -31,7 +31,7 @@ pub async fn handle_command(config: &Config, command: Commands) -> Result<()> {
 }
 
 async fn add_torrent(config: &Config, torrent: String) -> Result<()> {
-    let mut transclient = transmission::utils::client_from_config(&config);
+    let mut transclient = transmission::utils::client_from_config(config);
     let args = {
         if torrent.starts_with("magnet:")
             || torrent.starts_with("http:")
@@ -70,7 +70,7 @@ async fn add_torrent(config: &Config, torrent: String) -> Result<()> {
 }
 
 async fn fetch_rss(config: &Config, url: &str, filter: Option<&str>) -> Result<()> {
-    let mut transclient = transmission::utils::client_from_config(&config);
+    let mut transclient = transmission::utils::client_from_config(config);
     let content = reqwest::get(url).await?.bytes().await?;
     let channel = rss::Channel::read_from(&content[..])?;
     let re: Option<Regex> = {

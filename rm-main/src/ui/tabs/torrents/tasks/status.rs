@@ -1,20 +1,41 @@
-use std::sync::{Arc, Mutex};
+use crate::{app, ui::components::Component};
 
-use crate::ui::components::Component;
-
-use ratatui::{prelude::*, widgets::Paragraph};
-use rm_shared::{action::Action, status_task::StatusTask};
+use ratatui::{prelude::*, style::Style, widgets::Paragraph};
+use rm_shared::{
+    action::{Action, UpdateAction},
+    status_task::StatusTask,
+};
 use throbber_widgets_tui::ThrobberState;
 use tokio::time::{self, Instant};
 
 pub struct StatusBar {
     task: StatusTask,
     pub task_status: CurrentTaskState,
+    ctx: app::Ctx,
+}
+
+#[derive(Clone)]
+pub enum CurrentTaskState {
+    Loading(ThrobberState),
+    Success(Instant),
+    Failure(Instant),
 }
 
 impl StatusBar {
-    pub const fn new(task: StatusTask, task_status: CurrentTaskState) -> Self {
-        Self { task, task_status }
+    pub const fn new(ctx: app::Ctx, task: StatusTask, task_status: CurrentTaskState) -> Self {
+        Self {
+            task,
+            task_status,
+            ctx,
+        }
+    }
+
+    pub fn set_failure(&mut self) {
+        self.task_status = CurrentTaskState::Failure(Instant::now());
+    }
+
+    pub fn set_success(&mut self) {
+        self.task_status = CurrentTaskState::Success(Instant::now());
     }
 }
 
@@ -29,58 +50,54 @@ fn format_display_name(name: &str) -> String {
 
 impl Component for StatusBar {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        match &self.task_status {
-            CurrentTaskState::Loading(state) => {
+        match &mut self.task_status {
+            CurrentTaskState::Loading(ref mut state) => {
                 let status_text = match &self.task {
                     StatusTask::Add(name) => {
-                        let display_name = format_display_name(&name);
+                        let display_name = format_display_name(name);
                         format!("Adding {display_name}")
                     }
                     StatusTask::Delete(name) => {
-                        let display_name = format_display_name(&name);
+                        let display_name = format_display_name(name);
                         format!("Deleting {display_name}")
                     }
                     StatusTask::Move(name) => {
-                        let display_name = format_display_name(&name);
+                        let display_name = format_display_name(name);
                         format!("Moving to {display_name}")
                     }
                 };
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label(status_text)
-                    .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
-                f.render_stateful_widget(
-                    default_throbber.clone(),
-                    rect,
-                    &mut state.lock().unwrap(),
-                );
+                    .style(Style::default().yellow());
+                f.render_stateful_widget(default_throbber.clone(), rect, state);
             }
             task_state => {
                 let status_text = match task_state {
-                    CurrentTaskState::Failure => match &self.task {
+                    CurrentTaskState::Failure(_) => match &self.task {
                         StatusTask::Add(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Error adding {display_name}")
                         }
                         StatusTask::Delete(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Error deleting {display_name}")
                         }
                         StatusTask::Move(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Error moving to {display_name}")
                         }
                     },
                     CurrentTaskState::Success(_) => match &self.task {
                         StatusTask::Add(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Added {display_name}")
                         }
                         StatusTask::Delete(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Deleted {display_name}")
                         }
                         StatusTask::Move(name) => {
-                            let display_name = format_display_name(&name);
+                            let display_name = format_display_name(name);
                             format!(" Location moved to {display_name}")
                         }
                     },
@@ -88,7 +105,7 @@ impl Component for StatusBar {
                 };
                 let mut line = Line::default();
                 match task_state {
-                    CurrentTaskState::Failure => {
+                    CurrentTaskState::Failure(_) => {
                         line.push_span(Span::styled("", Style::default().red()));
                     }
                     CurrentTaskState::Success(_) => {
@@ -103,52 +120,38 @@ impl Component for StatusBar {
         }
     }
 
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
-            Action::Tick => self.tick(),
-            Action::TaskSuccess => {
-                self.task_status.set_success(time::Instant::now());
-                Some(Action::Render)
+            UpdateAction::TaskSuccess => {
+                self.set_success();
+                self.ctx.send_action(Action::Render);
             }
-            Action::Error(_) => {
-                self.task_status.set_failure();
-                Some(Action::Render)
+            UpdateAction::Error(_) => {
+                self.set_failure();
+                self.ctx.send_action(Action::Render);
             }
-            _ => Some(action),
+            _ => (),
         }
     }
 
-    fn tick(&mut self) -> Option<Action> {
-        match &self.task_status {
+    fn tick(&mut self) {
+        match &mut self.task_status {
             CurrentTaskState::Loading(state) => {
-                state.lock().unwrap().calc_next();
-                Some(Action::Render)
+                state.calc_next();
+                self.ctx.send_action(Action::Render);
             }
             CurrentTaskState::Success(start) => {
                 let expiration_duration = time::Duration::from_secs(5);
                 if start.elapsed() >= expiration_duration {
-                    return Some(Action::Quit);
+                    self.ctx.send_update_action(UpdateAction::TaskClear);
                 }
-                None
             }
-            _ => None,
+            CurrentTaskState::Failure(start) => {
+                let expiration_duration = time::Duration::from_secs(5);
+                if start.elapsed() >= expiration_duration {
+                    self.ctx.send_update_action(UpdateAction::TaskClear);
+                }
+            }
         }
-    }
-}
-
-#[derive(Clone)]
-pub enum CurrentTaskState {
-    Loading(Arc<Mutex<ThrobberState>>),
-    Success(Instant),
-    Failure,
-}
-
-impl CurrentTaskState {
-    fn set_failure(&mut self) {
-        *self = Self::Failure;
-    }
-
-    fn set_success(&mut self, start: Instant) {
-        *self = Self::Success(start);
     }
 }

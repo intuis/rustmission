@@ -4,11 +4,12 @@ pub mod tabs;
 
 use crate::ui::{global_popups::ErrorPopup, tabs::torrents::TorrentsTab};
 
+use components::ComponentAction;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::prelude::*;
 use tui_input::InputRequest;
 
-use rm_shared::action::Action;
+use rm_shared::action::{Action, UpdateAction};
 
 use crate::app::{self};
 
@@ -19,7 +20,7 @@ use self::{
 };
 
 pub struct MainWindow {
-    // TODO: make tabs hold torrents_tab and search_tab
+    ctx: app::Ctx,
     tabs: TabComponent,
     torrents_tab: TorrentsTab,
     search_tab: SearchTab,
@@ -29,6 +30,7 @@ pub struct MainWindow {
 impl MainWindow {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
+            ctx: ctx.clone(),
             tabs: TabComponent::new(ctx.clone()),
             torrents_tab: TorrentsTab::new(ctx.clone()),
             search_tab: SearchTab::new(ctx.clone()),
@@ -38,33 +40,51 @@ impl MainWindow {
 }
 
 impl Component for MainWindow {
-    // Rewrite this to one big match
-    #[must_use]
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
 
         match action {
-            A::Error(error) => {
-                let error_popup = ErrorPopup::new(&error.title, error.message);
-                self.global_popup_manager.error_popup = Some(error_popup);
-                Some(A::Render)
+            A::ShowHelp => {
+                self.global_popup_manager.handle_actions(action);
             }
-            A::ShowHelp => self.global_popup_manager.handle_actions(action),
             _ if self.global_popup_manager.needs_action() => {
-                self.global_popup_manager.handle_actions(action)
+                self.global_popup_manager.handle_actions(action);
             }
             A::ChangeTab(_) | A::Left | A::Right => {
                 self.tabs.handle_actions(action);
-                Some(A::Render)
+                self.ctx.send_action(A::Render);
             }
             _ if self.tabs.current_tab == CurrentTab::Torrents => {
-                self.torrents_tab.handle_actions(action)
+                self.torrents_tab.handle_actions(action);
             }
             _ if self.tabs.current_tab == CurrentTab::Search => {
-                self.search_tab.handle_actions(action)
+                self.search_tab.handle_actions(action);
+            }
+            _ => unreachable!(),
+        };
+
+        ComponentAction::Nothing
+    }
+
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        match action {
+            UpdateAction::Error(err) => {
+                let error_popup = ErrorPopup::new(err.title, err.description, err.source);
+                self.global_popup_manager.error_popup = Some(error_popup);
+            }
+            action if self.tabs.current_tab == CurrentTab::Torrents => {
+                self.torrents_tab.handle_update_action(action)
+            }
+            action if self.tabs.current_tab == CurrentTab::Search => {
+                self.search_tab.handle_update_action(action)
             }
             _ => unreachable!(),
         }
+    }
+
+    fn tick(&mut self) {
+        self.search_tab.tick();
+        self.torrents_tab.tick();
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {

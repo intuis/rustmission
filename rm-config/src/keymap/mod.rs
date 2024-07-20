@@ -206,7 +206,7 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
             "Keybinding",
             FIELDS,
             KeybindingVisitor {
-                phantom: PhantomData::default(),
+                phantom: PhantomData,
             },
         )
     }
@@ -266,14 +266,14 @@ impl KeymapConfig {
         match utils::fetch_config::<Self>(Self::FILENAME) {
             Ok(mut keymap_config) => {
                 keymap_config.populate_hashmap();
-                return Ok(keymap_config);
+                Ok(keymap_config)
             }
             Err(e) => match e {
                 utils::ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
                     let mut keymap_config =
                         utils::put_config::<Self>(Self::DEFAULT_CONFIG, Self::FILENAME)?;
                     keymap_config.populate_hashmap();
-                    return Ok(keymap_config);
+                    Ok(keymap_config)
                 }
                 _ => anyhow::bail!(e),
             },
@@ -295,7 +295,7 @@ impl KeymapConfig {
         }
 
         if keys.is_empty() {
-            return None;
+            None
         } else {
             Some(keys.join("/"))
         }

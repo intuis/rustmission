@@ -5,9 +5,13 @@ use transmission_rpc::types::Id;
 use crate::{
     app,
     transmission::TorrentAction,
-    ui::{components::Component, tabs::torrents::input_manager::InputManager, to_input_request},
+    ui::{
+        components::{Component, ComponentAction},
+        tabs::torrents::input_manager::InputManager,
+        to_input_request,
+    },
 };
-use rm_shared::action::Action;
+use rm_shared::action::{Action, UpdateAction};
 use rm_shared::status_task::StatusTask;
 
 #[derive(Clone)]
@@ -47,11 +51,11 @@ impl DeleteBar {
 }
 
 impl Component for DeleteBar {
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
             Action::Input(input) => {
                 if input.code == KeyCode::Esc {
-                    return Some(Action::Quit);
+                    return ComponentAction::Quit;
                 }
 
                 if input.code == KeyCode::Enter {
@@ -73,22 +77,23 @@ impl Component for DeleteBar {
                                     ))
                             }
                         }
-                        return Some(Action::TaskPending(StatusTask::Delete(
-                            self.torrents_to_delete[0].name.clone(),
-                        )));
+                        self.ctx
+                            .send_update_action(UpdateAction::TaskSet(StatusTask::Delete(
+                                self.torrents_to_delete[0].name.clone(),
+                            )));
                     } else if text == "n" || text == "no" {
-                        return Some(Action::Quit);
+                        return ComponentAction::Quit;
                     }
                 }
 
                 if let Some(req) = to_input_request(input) {
                     self.input_mgr.handle(req);
-                    return Some(Action::Render);
+                    self.ctx.send_action(Action::Render);
                 }
 
-                None
+                ComponentAction::Nothing
             }
-            _ => None,
+            _ => ComponentAction::Nothing,
         }
     }
 

@@ -6,19 +6,17 @@ pub mod table_manager;
 pub mod task_manager;
 pub mod tasks;
 
-use std::sync::{Arc, Mutex};
-
 use crate::transmission::TorrentAction;
 use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
 
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
+use rustmission_torrent::RustmissionTorrent;
 use transmission_rpc::types::TorrentStatus;
 
-use crate::ui::components::table::GenericTable;
-use crate::ui::components::Component;
+use crate::ui::components::{Component, ComponentAction};
 use crate::{app, transmission};
-use rm_shared::action::Action;
+use rm_shared::action::{Action, UpdateAction};
 
 use self::bottom_stats::BottomStats;
 use self::popups::files::FilesPopup;
@@ -28,7 +26,7 @@ use self::task_manager::TaskManager;
 
 pub struct TorrentsTab {
     ctx: app::Ctx,
-    table_manager: Arc<Mutex<TableManager>>,
+    table_manager: TableManager,
     popup_manager: PopupManager,
     task_manager: TaskManager,
     bottom_stats: BottomStats,
@@ -36,32 +34,18 @@ pub struct TorrentsTab {
 
 impl TorrentsTab {
     pub fn new(ctx: app::Ctx) -> Self {
-        let table = GenericTable::new(vec![]);
-        let table_manager = Arc::new(Mutex::new(TableManager::new(ctx.clone(), table)));
-        let stats = Arc::new(Mutex::new(None));
-        let free_space = Arc::new(Mutex::new(None));
-        let bottom_stats = BottomStats::new(stats, free_space, Arc::clone(&table_manager));
+        let table_manager = TableManager::new(ctx.clone());
+        let bottom_stats = BottomStats::new();
 
-        tokio::spawn(transmission::fetchers::stats(
-            ctx.clone(),
-            Arc::clone(&bottom_stats.stats),
-        ));
-
-        tokio::spawn(transmission::fetchers::torrents(
-            ctx.clone(),
-            Arc::clone(&bottom_stats.table_manager),
-        ));
-
-        tokio::spawn(transmission::fetchers::free_space(
-            ctx.clone(),
-            Arc::clone(&bottom_stats.free_space),
-        ));
+        tokio::spawn(transmission::fetchers::stats(ctx.clone()));
+        tokio::spawn(transmission::fetchers::torrents(ctx.clone()));
+        tokio::spawn(transmission::fetchers::free_space(ctx.clone()));
 
         Self {
             bottom_stats,
-            task_manager: TaskManager::new(table_manager.clone(), ctx.clone()),
+            task_manager: TaskManager::new(ctx.clone()),
             table_manager,
-            popup_manager: PopupManager::new(),
+            popup_manager: PopupManager::new(ctx.clone()),
             ctx,
         }
     }
@@ -82,14 +66,16 @@ impl Component for TorrentsTab {
     }
 
     #[must_use]
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
+
         if self.popup_manager.is_showing_popup() {
-            return self.popup_manager.handle_actions(action);
+            self.popup_manager.handle_actions(action);
+            return ComponentAction::Nothing;
         }
 
         if action.is_quit() {
-            return Some(Action::Quit);
+            self.ctx.send_action(Action::Quit);
         }
 
         match action {
@@ -102,17 +88,78 @@ impl Component for TorrentsTab {
             A::ShowStats => self.show_statistics_popup(),
             A::ShowFiles => self.show_files_popup(),
             A::Pause => self.pause_current_torrent(),
-            other => self.task_manager.handle_actions(other),
+            A::DeleteWithFiles => {
+                if let Some(torrent) = self.table_manager.current_torrent() {
+                    self.task_manager
+                        .delete_torrent(torrent, tasks::delete_torrent::Mode::WithFiles);
+                }
+            }
+            A::DeleteWithoutFiles => {
+                if let Some(torrent) = self.table_manager.current_torrent() {
+                    self.task_manager
+                        .delete_torrent(torrent, tasks::delete_torrent::Mode::WithoutFiles);
+                }
+            }
+            A::AddMagnet => {
+                self.task_manager.add_magnet();
+            }
+            A::Search => self.task_manager.search(self.table_manager.filter.clone()),
+            A::MoveTorrent => {
+                if let Some(torrent) = self.table_manager.current_torrent() {
+                    self.task_manager.move_torrent(torrent);
+                }
+            }
+            other => {
+                self.task_manager.handle_actions(other);
+            }
+        };
+
+        ComponentAction::Nothing
+    }
+
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        match action {
+            UpdateAction::SessionStats(stats) => {
+                self.bottom_stats.set_stats(stats);
+            }
+            UpdateAction::FreeSpace(free_space) => {
+                self.bottom_stats.set_free_space(free_space);
+            }
+            UpdateAction::SearchFilterApply(filter) => {
+                self.table_manager.filter.replace(filter);
+                self.table_manager.table.state.borrow_mut().select(Some(0));
+                self.table_manager.update_rows_number();
+                self.bottom_stats
+                    .update_selected_indicator(&self.table_manager);
+            }
+            UpdateAction::SearchFilterClear => {
+                self.table_manager.filter = None;
+                self.table_manager.table.state.borrow_mut().select(Some(0));
+                self.table_manager.update_rows_number();
+                self.bottom_stats
+                    .update_selected_indicator(&self.table_manager);
+            }
+            UpdateAction::UpdateTorrents(torrents) => {
+                let torrents = torrents.into_iter().map(RustmissionTorrent::from).collect();
+                self.table_manager.set_new_rows(torrents);
+                self.bottom_stats
+                    .update_selected_indicator(&self.table_manager);
+            }
+            UpdateAction::UpdateCurrentTorrent(_) => {
+                self.popup_manager.handle_update_action(action)
+            }
+            other => self.task_manager.handle_update_action(other),
         }
+    }
+
+    fn tick(&mut self) {
+        self.task_manager.tick();
     }
 }
 
 impl TorrentsTab {
     fn render_table(&mut self, f: &mut Frame, rect: Rect) {
-        let table_manager_lock = &mut *self.table_manager.lock().unwrap();
-        table_manager_lock.torrents_displaying_no = rect.height;
-
-        let torrent_rows = table_manager_lock.rows();
+        self.table_manager.torrents_displaying_no = rect.height;
 
         let highlight_table_style = Style::default().on_black().bold().fg(self
             .ctx
@@ -121,10 +168,10 @@ impl TorrentsTab {
             .accent_color);
 
         let table_widget = {
-            let table = Table::new(torrent_rows, &table_manager_lock.widths)
+            let table = Table::new(self.table_manager.rows(), &self.table_manager.widths)
                 .highlight_style(highlight_table_style);
             if !self.ctx.config.general.headers_hide {
-                table.header(Row::new(table_manager_lock.header().iter().cloned()))
+                table.header(Row::new(self.table_manager.headers().iter().cloned()))
             } else {
                 table
             }
@@ -133,84 +180,87 @@ impl TorrentsTab {
         f.render_stateful_widget(
             table_widget,
             rect,
-            &mut table_manager_lock.table.state.borrow_mut(),
+            &mut self.table_manager.table.state.borrow_mut(),
         );
     }
 
-    fn show_files_popup(&mut self) -> Option<Action> {
-        if let Some(highlighted_torrent) = self.table_manager.lock().unwrap().current_torrent() {
+    fn show_files_popup(&mut self) {
+        if let Some(highlighted_torrent) = self.table_manager.current_torrent() {
             let popup = FilesPopup::new(self.ctx.clone(), highlighted_torrent.id.clone());
             self.popup_manager.show_popup(CurrentPopup::Files(popup));
-            Some(Action::Render)
-        } else {
-            None
+            self.ctx.send_action(Action::Render);
         }
     }
 
-    fn show_statistics_popup(&mut self) -> Option<Action> {
-        if let Some(stats) = &*self.bottom_stats.stats.lock().unwrap() {
+    fn show_statistics_popup(&mut self) {
+        if let Some(stats) = &self.bottom_stats.stats {
             let popup = StatisticsPopup::new(self.ctx.clone(), stats.clone());
             self.popup_manager.show_popup(CurrentPopup::Stats(popup));
-            Some(Action::Render)
-        } else {
-            None
+            self.ctx.send_action(Action::Render)
         }
     }
 
-    fn previous_torrent(&self) -> Option<Action> {
-        self.table_manager.lock().unwrap().table.previous();
-        Some(Action::Render)
+    fn previous_torrent(&mut self) {
+        self.table_manager.table.previous();
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
+        self.ctx.send_action(Action::Render);
     }
 
-    fn next_torrent(&self) -> Option<Action> {
-        self.table_manager.lock().unwrap().table.next();
-        Some(Action::Render)
+    fn next_torrent(&mut self) {
+        self.table_manager.table.next();
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
+        self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_page_down(&self) -> Option<Action> {
-        let table_manager = &mut self.table_manager.lock().unwrap();
-        let scroll_by = table_manager.torrents_displaying_no;
-        table_manager.table.scroll_down_by(scroll_by as usize);
-        Some(Action::Render)
+    fn scroll_page_down(&mut self) {
+        let scroll_by = self.table_manager.torrents_displaying_no;
+        self.table_manager.table.scroll_down_by(scroll_by as usize);
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
+        self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_page_up(&self) -> Option<Action> {
-        let table_manager = &mut self.table_manager.lock().unwrap();
-        let scroll_by = table_manager.torrents_displaying_no;
-        table_manager.table.scroll_up_by(scroll_by as usize);
-        Some(Action::Render)
+    fn scroll_page_up(&mut self) {
+        let scroll_by = self.table_manager.torrents_displaying_no;
+        self.table_manager.table.scroll_up_by(scroll_by as usize);
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
+        self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_to_home(&self) -> Option<Action> {
-        let table_manager = &mut self.table_manager.lock().unwrap();
-        table_manager.table.scroll_to_home();
-        Some(Action::Render)
+    fn scroll_to_home(&mut self) {
+        self.table_manager.table.scroll_to_home();
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
+        self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_to_end(&self) -> Option<Action> {
-        let table_manager = &mut self.table_manager.lock().unwrap();
-        table_manager.table.scroll_to_end();
-        Some(Action::Render)
+    fn scroll_to_end(&mut self) {
+        self.table_manager.table.scroll_to_end();
+        self.bottom_stats
+            .update_selected_indicator(&self.table_manager);
+        self.ctx.send_action(Action::Render);
     }
 
-    fn pause_current_torrent(&mut self) -> Option<Action> {
-        if let Some(torrent) = self.table_manager.lock().unwrap().current_torrent() {
+    fn pause_current_torrent(&mut self) {
+        if let Some(torrent) = self.table_manager.current_torrent() {
             let torrent_id = torrent.id.clone();
             match torrent.status() {
                 TorrentStatus::Stopped => {
                     self.ctx
                         .send_torrent_action(TorrentAction::Start(vec![torrent_id]));
                     torrent.update_status(TorrentStatus::Downloading);
-                    return Some(Action::Render);
+                    self.ctx.send_action(Action::Render);
                 }
                 _ => {
                     self.ctx
                         .send_torrent_action(TorrentAction::Stop(vec![torrent_id]));
                     torrent.update_status(TorrentStatus::Stopped);
-                    return Some(Action::Render);
+                    self.ctx.send_action(Action::Render);
                 }
             }
         }
-        None
     }
 }

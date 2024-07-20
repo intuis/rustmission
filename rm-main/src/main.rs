@@ -3,7 +3,6 @@ mod cli;
 pub mod transmission;
 pub mod tui;
 mod ui;
-mod utils;
 
 use app::App;
 use rm_config::Config;

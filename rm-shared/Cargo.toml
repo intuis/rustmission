@@ -12,3 +12,8 @@ license.workspace = true
 
 [dependencies]
 crossterm.workspace = true
+transmission-rpc.workspace = true
+magnetease.workspace = true
+ratatui.workspace = true
+chrono.workspace = true
+serde.workspace = true

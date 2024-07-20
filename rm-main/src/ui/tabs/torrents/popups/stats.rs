@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ratatui::{
     prelude::*,
     style::Styled,
@@ -10,29 +12,31 @@ use transmission_rpc::types::SessionStats;
 
 use crate::{
     app,
-    ui::{centered_rect, components::Component},
-    utils::bytes_to_human_format,
+    ui::{
+        centered_rect,
+        components::{Component, ComponentAction},
+    },
 };
-use rm_shared::action::Action;
+use rm_shared::{action::Action, utils::bytes_to_human_format};
 
 pub struct StatisticsPopup {
-    stats: SessionStats,
+    stats: Arc<SessionStats>,
     ctx: app::Ctx,
 }
 
 impl StatisticsPopup {
-    pub const fn new(ctx: app::Ctx, stats: SessionStats) -> Self {
+    pub const fn new(ctx: app::Ctx, stats: Arc<SessionStats>) -> Self {
         Self { ctx, stats }
     }
 }
 
 impl Component for StatisticsPopup {
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
         match action {
-            _ if action.is_soft_quit() => Some(action),
-            A::Confirm => Some(Action::Close),
-            _ => None,
+            _ if action.is_soft_quit() => ComponentAction::Quit,
+            A::Confirm => ComponentAction::Quit,
+            _ => ComponentAction::Nothing,
         }
     }
 

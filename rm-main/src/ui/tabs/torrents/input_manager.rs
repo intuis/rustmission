@@ -5,7 +5,6 @@ use ratatui::{
 use tui_input::{Input, InputRequest};
 
 use crate::{app, ui::components::Component};
-use rm_shared::action::Action;
 
 pub struct InputManager {
     input: Input,
@@ -40,21 +39,16 @@ impl InputManager {
 }
 
 impl Component for InputManager {
-    fn handle_actions(&mut self, _action: Action) -> Option<Action> {
-        None
-    }
-
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         f.render_widget(Clear, rect);
 
-        let mut spans = vec![];
-
-        spans.push(Span::styled(
-            self.prompt.as_str(),
-            Style::default().fg(self.ctx.config.general.accent_color),
-        ));
-
-        spans.push(Span::raw(self.text()));
+        let spans = vec![
+            Span::styled(
+                self.prompt.as_str(),
+                Style::default().fg(self.ctx.config.general.accent_color),
+            ),
+            Span::raw(self.text()),
+        ];
 
         let input = self.input.to_string();
         let prefix_len = self.prompt.len() + self.text().len() - input.len();

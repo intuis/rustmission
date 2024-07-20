@@ -1496,7 +1496,12 @@ dependencies = [
 name = "rm-shared"
 version = "0.4.3"
 dependencies = [
+ "chrono",
  "crossterm",
+ "magnetease",
+ "ratatui",
+ "serde",
+ "transmission-rpc",
 ]
 
 [[package]]

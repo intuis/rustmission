@@ -1,6 +1,9 @@
 use self::{files::FilesPopup, stats::StatisticsPopup};
-use crate::ui::components::Component;
-use rm_shared::action::Action;
+use crate::{
+    app,
+    ui::components::{Component, ComponentAction},
+};
+use rm_shared::action::{Action, UpdateAction};
 
 use ratatui::prelude::*;
 
@@ -8,6 +11,7 @@ pub mod files;
 pub mod stats;
 
 pub struct PopupManager {
+    ctx: app::Ctx,
     current_popup: Option<CurrentPopup>,
 }
 
@@ -17,8 +21,9 @@ pub enum CurrentPopup {
 }
 
 impl PopupManager {
-    pub const fn new() -> Self {
+    pub const fn new(ctx: app::Ctx) -> Self {
         Self {
+            ctx,
             current_popup: None,
         }
     }
@@ -37,35 +42,30 @@ impl PopupManager {
 }
 
 impl Component for PopupManager {
-    #[must_use]
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         if let Some(current_popup) = &mut self.current_popup {
             match current_popup {
                 CurrentPopup::Stats(popup) => {
-                    if popup
-                        .handle_actions(action)
-                        .is_some_and(|a| a.is_soft_quit())
-                    {
+                    if popup.handle_actions(action).is_quit() {
                         self.close_popup();
-                        return Some(Action::Render);
-                    };
+                        self.ctx.send_action(Action::Render);
+                    }
                 }
                 CurrentPopup::Files(popup) => {
-                    if let Some(action) = popup.handle_actions(action) {
-                        match action {
-                            _ if action.is_soft_quit() => {
-                                self.close_popup();
-                                return Some(Action::Render);
-                            }
-                            Action::Render => return Some(Action::Render),
-                            _ => (),
-                        }
+                    if popup.handle_actions(action).is_quit() {
+                        self.close_popup();
+                        self.ctx.send_action(Action::Render);
                     }
                 }
             }
-            return None;
         }
-        None
+        ComponentAction::Nothing
+    }
+
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        if let Some(CurrentPopup::Files(popup)) = &mut self.current_popup {
+            popup.handle_update_action(action);
+        }
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {

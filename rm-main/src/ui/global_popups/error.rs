@@ -3,7 +3,10 @@ use ratatui::{
     widgets::{Block, Clear, Paragraph, Wrap},
 };
 
-use crate::ui::{centered_rect, components::Component};
+use crate::ui::{
+    centered_rect,
+    components::{Component, ComponentAction},
+};
 use rm_shared::action::Action;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -11,23 +14,25 @@ pub struct ErrorPopup {
     // TODO: make sure that title always has padding
     title: String,
     message: String,
+    error: String,
 }
 
 impl ErrorPopup {
-    pub fn new(title: &str, message: String) -> Self {
+    pub fn new(title: String, message: String, error: String) -> Self {
         Self {
-            title: title.to_owned(),
+            title,
             message,
+            error,
         }
     }
 }
 
 impl Component for ErrorPopup {
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
-            _ if action.is_soft_quit() => Some(action),
-            Action::Confirm => Some(Action::Close),
-            _ => None,
+            _ if action.is_soft_quit() => ComponentAction::Quit,
+            Action::Confirm => ComponentAction::Quit,
+            _ => ComponentAction::Nothing,
         }
     }
 
@@ -45,7 +50,13 @@ impl Component for ErrorPopup {
             .title_style(Style::new().red())
             .title(format!(" {} ", self.title));
 
-        let error_message = Paragraph::new(&*self.message).wrap(Wrap { trim: false });
+        let lines = vec![
+            Line::from(self.message.as_str()),
+            Line::default(),
+            Line::from(self.error.as_str()).red().on_black(),
+        ];
+
+        let error_message = Paragraph::new(lines).wrap(Wrap { trim: false });
 
         f.render_widget(Clear, centered_rect);
         f.render_widget(block, popup_rect);

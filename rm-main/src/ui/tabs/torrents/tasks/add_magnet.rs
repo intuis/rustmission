@@ -4,9 +4,16 @@ use ratatui::prelude::*;
 use crate::{
     app,
     transmission::TorrentAction,
-    ui::{components::Component, tabs::torrents::input_manager::InputManager, to_input_request},
+    ui::{
+        components::{Component, ComponentAction},
+        tabs::torrents::input_manager::InputManager,
+        to_input_request,
+    },
 };
-use rm_shared::{action::Action, status_task::StatusTask};
+use rm_shared::{
+    action::{Action, UpdateAction},
+    status_task::StatusTask,
+};
 
 pub struct AddMagnetBar {
     input_magnet_mgr: InputManager,
@@ -37,57 +44,67 @@ impl AddMagnetBar {
         }
     }
 
-    fn handle_input(&mut self, input: KeyEvent) -> Option<Action> {
+    fn handle_input(&mut self, input: KeyEvent) -> ComponentAction {
         match self.stage {
             Stage::AskMagnet => self.handle_magnet_input(input),
             Stage::AskLocation => self.handle_location_input(input),
         }
     }
 
-    fn handle_magnet_input(&mut self, input: KeyEvent) -> Option<Action> {
+    fn handle_magnet_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
             self.stage = Stage::AskLocation;
-            return Some(Action::Render);
+            self.ctx.send_action(Action::Render);
+            return ComponentAction::Nothing;
         }
+
         if input.code == KeyCode::Esc {
-            return Some(Action::Quit);
+            return ComponentAction::Quit;
         }
 
         if let Some(req) = to_input_request(input) {
             self.input_magnet_mgr.handle(req);
-            return Some(Action::Render);
+            self.ctx.send_action(Action::Render);
+            return ComponentAction::Nothing;
         }
-        None
+
+        ComponentAction::Nothing
     }
 
-    fn handle_location_input(&mut self, input: KeyEvent) -> Option<Action> {
+    fn handle_location_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
             self.ctx.send_torrent_action(TorrentAction::Add(
                 self.input_magnet_mgr.text(),
                 Some(self.input_location_mgr.text()),
             ));
-            return Some(Action::TaskPending(StatusTask::Add(
-                self.input_magnet_mgr.text(),
-            )));
+            self.ctx
+                .send_update_action(UpdateAction::TaskSet(StatusTask::Add(
+                    self.input_magnet_mgr.text(),
+                )));
+            self.ctx
+                .send_update_action(UpdateAction::SwitchToNormalMode);
+            return ComponentAction::Quit;
         }
         if input.code == KeyCode::Esc {
-            return Some(Action::Quit);
+            return ComponentAction::Quit;
         }
 
         if let Some(req) = to_input_request(input) {
             self.input_location_mgr.handle(req);
-            return Some(Action::Render);
+            self.ctx.send_action(Action::Render);
+            return ComponentAction::Nothing;
         }
-        None
+
+        ComponentAction::Nothing
     }
 }
 
 impl Component for AddMagnetBar {
     #[must_use]
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
             Action::Input(input) => self.handle_input(input),
-            _ => None,
+            _ => ComponentAction::Nothing,
         }
     }
 

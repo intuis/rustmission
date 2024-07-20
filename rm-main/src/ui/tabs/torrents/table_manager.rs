@@ -1,10 +1,7 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{prelude::*, widgets::Row};
-use rm_config::main_config::Header;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use rm_shared::header::Header;
+use std::collections::HashMap;
 
 use crate::{app, ui::components::table::GenericTable};
 
@@ -14,13 +11,14 @@ pub struct TableManager {
     ctx: app::Ctx,
     pub table: GenericTable<RustmissionTorrent>,
     pub widths: Vec<Constraint>,
-    pub filter: Arc<Mutex<Option<String>>>,
+    pub filter: Option<String>,
     pub torrents_displaying_no: u16,
     headers: Vec<&'static str>,
 }
 
 impl TableManager {
-    pub fn new(ctx: app::Ctx, table: GenericTable<RustmissionTorrent>) -> Self {
+    pub fn new(ctx: app::Ctx) -> Self {
+        let table = GenericTable::new(vec![]);
         let widths = Self::default_widths(&ctx.config.torrents_tab.headers);
         let mut headers = vec![];
         for header in &ctx.config.torrents_tab.headers {
@@ -31,14 +29,23 @@ impl TableManager {
             ctx,
             table,
             widths,
-            filter: Arc::new(Mutex::new(None)),
+            filter: None,
             torrents_displaying_no: 0,
             headers,
         }
     }
 
+    pub fn update_rows_number(&mut self) {
+        if let Some(filter) = &self.filter {
+            let rows = self.filtered_torrents_rows(&self.table.items, filter);
+            self.table.overwrite_len(rows.len());
+        } else {
+            self.table.items.len();
+        }
+    }
+
     pub fn rows(&self) -> Vec<Row<'_>> {
-        if let Some(filter) = &*self.filter.lock().unwrap() {
+        if let Some(filter) = &self.filter {
             let rows = self.filtered_torrents_rows(&self.table.items, filter);
             self.table.overwrite_len(rows.len());
             rows
@@ -51,7 +58,7 @@ impl TableManager {
         }
     }
 
-    pub const fn header(&self) -> &Vec<&'static str> {
+    pub const fn headers(&self) -> &Vec<&'static str> {
         &self.headers
     }
 
@@ -59,7 +66,7 @@ impl TableManager {
         let matcher = SkimMatcherV2::default();
         let index = self.table.state.borrow().selected()?;
 
-        if let Some(filter) = &*self.filter.lock().unwrap() {
+        if let Some(filter) = &self.filter {
             let mut loop_index = 0;
             for rustmission_torrent in &mut self.table.items {
                 if matcher
@@ -118,7 +125,7 @@ impl TableManager {
         let headers = &self.ctx.config.torrents_tab.headers;
 
         if !self.ctx.config.general.auto_hide {
-            return Self::default_widths(&headers);
+            return Self::default_widths(headers);
         }
 
         let mut map = HashMap::new();

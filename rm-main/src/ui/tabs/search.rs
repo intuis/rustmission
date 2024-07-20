@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    sync::{Arc, Mutex},
-};
+use std::borrow::Cow;
 
 use crossterm::event::{KeyCode, KeyEvent};
 use magnetease::{Magnet, Magnetease};
@@ -18,65 +15,56 @@ use crate::{
     app,
     transmission::TorrentAction,
     ui::{
-        components::{table::GenericTable, Component},
+        components::{table::GenericTable, Component, ComponentAction},
         to_input_request,
     },
+};
+use rm_shared::{
+    action::{Action, UpdateAction},
     utils::bytes_to_human_format,
 };
-use rm_shared::action::Action;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum SearchFocus {
+enum SearchTabFocus {
     Search,
     List,
 }
 
 pub(crate) struct SearchTab {
-    search_focus: SearchFocus,
+    focus: SearchTabFocus,
     input: Input,
-    req_sender: UnboundedSender<String>,
-    table: Arc<Mutex<GenericTable<Magnet>>>,
-    // TODO: Change it to enum, and combine table with search_result_info, to be behind one mutex
-    search_result_info: Arc<Mutex<SearchResultState>>,
+    search_query_rx: UnboundedSender<String>,
+    table: GenericTable<Magnet>,
+    // TODO: Change it to enum, and combine table with search_result_info
+    search_result_info: SearchResultState,
     currently_displaying_no: u16,
     ctx: app::Ctx,
 }
 
 impl SearchTab {
     pub(crate) fn new(ctx: app::Ctx) -> Self {
-        let (tx, mut rx) = mpsc::unbounded_channel::<String>();
-        let table = Arc::new(Mutex::new(GenericTable::new(vec![])));
-        let search_result_info = Arc::new(Mutex::new(SearchResultState::new()));
+        let (search_query_tx, mut search_query_rx) = mpsc::unbounded_channel::<String>();
+        let table = GenericTable::new(vec![]);
+        let search_result_info = SearchResultState::new(ctx.clone());
 
-        let ctx_clone = ctx.clone();
-        let table_clone = Arc::clone(&table);
-        let search_result_info_clone = Arc::clone(&search_result_info);
-        tokio::task::spawn(async move {
-            let magnetease = Magnetease::new();
-            while let Some(search_phrase) = rx.recv().await {
-                search_result_info_clone
-                    .lock()
-                    .unwrap()
-                    .searching(Arc::new(Mutex::new(ThrobberState::default())));
-                ctx_clone.send_action(Action::Render);
-                let res = magnetease.search(&search_phrase).await.unwrap();
-                if res.is_empty() {
-                    search_result_info_clone.lock().unwrap().not_found();
-                } else {
-                    search_result_info_clone.lock().unwrap().found(res.len());
+        tokio::task::spawn({
+            let ctx = ctx.clone();
+            async move {
+                let magnetease = Magnetease::new();
+                while let Some(search_phrase) = search_query_rx.recv().await {
+                    ctx.send_update_action(UpdateAction::SearchStarted);
+                    let magnets = magnetease.search(&search_phrase).await.unwrap();
+                    ctx.send_update_action(UpdateAction::SearchResults(magnets));
                 }
-
-                table_clone.lock().unwrap().set_items(res);
-                ctx_clone.send_action(Action::Render);
             }
         });
 
         Self {
-            search_focus: SearchFocus::List,
+            focus: SearchTabFocus::List,
             input: Input::default(),
             table,
             search_result_info,
-            req_sender: tx,
+            search_query_rx: search_query_tx,
             currently_displaying_no: 0,
             ctx,
         }
@@ -91,101 +79,90 @@ impl SearchTab {
         ])
     }
 
-    #[must_use]
-    fn change_focus(&mut self) -> Option<Action> {
-        if self.search_focus == SearchFocus::Search {
-            self.search_focus = SearchFocus::List;
+    fn change_focus(&mut self) {
+        if self.focus == SearchTabFocus::Search {
+            self.focus = SearchTabFocus::List;
         } else {
-            self.search_focus = SearchFocus::Search;
+            self.focus = SearchTabFocus::Search;
         }
-        Some(Action::Render)
+        self.ctx.send_action(Action::Render);
     }
 
-    fn add_torrent(&mut self) -> Option<Action> {
-        let magnet_url = self
-            .table
-            .lock()
-            .unwrap()
-            .current_item()
-            .map(|magnet| magnet.url);
+    fn add_torrent(&mut self) {
+        let magnet_url = self.table.current_item().map(|magnet| magnet.url);
         if let Some(magnet_url) = magnet_url {
             self.ctx
                 .send_torrent_action(TorrentAction::Add(magnet_url, None));
         }
-        None
     }
 
-    fn handle_input(&mut self, input: KeyEvent) -> Option<Action> {
+    fn handle_input(&mut self, input: KeyEvent) {
         use Action as A;
 
         match input.code {
             KeyCode::Enter => {
-                self.req_sender.send(self.input.to_string()).unwrap();
-                self.search_focus = SearchFocus::List;
-                Some(A::SwitchToNormalMode)
+                self.search_query_rx.send(self.input.to_string()).unwrap();
+                self.focus = SearchTabFocus::List;
+                self.ctx
+                    .send_update_action(UpdateAction::SwitchToNormalMode);
             }
             KeyCode::Esc => {
-                self.search_focus = SearchFocus::List;
-                Some(A::SwitchToNormalMode)
+                self.focus = SearchTabFocus::List;
+                self.ctx
+                    .send_update_action(UpdateAction::SwitchToNormalMode);
             }
             _ => {
                 if let Some(req) = to_input_request(input) {
                     self.input.handle(req);
-                    Some(A::Render)
-                } else {
-                    None
+                    self.ctx.send_action(A::Render);
                 }
             }
         }
     }
 
-    fn start_search(&mut self) -> Option<Action> {
-        self.search_focus = SearchFocus::Search;
-        Some(Action::SwitchToInputMode)
+    fn start_search(&mut self) {
+        self.focus = SearchTabFocus::Search;
+        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    fn next_torrent(&mut self) -> Option<Action> {
-        self.table.lock().unwrap().next();
-        Some(Action::Render)
+    fn next_torrent(&mut self) {
+        self.table.next();
+        self.ctx.send_action(Action::Render);
     }
 
-    fn previous_torrent(&mut self) -> Option<Action> {
-        self.table.lock().unwrap().previous();
-        Some(Action::Render)
+    fn previous_torrent(&mut self) {
+        self.table.previous();
+        self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_down_page(&mut self) -> Option<Action> {
+    fn scroll_down_page(&mut self) {
         self.table
-            .lock()
-            .unwrap()
             .scroll_down_by(self.currently_displaying_no as usize);
-        Some(Action::Render)
+        self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_up_page(&mut self) -> Option<Action> {
+    fn scroll_up_page(&mut self) {
         self.table
-            .lock()
-            .unwrap()
             .scroll_up_by(self.currently_displaying_no as usize);
-        Some(Action::Render)
+        self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_to_end(&mut self) -> Option<Action> {
-        self.table.lock().unwrap().scroll_to_end();
-        Some(Action::Render)
+    fn scroll_to_end(&mut self) {
+        self.table.scroll_to_end();
+        self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_to_home(&mut self) -> Option<Action> {
-        self.table.lock().unwrap().scroll_to_home();
-        Some(Action::Render)
+    fn scroll_to_home(&mut self) {
+        self.table.scroll_to_home();
+        self.ctx.send_action(Action::Render);
     }
 }
 
 impl Component for SearchTab {
-    fn handle_actions(&mut self, action: Action) -> Option<Action> {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
         match action {
-            A::Quit => Some(A::Quit),
+            A::Quit => self.ctx.send_action(Action::Quit),
             A::Search => self.start_search(),
             A::ChangeFocus => self.change_focus(),
             A::Input(input) => self.handle_input(input),
@@ -196,15 +173,31 @@ impl Component for SearchTab {
             A::Home => self.scroll_to_home(),
             A::End => self.scroll_to_end(),
             A::Confirm => self.add_torrent(),
-            A::Tick => self.tick(),
 
-            _ => None,
+            _ => (),
+        };
+        ComponentAction::Nothing
+    }
+
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        match action {
+            UpdateAction::SearchStarted => {
+                self.search_result_info.searching(ThrobberState::default());
+            }
+            UpdateAction::SearchResults(magnets) => {
+                if magnets.is_empty() {
+                    self.search_result_info.not_found();
+                } else {
+                    self.search_result_info.found(magnets.len());
+                }
+                self.table.set_items(magnets);
+            }
+            _ => (),
         }
     }
 
-    fn tick(&mut self) -> Option<Action> {
-        self.search_result_info.lock().unwrap().tick();
-        Some(Action::Render)
+    fn tick(&mut self) {
+        self.search_result_info.tick();
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
@@ -226,7 +219,7 @@ impl Component for SearchTab {
         .split(top_line)[1];
 
         let input = {
-            if self.input.value().is_empty() && self.search_focus != SearchFocus::Search {
+            if self.input.value().is_empty() && self.focus != SearchTabFocus::Search {
                 "press / to search"
             } else {
                 self.input.value()
@@ -234,7 +227,7 @@ impl Component for SearchTab {
         };
 
         let search_style = {
-            if self.search_focus == SearchFocus::Search {
+            if self.focus == SearchTabFocus::Search {
                 Style::default()
                     .underlined()
                     .fg(self.ctx.config.general.accent_color)
@@ -257,8 +250,7 @@ impl Component for SearchTab {
 
         let header = Row::new(["S", "Title", "Size"]);
 
-        let table_lock = self.table.lock().unwrap();
-        let table_items = &table_lock.items;
+        let table_items = &self.table.items;
 
         let longest_title = table_items.iter().map(|magnet| magnet.title.len()).max();
         let items = table_items.iter().map(Self::magnet_to_row);
@@ -284,63 +276,65 @@ impl Component for SearchTab {
             }
         };
 
-        f.render_stateful_widget(table, rest, &mut *table_lock.state.borrow_mut());
+        f.render_stateful_widget(table, rest, &mut self.table.state.borrow_mut());
 
-        self.search_result_info
-            .lock()
-            .unwrap()
-            .render(f, bottom_line);
+        self.search_result_info.render(f, bottom_line);
     }
 }
 
 #[derive(Clone)]
-enum SearchResultState {
+enum SearchResultStatus {
     Nothing,
     NoResults,
-    Searching(Arc<Mutex<ThrobberState>>),
+    Searching(ThrobberState),
     Found(usize),
 }
 
+#[derive(Clone)]
+struct SearchResultState {
+    ctx: app::Ctx,
+    status: SearchResultStatus,
+}
+
 impl SearchResultState {
-    fn new() -> Self {
-        Self::Nothing
+    fn new(ctx: app::Ctx) -> Self {
+        Self {
+            ctx,
+            status: SearchResultStatus::Nothing,
+        }
     }
 
-    fn searching(&mut self, state: Arc<Mutex<ThrobberState>>) {
-        *self = Self::Searching(state);
+    fn searching(&mut self, state: ThrobberState) {
+        self.status = SearchResultStatus::Searching(state);
     }
 
     fn not_found(&mut self) {
-        *self = Self::NoResults;
+        self.status = SearchResultStatus::NoResults;
     }
 
     fn found(&mut self, count: usize) {
-        *self = Self::Found(count);
+        self.status = SearchResultStatus::Found(count);
     }
 }
 
 impl Component for SearchResultState {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        match self {
-            SearchResultState::Nothing => return,
-            SearchResultState::Searching(state) => {
+        match &mut self.status {
+            SearchResultStatus::Nothing => (),
+            SearchResultStatus::Searching(ref mut state) => {
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label("Searching...")
                     .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
-                f.render_stateful_widget(
-                    default_throbber.clone(),
-                    rect,
-                    &mut state.lock().unwrap(),
-                );
+                f.render_stateful_widget(default_throbber.clone(), rect, state);
             }
-            SearchResultState::NoResults => {
+            SearchResultStatus::NoResults => {
                 let mut line = Line::default();
                 line.push_span(Span::styled("", Style::default().red()));
                 line.push_span(Span::raw(" No results"));
                 let paragraph = Paragraph::new(line);
                 f.render_widget(paragraph, rect);
             }
-            SearchResultState::Found(count) => {
+            SearchResultStatus::Found(count) => {
                 let mut line = Line::default();
                 line.push_span(Span::styled("", Style::default().green()));
                 line.push_span(Span::raw(format!(" Found {count}")));
@@ -350,13 +344,10 @@ impl Component for SearchResultState {
         }
     }
 
-    fn tick(&mut self) -> Option<Action> {
-        match self {
-            SearchResultState::Searching(state) => {
-                state.lock().unwrap().calc_next();
-                Some(Action::Render)
-            }
-            _ => None,
+    fn tick(&mut self) {
+        if let SearchResultStatus::Searching(state) = &mut self.status {
+            state.calc_next();
+            self.ctx.send_action(Action::Render);
         }
     }
 }

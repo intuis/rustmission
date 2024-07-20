@@ -1,6 +1,8 @@
-use std::collections::HashMap;
+use std::{error::Error, sync::Arc};
 
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::KeyEvent;
+use magnetease::Magnet;
+use transmission_rpc::types::{FreeSpace, SessionStats, Torrent};
 
 use crate::status_task::StatusTask;
 
@@ -9,7 +11,6 @@ pub enum Action {
     HardQuit,
     Quit,
     Close,
-    Tick,
     Render,
     Up,
     Down,
@@ -28,22 +29,53 @@ pub enum Action {
     Pause,
     DeleteWithoutFiles,
     DeleteWithFiles,
-    SwitchToInputMode,
-    SwitchToNormalMode,
     ChangeFocus,
     AddMagnet,
     MoveTorrent,
     ChangeTab(u8),
     Input(KeyEvent),
+}
+
+pub enum UpdateAction {
+    // Global
+    SwitchToInputMode,
+    SwitchToNormalMode,
     Error(Box<ErrorMessage>),
-    TaskPending(StatusTask),
+    // Torrents Tab
+    TaskClear,
     TaskSuccess,
+    TaskFailure,
+    TaskSet(StatusTask),
+    SessionStats(Arc<SessionStats>),
+    FreeSpace(Arc<FreeSpace>),
+    UpdateTorrents(Vec<Torrent>),
+    UpdateCurrentTorrent(Box<Torrent>),
+    SearchFilterApply(String),
+    SearchFilterClear,
+    // Search Tab
+    SearchStarted,
+    SearchResults(Vec<Magnet>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorMessage {
     pub title: String,
-    pub message: String,
+    pub description: String,
+    pub source: String,
+}
+
+impl ErrorMessage {
+    pub fn new(
+        title: impl Into<String>,
+        message: impl Into<String>,
+        error: Box<dyn Error>,
+    ) -> Self {
+        Self {
+            title: title.into(),
+            description: message.into(),
+            source: error.to_string(),
+        }
+    }
 }
 
 impl Action {
@@ -57,42 +89,5 @@ impl Action {
 
     pub fn is_soft_quit(&self) -> bool {
         self.is_quit() || *self == Self::Close
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Mode {
-    Input,
-    Normal,
-}
-
-pub fn event_to_action(
-    mode: Mode,
-    event: Event,
-    keymap: &HashMap<(KeyCode, KeyModifiers), Action>,
-) -> Option<Action> {
-    use Action as A;
-
-    // Handle CTRL+C first
-    if let Event::Key(key_event) = event {
-        if key_event.modifiers == KeyModifiers::CONTROL
-            && (key_event.code == KeyCode::Char('c') || key_event.code == KeyCode::Char('C'))
-        {
-            return Some(A::HardQuit);
-        }
-    }
-
-    match event {
-        Event::Key(key) if mode == Mode::Input => Some(A::Input(key)),
-        Event::Key(key) => {
-            if let KeyCode::Char(e) = key.code {
-                if e.is_uppercase() {
-                    return keymap.get(&(key.code, KeyModifiers::NONE)).cloned();
-                }
-            }
-            keymap.get(&(key.code, key.modifiers)).cloned()
-        }
-        Event::Resize(_, _) => Some(A::Render),
-        _ => None,
     }
 }

@@ -1,7 +1,9 @@
+use crossterm::event::Event;
+use crossterm::event::KeyCode;
+use crossterm::event::KeyModifiers;
 use rm_config::Config;
-use rm_shared::action::event_to_action;
 use rm_shared::action::Action;
-use rm_shared::action::Mode;
+use rm_shared::action::UpdateAction;
 use std::sync::Arc;
 
 use crate::{
@@ -11,46 +13,44 @@ use crate::{
 };
 
 use anyhow::{Error, Result};
-use tokio::sync::{
-    mpsc::{self, UnboundedReceiver, UnboundedSender},
-    Mutex,
-};
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use transmission_rpc::{types::SessionGet, TransClient};
 
 #[derive(Clone)]
 pub struct Ctx {
-    pub client: Arc<Mutex<TransClient>>,
     pub config: Arc<Config>,
     pub session_info: Arc<SessionGet>,
     action_tx: UnboundedSender<Action>,
+    update_tx: UnboundedSender<UpdateAction>,
     trans_tx: UnboundedSender<TorrentAction>,
 }
 
 impl Ctx {
     async fn new(
-        client: Arc<Mutex<TransClient>>,
+        client: &mut TransClient,
         config: Config,
         action_tx: UnboundedSender<Action>,
+        update_tx: UnboundedSender<UpdateAction>,
         trans_tx: UnboundedSender<TorrentAction>,
     ) -> Result<Self> {
-        let response = client.lock().await.session_get().await;
+        let response = client.session_get().await;
         match response {
             Ok(res) => {
                 let session_info = Arc::new(res.arguments);
-                return Ok(Self {
-                    client,
+                Ok(Self {
                     config: Arc::new(config),
                     action_tx,
                     trans_tx,
+                    update_tx,
                     session_info,
-                });
+                })
             }
             Err(e) => {
                 let config_path = config.directories.main_path;
-                return Err(Error::msg(format!(
+                Err(Error::msg(format!(
                     "{e}\nIs the connection info in {:?} correct?",
                     config_path
-                )));
+                )))
             }
         }
     }
@@ -62,12 +62,17 @@ impl Ctx {
     pub(crate) fn send_torrent_action(&self, action: TorrentAction) {
         self.trans_tx.send(action).unwrap();
     }
+
+    pub(crate) fn send_update_action(&self, action: UpdateAction) {
+        self.update_tx.send(action).unwrap();
+    }
 }
 
 pub struct App {
     should_quit: bool,
     ctx: Ctx,
     action_rx: UnboundedReceiver<Action>,
+    update_rx: UnboundedReceiver<UpdateAction>,
     main_window: MainWindow,
     mode: Mode,
 }
@@ -75,17 +80,27 @@ pub struct App {
 impl App {
     pub async fn new(config: Config) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
+        let (update_tx, update_rx) = mpsc::unbounded_channel();
 
-        let client = Arc::new(Mutex::new(transmission::utils::client_from_config(&config)));
+        let mut client = transmission::utils::client_from_config(&config);
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
-        let ctx = Ctx::new(client, config, action_tx, trans_tx).await?;
+        let ctx = Ctx::new(
+            &mut client,
+            config,
+            action_tx.clone(),
+            update_tx.clone(),
+            trans_tx,
+        )
+        .await?;
 
-        tokio::spawn(transmission::action_handler(ctx.clone(), trans_rx));
+        tokio::spawn(transmission::action_handler(client, trans_rx, update_tx));
+
         Ok(Self {
             should_quit: false,
             main_window: MainWindow::new(ctx.clone()),
             action_rx,
+            update_rx,
             ctx,
             mode: Mode::Normal,
         })
@@ -109,20 +124,17 @@ impl App {
         loop {
             let tui_event = tui.next();
             let action = self.action_rx.recv();
+            let update_action = self.update_rx.recv();
             let tick_action = interval.tick();
 
             tokio::select! {
-                _ = tick_action => {
-                    self.ctx.action_tx.send(Action::Tick).unwrap();
-                },
+                _ = tick_action => self.tick(),
 
                 event = tui_event => {
-                    if let Some(action) = event_to_action(self.mode, event.unwrap(), &self.ctx.config.keybindings.keymap) {
-                        if let Some(action) = self.update(action).await {
-                            self.ctx.action_tx.send(action).unwrap();
-                        }
-                    };
+                    event_to_action(&self.ctx, self.mode, event.unwrap());
                 },
+
+                update_action = update_action => self.handle_update_action(update_action.unwrap()).await,
 
                 action = action => {
                     if let Some(action) = action {
@@ -130,8 +142,8 @@ impl App {
                             self.render(tui)?;
                         } else if action.is_quit() {
                             self.should_quit = true;
-                        } else if let Some(action) = self.update(action).await {
-                            self.ctx.action_tx.send(action).unwrap();
+                        } else {
+                            self.handle_user_action(action).await
                         }
                     }
                 }
@@ -151,27 +163,87 @@ impl App {
     }
 
     #[must_use]
-    async fn update(&mut self, action: Action) -> Option<Action> {
+    async fn handle_user_action(&mut self, action: Action) {
         use Action as A;
         match &action {
-            A::Render => Some(A::Render),
-
             A::HardQuit => {
                 self.should_quit = true;
-                None
             }
 
-            A::SwitchToInputMode => {
-                self.mode = Mode::Input;
-                Some(A::Render)
+            _ => {
+                self.main_window.handle_actions(action);
             }
-
-            A::SwitchToNormalMode => {
-                self.mode = Mode::Normal;
-                Some(A::Render)
-            }
-
-            _ => self.main_window.handle_actions(action),
         }
+    }
+
+    async fn handle_update_action(&mut self, action: UpdateAction) {
+        match action {
+            UpdateAction::SwitchToInputMode => {
+                self.mode = Mode::Input;
+            }
+            UpdateAction::SwitchToNormalMode => {
+                self.mode = Mode::Normal;
+            }
+
+            _ => self.main_window.handle_update_action(action),
+        };
+        self.ctx.send_action(Action::Render);
+    }
+
+    fn tick(&mut self) {
+        self.main_window.tick();
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    Input,
+    Normal,
+}
+
+pub fn event_to_action(
+    ctx: &Ctx,
+    mode: Mode,
+    event: Event,
+    // sender: &UnboundedSender<Action>,
+    // keymap: &HashMap<(KeyCode, KeyModifiers), Action>,
+) {
+    // Handle CTRL+C first
+    if let Event::Key(key_event) = event {
+        if key_event.modifiers == KeyModifiers::CONTROL
+            && (key_event.code == KeyCode::Char('c') || key_event.code == KeyCode::Char('C'))
+        {
+            ctx.send_action(Action::HardQuit);
+        }
+    }
+
+    match event {
+        Event::Key(key) if mode == Mode::Input => ctx.send_action(Action::Input(key)),
+        Event::Key(key) => {
+            if let KeyCode::Char(e) = key.code {
+                if e.is_uppercase() {
+                    if let Some(action) = ctx
+                        .config
+                        .keybindings
+                        .keymap
+                        .get(&(key.code, KeyModifiers::NONE))
+                        .cloned()
+                    {
+                        ctx.send_action(action);
+                    }
+                }
+            }
+            if let Some(action) = ctx
+                .config
+                .keybindings
+                .keymap
+                .get(&(key.code, key.modifiers))
+                .cloned()
+            {
+                ctx.send_action(action);
+            }
+        }
+        Event::Resize(_, _) => ctx.send_action(Action::Render),
+        _ => (),
     }
 }

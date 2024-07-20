@@ -38,6 +38,10 @@ impl<T: Clone> GenericTable<T> {
     }
 
     pub fn next(&mut self) {
+        if self.get_len() == 0 {
+            return;
+        }
+
         let mut state = self.state.borrow_mut();
         if let Some(curr) = state.selected() {
             let last_idx = self.get_len() - 1;
@@ -50,6 +54,10 @@ impl<T: Clone> GenericTable<T> {
     }
 
     pub fn previous(&mut self) {
+        if self.get_len() == 0 {
+            return;
+        }
+
         let mut state = self.state.borrow_mut();
 
         if let Some(curr) = state.selected() {

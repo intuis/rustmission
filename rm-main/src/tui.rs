@@ -49,7 +49,7 @@ impl Tui {
                 let crossterm_event = reader.next().fuse();
                 tokio::select! {
                   _ = cancellation_token.cancelled() => break,
-                  event = crossterm_event => Self::handle_crossterm_event::<io::Error>(event, &event_tx)?,
+                  event = crossterm_event => Self::handle_crossterm_event(event, &event_tx)?,
                 }
             }
             Ok(())
@@ -57,7 +57,7 @@ impl Tui {
         Ok(())
     }
 
-    fn handle_crossterm_event<T>(
+    fn handle_crossterm_event(
         event: Option<Result<Event, io::Error>>,
         event_tx: &UnboundedSender<Event>,
     ) -> Result<()> {

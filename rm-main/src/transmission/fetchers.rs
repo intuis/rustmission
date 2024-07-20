@@ -1,55 +1,62 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
-use transmission_rpc::types::{FreeSpace, SessionStats, TorrentGetField};
+use tokio::sync::oneshot;
+use transmission_rpc::types::TorrentGetField;
 
-use crate::{
-    app,
-    ui::tabs::torrents::{rustmission_torrent::RustmissionTorrent, table_manager::TableManager},
-};
-use rm_shared::action::Action;
+use crate::app;
+use rm_shared::action::UpdateAction;
 
-pub async fn stats(ctx: app::Ctx, stats: Arc<Mutex<Option<SessionStats>>>) {
+use super::TorrentAction;
+
+pub async fn stats(ctx: app::Ctx) {
     loop {
-        let new_stats = ctx
-            .client
-            .lock()
-            .await
-            .session_stats()
-            .await
-            .unwrap()
-            .arguments;
-        *stats.lock().unwrap() = Some(new_stats);
-        ctx.send_action(Action::Render);
+        let (stats_tx, stats_rx) = oneshot::channel();
+        ctx.send_torrent_action(TorrentAction::GetSessionStats(stats_tx));
+
+        match stats_rx.await.unwrap() {
+            Ok(stats) => {
+                ctx.send_update_action(UpdateAction::SessionStats(stats));
+            }
+            Err(err_message) => {
+                ctx.send_update_action(UpdateAction::Error(err_message));
+            }
+        };
+
         tokio::time::sleep(Duration::from_secs(ctx.config.connection.stats_refresh)).await;
     }
 }
 
-pub async fn free_space(ctx: app::Ctx, free_space: Arc<Mutex<Option<FreeSpace>>>) {
-    let download_dir = ctx
-        .client
-        .lock()
-        .await
-        .session_get()
-        .await
-        .unwrap()
-        .arguments
-        .download_dir
-        .leak();
+pub async fn free_space(ctx: app::Ctx) {
+    let download_dir = loop {
+        let (sess_tx, sess_rx) = oneshot::channel();
+        ctx.send_torrent_action(TorrentAction::GetSessionGet(sess_tx));
+        match sess_rx.await.unwrap() {
+            Ok(sess) => {
+                break sess.download_dir.leak();
+            }
+            Err(err_message) => {
+                ctx.send_update_action(UpdateAction::Error(err_message));
+                tokio::time::sleep(Duration::from_secs(10)).await;
+            }
+        };
+    };
 
     loop {
-        let new_free_space = ctx
-            .client
-            .lock()
-            .await
-            .free_space(download_dir.to_string())
-            .await
-            .unwrap()
-            .arguments;
-        *free_space.lock().unwrap() = Some(new_free_space);
-        ctx.send_action(Action::Render);
+        let (space_tx, space_rx) = oneshot::channel();
+        ctx.send_torrent_action(TorrentAction::GetFreeSpace(
+            download_dir.to_string(),
+            space_tx,
+        ));
+
+        match space_rx.await.unwrap() {
+            Ok(free_space) => {
+                ctx.send_update_action(UpdateAction::FreeSpace(Arc::new(free_space)));
+            }
+            Err(err_message) => {
+                ctx.send_update_action(UpdateAction::Error(err_message));
+            }
+        }
+
         tokio::time::sleep(Duration::from_secs(
             ctx.config.connection.free_space_refresh,
         ))
@@ -57,7 +64,7 @@ pub async fn free_space(ctx: app::Ctx, free_space: Arc<Mutex<Option<FreeSpace>>>
     }
 }
 
-pub async fn torrents(ctx: app::Ctx, table_manager: Arc<Mutex<TableManager>>) {
+pub async fn torrents(ctx: app::Ctx) {
     loop {
         let fields = vec![
             TorrentGetField::Id,
@@ -77,22 +84,18 @@ pub async fn torrents(ctx: app::Ctx, table_manager: Arc<Mutex<TableManager>>) {
             TorrentGetField::AddedDate,
             TorrentGetField::PeersConnected,
         ];
-        let rpc_response = ctx
-            .client
-            .lock()
-            .await
-            .torrent_get(Some(fields), None)
-            .await
-            .unwrap();
+        let (torrents_tx, torrents_rx) = oneshot::channel();
+        ctx.send_torrent_action(TorrentAction::GetTorrents(fields, torrents_tx));
 
-        let new_torrents = rpc_response.arguments.torrents;
+        match torrents_rx.await.unwrap() {
+            Ok(torrents) => {
+                ctx.send_update_action(UpdateAction::UpdateTorrents(torrents));
+            }
+            Err(err_message) => {
+                ctx.send_update_action(UpdateAction::Error(err_message));
+            }
+        };
 
-        {
-            let mut table_manager_lock = table_manager.lock().unwrap();
-            table_manager_lock
-                .set_new_rows(new_torrents.iter().map(RustmissionTorrent::from).collect());
-        }
-        ctx.send_action(Action::Render);
         tokio::time::sleep(Duration::from_secs(ctx.config.connection.torrents_refresh)).await;
     }
 }

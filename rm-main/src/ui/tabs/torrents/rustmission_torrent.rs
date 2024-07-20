@@ -4,12 +4,13 @@ use ratatui::{
     text::{Line, Span},
     widgets::Row,
 };
-use rm_config::main_config::Header;
-use transmission_rpc::types::{Id, Torrent, TorrentStatus};
-
-use crate::utils::{
-    bytes_to_human_format, download_speed_format, seconds_to_human_format, upload_speed_format,
+use rm_shared::{
+    header::Header,
+    utils::{
+        bytes_to_human_format, download_speed_format, seconds_to_human_format, upload_speed_format,
+    },
 };
+use transmission_rpc::types::{Id, Torrent, TorrentStatus};
 
 #[derive(Clone)]
 pub struct RustmissionTorrent {
@@ -31,7 +32,7 @@ pub struct RustmissionTorrent {
 }
 
 impl RustmissionTorrent {
-    pub fn to_row(&self, headers: &Vec<Header>) -> ratatui::widgets::Row {
+    pub fn to_row(&self, headers: &[Header]) -> ratatui::widgets::Row {
         headers
             .iter()
             .map(|header| self.header_to_line(*header))
@@ -59,7 +60,7 @@ impl RustmissionTorrent {
 
         for header in headers {
             if *header == Header::Name {
-                cells.push(Line::from(torrent_name_line.clone()))
+                cells.push(torrent_name_line.clone())
             } else {
                 cells.push(self.header_to_line(*header))
             }
@@ -120,8 +121,8 @@ impl RustmissionTorrent {
     }
 }
 
-impl From<&Torrent> for RustmissionTorrent {
-    fn from(t: &Torrent) -> Self {
+impl From<Torrent> for RustmissionTorrent {
+    fn from(t: Torrent) -> Self {
         let id = t.id().expect("id requested");
 
         let torrent_name = t.name.clone().expect("name requested");
