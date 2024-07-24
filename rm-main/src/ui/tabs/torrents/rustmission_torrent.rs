@@ -10,7 +10,7 @@ use rm_shared::{
         bytes_to_human_format, download_speed_format, seconds_to_human_format, upload_speed_format,
     },
 };
-use transmission_rpc::types::{Id, Torrent, TorrentStatus};
+use transmission_rpc::types::{ErrorType, Id, Torrent, TorrentStatus};
 
 #[derive(Clone)]
 pub struct RustmissionTorrent {
@@ -29,6 +29,7 @@ pub struct RustmissionTorrent {
     pub activity_date: NaiveDateTime,
     pub added_date: NaiveDateTime,
     pub peers_connected: i64,
+    pub error: Option<String>,
 }
 
 impl RustmissionTorrent {
@@ -62,7 +63,7 @@ impl RustmissionTorrent {
             if *header == Header::Name {
                 cells.push(torrent_name_line.clone())
             } else {
-                cells.push(self.header_to_line(*header))
+                cells.push(self.header_to_line(*header).style(self.style))
             }
         }
 
@@ -88,21 +89,27 @@ impl RustmissionTorrent {
             Header::ActivityDate => time_to_line(self.activity_date),
             Header::AddedDate => time_to_line(self.added_date),
             Header::PeersConnected => Line::from(self.peers_connected.to_string()),
-            Header::SmallStatus => match self.status() {
-                TorrentStatus::Stopped => Line::from("󰏤"),
-                TorrentStatus::QueuedToVerify => Line::from("󱥸"),
-                TorrentStatus::Verifying => Line::from("󰑓"),
-                TorrentStatus::QueuedToDownload => Line::from("󱥸"),
-                TorrentStatus::QueuedToSeed => Line::from("󱥸"),
-                TorrentStatus::Seeding => {
-                    if !self.upload_speed.is_empty() {
-                        Line::from("")
-                    } else {
-                        Line::from("󰄬")
-                    }
+            Header::SmallStatus => {
+                if self.error.is_some() {
+                    return Line::from("");
                 }
-                TorrentStatus::Downloading => Line::from(""),
-            },
+
+                match self.status() {
+                    TorrentStatus::Stopped => Line::from("󰏤"),
+                    TorrentStatus::QueuedToVerify => Line::from("󱥸"),
+                    TorrentStatus::Verifying => Line::from("󰑓"),
+                    TorrentStatus::QueuedToDownload => Line::from("󱥸"),
+                    TorrentStatus::QueuedToSeed => Line::from("󱥸"),
+                    TorrentStatus::Seeding => {
+                        if !self.upload_speed.is_empty() {
+                            Line::from("")
+                        } else {
+                            Line::from("󰄬")
+                        }
+                    }
+                    TorrentStatus::Downloading => Line::from(""),
+                }
+            }
         }
     }
 
@@ -111,7 +118,9 @@ impl RustmissionTorrent {
     }
 
     pub fn update_status(&mut self, new_status: TorrentStatus) {
-        if new_status == TorrentStatus::Stopped {
+        if self.error.is_some() {
+            self.style = Style::default().red().italic();
+        } else if new_status == TorrentStatus::Stopped {
             self.style = Style::default().dark_gray().italic();
         } else {
             self.style = Style::default();
@@ -152,11 +161,6 @@ impl From<Torrent> for RustmissionTorrent {
 
         let status = t.status.expect("field requested");
 
-        let style = match status {
-            TorrentStatus::Stopped => Style::default().dark_gray().italic(),
-            _ => Style::default(),
-        };
-
         let download_dir = t.download_dir.clone().expect("field requested");
 
         let uploaded_ever = bytes_to_human_format(t.uploaded_ever.expect("field requested"));
@@ -182,6 +186,25 @@ impl From<Torrent> for RustmissionTorrent {
 
         let peers_connected = t.peers_connected.expect("field requested");
 
+        let error = {
+            if t.error.expect("field requested") != ErrorType::Ok {
+                Some(t.error_string.expect("field requested"))
+            } else {
+                None
+            }
+        };
+
+        let style = {
+            if error.is_some() {
+                Style::default().red().italic()
+            } else {
+                match status {
+                    TorrentStatus::Stopped => Style::default().dark_gray().italic(),
+                    _ => Style::default(),
+                }
+            }
+        };
+
         Self {
             torrent_name,
             size_when_done,
@@ -198,6 +221,7 @@ impl From<Torrent> for RustmissionTorrent {
             activity_date,
             added_date,
             peers_connected,
+            error,
         }
     }
 }
