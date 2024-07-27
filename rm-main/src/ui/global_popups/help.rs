@@ -41,7 +41,7 @@ impl HelpPopup {
             ctx,
             scroll: 0,
             scroll_state: ScrollbarState::default(),
-            scroll_max: 5,
+            scroll_max: 0,
         }
     }
 
@@ -151,7 +151,13 @@ impl Component for HelpPopup {
         );
 
         let help_text = Text::from(lines);
-        self.scroll_max = u16::try_from(help_text.lines.len() / 2).unwrap();
+
+        if text_rect.height < 5 {
+            self.scroll_max = u16::try_from(help_text.lines.len()).unwrap();
+        } else {
+            self.scroll_max = u16::try_from(help_text.lines.len() - 5).unwrap();
+        }
+
         self.scroll_state = self
             .scroll_state
             .content_length(self.scroll_max.into())
