@@ -206,7 +206,8 @@ impl Component for HelpPopup {
         f.render_widget(help_paragraph, text_rect);
 
         if let Some(scroll) = &mut self.scroll {
-            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight);
+            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .thumb_style(Style::default().fg(self.ctx.config.general.accent_color));
 
             f.render_stateful_widget(
                 scrollbar,
