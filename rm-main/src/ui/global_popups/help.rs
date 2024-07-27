@@ -151,7 +151,7 @@ impl Component for HelpPopup {
         );
 
         let help_text = Text::from(lines);
-        self.scroll_max = help_text.lines.len() as u16 / 2 as u16;
+        self.scroll_max = u16::try_from(help_text.lines.len() / 2).unwrap();
         self.scroll_state = self
             .scroll_state
             .content_length(self.scroll_max.into())
