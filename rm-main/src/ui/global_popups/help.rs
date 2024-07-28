@@ -4,13 +4,16 @@ use ratatui::{
     prelude::*,
     widgets::{
         block::{Position, Title},
-        Block, Clear, Paragraph,
+        Block, Borders, Clear, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
     },
 };
 
 use crate::{
     app,
-    ui::{centered_rect, components::{Component, ComponentAction}},
+    ui::{
+        centered_rect,
+        components::{Component, ComponentAction},
+    },
 };
 use rm_config::keymap::{actions::UserAction, Keybinding};
 use rm_shared::action::Action;
@@ -27,11 +30,28 @@ macro_rules! add_line {
 
 pub struct HelpPopup {
     ctx: app::Ctx,
+    scroll: Option<Scroll>,
+}
+
+struct Scroll {
+    state: ScrollbarState,
+    position: u16,
+    position_max: u16,
+}
+
+impl Scroll {
+    fn new() -> Self {
+        Self {
+            state: ScrollbarState::default(),
+            position: 0,
+            position_max: 0,
+        }
+    }
 }
 
 impl HelpPopup {
-    pub const fn new(ctx: app::Ctx) -> Self {
-        Self { ctx }
+    pub fn new(ctx: app::Ctx) -> Self {
+        Self { ctx, scroll: None }
     }
 
     fn write_keybindings<T: Into<Action> + UserAction + Ord>(
@@ -51,6 +71,46 @@ impl HelpPopup {
             add_line!(lines, keycode_string, action.desc());
         }
     }
+
+    fn scroll_down(&mut self) -> ComponentAction {
+        if let Some(scroll) = &mut self.scroll {
+            if scroll.position >= scroll.position_max {
+                return ComponentAction::Nothing;
+            }
+
+            scroll.position = scroll.position.saturating_add(1);
+            scroll.state.next();
+            self.ctx.send_action(Action::Render);
+        }
+        ComponentAction::Nothing
+    }
+
+    fn scroll_up(&mut self) -> ComponentAction {
+        if let Some(scroll) = &mut self.scroll {
+            scroll.position = scroll.position.saturating_sub(1);
+            scroll.state.prev();
+            self.ctx.send_action(Action::Render);
+        }
+        ComponentAction::Nothing
+    }
+
+    fn scroll_to_end(&mut self) -> ComponentAction {
+        if let Some(scroll) = &mut self.scroll {
+            scroll.position = scroll.position_max;
+            scroll.state.last();
+            self.ctx.send_action(Action::Render);
+        }
+        ComponentAction::Nothing
+    }
+
+    fn scroll_to_home(&mut self) -> ComponentAction {
+        if let Some(scroll) = &mut self.scroll {
+            scroll.position = 0;
+            scroll.state.first();
+            self.ctx.send_action(Action::Render);
+        }
+        ComponentAction::Nothing
+    }
 }
 
 impl Component for HelpPopup {
@@ -58,6 +118,10 @@ impl Component for HelpPopup {
         match action {
             action if action.is_soft_quit() => ComponentAction::Quit,
             Action::Confirm | Action::ShowHelp => ComponentAction::Quit,
+            Action::Up => self.scroll_up(),
+            Action::Down => self.scroll_down(),
+            Action::ScrollUpPage | Action::Home => self.scroll_to_home(),
+            Action::ScrollDownPage | Action::End => self.scroll_to_end(),
             _ => ComponentAction::Nothing,
         }
     }
@@ -104,10 +168,55 @@ impl Component for HelpPopup {
         );
 
         let help_text = Text::from(lines);
-        let help_paragraph = Paragraph::new(help_text);
+
+        if text_rect.height <= u16::try_from(help_text.lines.len()).unwrap() {
+            if self.scroll.is_none() {
+                self.scroll = Some(Scroll::new());
+            }
+        } else {
+            self.scroll = None;
+        }
+
+        if let Some(scroll) = &mut self.scroll {
+            if text_rect.height < 5 {
+                scroll.position_max = u16::try_from(help_text.lines.len()).unwrap();
+            } else {
+                scroll.position_max = u16::try_from(help_text.lines.len() - 5).unwrap();
+            }
+
+            scroll.state = scroll
+                .state
+                .content_length(scroll.position_max.into())
+                .viewport_content_length(text_rect.height as usize);
+        }
+
+        let help_paragraph = {
+            let paragraph = Paragraph::new(help_text);
+            if let Some(scroll) = &self.scroll {
+                paragraph
+                    .scroll((scroll.position, 0))
+                    .block(Block::new().borders(Borders::RIGHT))
+            } else {
+                paragraph
+            }
+        };
 
         f.render_widget(Clear, centered_rect);
         f.render_widget(block, popup_rect);
         f.render_widget(help_paragraph, text_rect);
+
+        if let Some(scroll) = &mut self.scroll {
+            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .thumb_style(Style::default().fg(self.ctx.config.general.accent_color));
+
+            f.render_stateful_widget(
+                scrollbar,
+                text_rect.inner(Margin {
+                    vertical: 1,
+                    horizontal: 0,
+                }),
+                &mut scroll.state,
+            )
+        }
     }
 }
