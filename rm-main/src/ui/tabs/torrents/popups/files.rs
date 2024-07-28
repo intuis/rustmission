@@ -20,7 +20,7 @@ use crate::{
         components::{Component, ComponentAction},
     },
 };
-use rm_shared::action::{Action, UpdateAction};
+use rm_shared::action::{Action, ErrorMessage, UpdateAction};
 
 pub struct FilesPopup {
     ctx: app::Ctx,
@@ -89,6 +89,14 @@ impl FilesPopup {
             CurrentFocus::Files => self.current_focus = CurrentFocus::CloseButton,
         }
     }
+
+    fn selected_ids(&self) -> Vec<i32> {
+        self.tree_state
+            .selected()
+            .iter()
+            .filter_map(|str_id| str_id.parse::<i32>().ok())
+            .collect()
+    }
 }
 
 impl Component for FilesPopup {
@@ -109,15 +117,17 @@ impl Component for FilesPopup {
                 return ComponentAction::Quit;
             }
             (A::Select | A::Confirm, CurrentFocus::Files) => {
-                if let Some(torrent) = &mut self.torrent {
-                    let wanted_ids = torrent.wanted.as_mut().unwrap();
+                if self.torrent.is_some() {
+                    let mut wanted_ids = self
+                        .torrent
+                        .as_ref()
+                        .unwrap()
+                        .wanted
+                        .as_ref()
+                        .unwrap()
+                        .clone();
 
-                    let selected_ids: Vec<_> = self
-                        .tree_state
-                        .selected()
-                        .iter()
-                        .filter_map(|str_id| str_id.parse::<i32>().ok())
-                        .collect();
+                    let selected_ids = self.selected_ids();
 
                     if selected_ids.is_empty() {
                         self.tree_state.toggle_selected();
@@ -180,6 +190,38 @@ impl Component for FilesPopup {
             (A::Down, CurrentFocus::Files) => {
                 self.tree_state.key_down();
                 self.ctx.send_action(Action::Render);
+            }
+            (A::Open, CurrentFocus::Files) => {
+                if let Some(torrent) = &self.torrent {
+                    let mut identifier: Vec<String> =
+                        self.tree_state.selected().iter().cloned().collect();
+
+                    if identifier.is_empty() {
+                        return ComponentAction::Nothing;
+                    }
+
+                    if let Ok(file_id) = identifier.last().unwrap().parse::<i32>() {
+                        identifier.pop();
+                        identifier
+                            .push(self.tree.get_by_ids(&[file_id]).pop().unwrap().name.clone())
+                    }
+
+                    let sub_path = identifier.join("/");
+
+                    let path = format!("{}/{}", torrent.download_dir.as_ref().unwrap(), sub_path,);
+
+                    match open::that_detached(&path) {
+                        Ok(()) => (),
+                        Err(err) => {
+                            let desc =
+                                format!("An error occured while trying to open \"{}\"", path);
+                            let err_msg =
+                                ErrorMessage::new("Failed to open a file", desc, Box::new(err));
+                            self.ctx
+                                .send_update_action(UpdateAction::Error(Box::new(err_msg)));
+                        }
+                    };
+                }
             }
 
             _ => (),

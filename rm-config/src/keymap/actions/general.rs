@@ -22,6 +22,7 @@ pub enum GeneralAction {
     ScrollPageUp,
     GoToBeginning,
     GoToEnd,
+    Open,
 }
 
 impl UserAction for GeneralAction {
@@ -44,6 +45,7 @@ impl UserAction for GeneralAction {
             GeneralAction::ScrollPageUp => "scroll page up",
             GeneralAction::GoToBeginning => "scroll to the beginning",
             GeneralAction::GoToEnd => "scroll to the end",
+            GeneralAction::Open => "open with default program",
         }
     }
 }
@@ -68,6 +70,7 @@ impl From<GeneralAction> for Action {
             GeneralAction::ScrollPageUp => Action::ScrollUpPage,
             GeneralAction::GoToBeginning => Action::Home,
             GeneralAction::GoToEnd => Action::End,
+            GeneralAction::Open => Action::Open,
         }
     }
 }

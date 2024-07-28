@@ -9,6 +9,7 @@ keybindings = [
   { on = " ", action = "Select" },
   { on = "Tab", action = "SwitchFocus" },
   { on = "/", action = "Search" },
+  { on = "o", action = "Open" },
   
   { on = "1", action = "SwitchToTorrents" },
   { on = "2", action = "SwitchToSearch" },

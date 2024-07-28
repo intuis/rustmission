@@ -32,6 +32,13 @@ impl TabComponent {
             current_tab: CurrentTab::Torrents,
         }
     }
+
+    fn switch_to(&mut self, new_tab: CurrentTab) {
+        if self.current_tab != new_tab {
+            self.current_tab = new_tab;
+            self.ctx.send_action(Action::Render);
+        }
+    }
 }
 
 impl Component for TabComponent {
@@ -58,12 +65,12 @@ impl Component for TabComponent {
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
             Action::ChangeTab(tab) => match tab {
-                1 => self.current_tab = CurrentTab::Torrents,
-                2 => self.current_tab = CurrentTab::Search,
+                1 => self.switch_to(CurrentTab::Torrents),
+                2 => self.switch_to(CurrentTab::Search),
                 _ => (),
             },
-            Action::Left => self.current_tab = CurrentTab::Torrents,
-            Action::Right => self.current_tab = CurrentTab::Search,
+            Action::Left => self.switch_to(CurrentTab::Torrents),
+            Action::Right => self.switch_to(CurrentTab::Search),
             _ => (),
         }
         ComponentAction::Nothing

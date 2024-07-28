@@ -34,6 +34,7 @@ pub enum Action {
     MoveTorrent,
     ChangeTab(u8),
     Input(KeyEvent),
+    Open,
 }
 
 pub enum UpdateAction {

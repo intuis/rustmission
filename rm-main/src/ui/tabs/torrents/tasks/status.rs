@@ -65,6 +65,10 @@ impl Component for StatusBar {
                         let display_name = format_display_name(name);
                         format!("Moving to {display_name}")
                     }
+                    StatusTask::Opening(name) => {
+                        let display_name = format_display_name(name);
+                        format!("Opening {display_name}")
+                    }
                 };
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label(status_text)
@@ -86,6 +90,10 @@ impl Component for StatusBar {
                             let display_name = format_display_name(name);
                             format!(" Error moving to {display_name}")
                         }
+                        StatusTask::Opening(name) => {
+                            let display_name = format_display_name(name);
+                            format!(" Error opening {display_name}")
+                        }
                     },
                     CurrentTaskState::Success(_) => match &self.task {
                         StatusTask::Add(name) => {
@@ -99,6 +107,10 @@ impl Component for StatusBar {
                         StatusTask::Move(name) => {
                             let display_name = format_display_name(name);
                             format!(" Location moved to {display_name}")
+                        }
+                        StatusTask::Opening(name) => {
+                            let display_name = format_display_name(name);
+                            format!(" Opened {display_name}")
                         }
                     },
                     _ => return,

@@ -3,4 +3,5 @@ pub enum StatusTask {
     Add(String),
     Delete(String),
     Move(String),
+    Opening(String),
 }
