@@ -191,7 +191,7 @@ impl Component for FilesPopup {
                 self.tree_state.key_down();
                 self.ctx.send_action(Action::Render);
             }
-            (A::Open, CurrentFocus::Files) => {
+            (A::XdgOpen, CurrentFocus::Files) => {
                 if let Some(torrent) = &self.torrent {
                     let mut identifier: Vec<String> =
                         self.tree_state.selected().iter().cloned().collect();
@@ -301,7 +301,7 @@ impl Component for FilesPopup {
                         .ctx
                         .config
                         .keybindings
-                        .get_keys_for_action(Action::Open)
+                        .get_keys_for_action(Action::XdgOpen)
                     {
                         keys.push(Span::styled(
                             key,

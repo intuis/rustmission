@@ -107,7 +107,7 @@ impl Component for TorrentsTab {
                     self.task_manager.move_torrent(torrent);
                 }
             }
-            A::Open => self.open_current_torrent(),
+            A::XdgOpen => self.open_current_torrent(),
             other => {
                 self.task_manager.handle_actions(other);
             }
