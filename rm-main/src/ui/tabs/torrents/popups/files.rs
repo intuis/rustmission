@@ -239,7 +239,7 @@ impl Component for FilesPopup {
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         let popup_rect = centered_rect(rect, 75, 75);
-        let block_rect = popup_rect.inner(Margin::new(1, 0));
+        let block_rect = popup_rect.inner(Margin::new(1, 1));
 
         let info_text_rect = block_rect.inner(Margin::new(3, 2));
 
@@ -276,13 +276,48 @@ impl Component for FilesPopup {
             };
 
             let download_dir = torrent.download_dir.as_ref().expect("Requested");
+
             let keybinding_tip = {
                 if self.ctx.config.general.beginner_mode {
-                    "[SPACE] - select"
+                    let mut keys = vec![];
+
+                    if let Some(key) = self
+                        .ctx
+                        .config
+                        .keybindings
+                        .get_keys_for_action(Action::Select)
+                    {
+                        keys.push(Span::raw(" "));
+                        keys.push(Span::styled(
+                            key,
+                            Style::new()
+                                .fg(self.ctx.config.general.accent_color)
+                                .underlined(),
+                        ));
+                        keys.push(Span::raw(" - toggle | "));
+                    }
+
+                    if let Some(key) = self
+                        .ctx
+                        .config
+                        .keybindings
+                        .get_keys_for_action(Action::Open)
+                    {
+                        keys.push(Span::styled(
+                            key,
+                            Style::new()
+                                .fg(self.ctx.config.general.accent_color)
+                                .underlined(),
+                        ));
+                        keys.push(Span::raw(" - xdg_open "));
+                    }
+
+                    Line::from(keys)
                 } else {
-                    ""
+                    Line::from("")
                 }
             };
+
             let block = block
                 .title(
                     Title::from(format!(" {} ", download_dir).set_style(highlight_style))
