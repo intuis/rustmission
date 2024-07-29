@@ -24,9 +24,9 @@ pub enum TorrentAction {
     // Torrent ID, Directory to move to
     Move(Vec<Id>, String),
     // Delete Torrents with these given IDs (without files)
-    DeleteWithoutFiles(Vec<Id>),
+    DelWithoutFiles(Vec<Id>),
     // Delete Torrents with these given IDs (with files)
-    DeleteWithFiles(Vec<Id>),
+    DelWithFiles(Vec<Id>),
     // Set various properties to Torrents with these given IDs
     SetArgs(Box<TorrentSetArgs>, Option<Vec<Id>>),
     // Get info about current Transmission session
@@ -102,7 +102,7 @@ pub async fn action_handler(
                     }
                 }
             }
-            TorrentAction::DeleteWithFiles(ids) => {
+            TorrentAction::DelWithFiles(ids) => {
                 match client.torrent_remove(ids.clone(), true).await {
                     Ok(_) => action_tx.send(UpdateAction::TaskSuccess).unwrap(),
                     Err(err) => {
@@ -115,7 +115,7 @@ pub async fn action_handler(
                     }
                 }
             }
-            TorrentAction::DeleteWithoutFiles(ids) => {
+            TorrentAction::DelWithoutFiles(ids) => {
                 match client.torrent_remove(ids.clone(), false).await {
                     Ok(_) => action_tx.send(UpdateAction::TaskSuccess).unwrap(),
                     Err(err) => {

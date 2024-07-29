@@ -193,8 +193,7 @@ impl Component for FilesPopup {
             }
             (A::XdgOpen, CurrentFocus::Files) => {
                 if let Some(torrent) = &self.torrent {
-                    let mut identifier: Vec<String> =
-                        self.tree_state.selected().iter().cloned().collect();
+                    let mut identifier = self.tree_state.selected().to_vec();
 
                     if identifier.is_empty() {
                         return ComponentAction::Nothing;

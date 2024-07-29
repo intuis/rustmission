@@ -73,16 +73,18 @@ impl AddMagnetBar {
 
     fn handle_location_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
-            self.ctx.send_torrent_action(TorrentAction::Add(
+            let torrent_action = TorrentAction::Add(
                 self.input_magnet_mgr.text(),
                 Some(self.input_location_mgr.text()),
-            ));
-            self.ctx
-                .send_update_action(UpdateAction::TaskSet(StatusTask::Add(
-                    self.input_magnet_mgr.text(),
-                )));
-            self.ctx
-                .send_update_action(UpdateAction::SwitchToNormalMode);
+            );
+            self.ctx.send_torrent_action(torrent_action);
+
+            let task = StatusTask::new_add(self.input_magnet_mgr.text());
+            self.ctx.send_update_action(UpdateAction::TaskSet(task));
+
+            let update_action = UpdateAction::SwitchToNormalMode;
+            self.ctx.send_update_action(update_action);
+
             return ComponentAction::Quit;
         }
         if input.code == KeyCode::Esc {

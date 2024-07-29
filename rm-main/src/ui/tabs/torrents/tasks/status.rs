@@ -1,6 +1,6 @@
 use crate::{app, ui::components::Component};
 
-use ratatui::{prelude::*, style::Style, widgets::Paragraph};
+use ratatui::{prelude::*, style::Style};
 use rm_shared::{
     action::{Action, UpdateAction},
     status_task::StatusTask,
@@ -39,95 +39,29 @@ impl StatusBar {
     }
 }
 
-fn format_display_name(name: &str) -> String {
-    if name.len() < 60 {
-        name.to_string()
-    } else {
-        let truncated = &name[0..59];
-        format!("\"{truncated}...\"")
-    }
-}
-
 impl Component for StatusBar {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         match &mut self.task_status {
             CurrentTaskState::Loading(ref mut state) => {
-                let status_text = match &self.task {
-                    StatusTask::Add(name) => {
-                        let display_name = format_display_name(name);
-                        format!("Adding {display_name}")
-                    }
-                    StatusTask::Delete(name) => {
-                        let display_name = format_display_name(name);
-                        format!("Deleting {display_name}")
-                    }
-                    StatusTask::Move(name) => {
-                        let display_name = format_display_name(name);
-                        format!("Moving to {display_name}")
-                    }
-                    StatusTask::Opening(name) => {
-                        let display_name = format_display_name(name);
-                        format!("Opening {display_name}")
-                    }
-                };
+                let status_text = self.task.loading_str();
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label(status_text)
                     .style(Style::default().yellow());
                 f.render_stateful_widget(default_throbber.clone(), rect, state);
             }
-            task_state => {
-                let status_text = match task_state {
-                    CurrentTaskState::Failure(_) => match &self.task {
-                        StatusTask::Add(name) => {
-                            let display_name = format_display_name(name);
-                            format!(" Error adding {display_name}")
-                        }
-                        StatusTask::Delete(name) => {
-                            let display_name = format_display_name(name);
-                            format!(" Error deleting {display_name}")
-                        }
-                        StatusTask::Move(name) => {
-                            let display_name = format_display_name(name);
-                            format!(" Error moving to {display_name}")
-                        }
-                        StatusTask::Opening(name) => {
-                            let display_name = format_display_name(name);
-                            format!(" Error opening {display_name}")
-                        }
-                    },
-                    CurrentTaskState::Success(_) => match &self.task {
-                        StatusTask::Add(name) => {
-                            let display_name = format_display_name(name);
-                            format!(" Added {display_name}")
-                        }
-                        StatusTask::Delete(name) => {
-                            let display_name = format_display_name(name);
-                            format!(" Deleted {display_name}")
-                        }
-                        StatusTask::Move(name) => {
-                            let display_name = format_display_name(name);
-                            format!(" Location moved to {display_name}")
-                        }
-                        StatusTask::Opening(name) => {
-                            let display_name = format_display_name(name);
-                            format!(" Opened {display_name}")
-                        }
-                    },
-                    _ => return,
-                };
-                let mut line = Line::default();
-                match task_state {
-                    CurrentTaskState::Failure(_) => {
-                        line.push_span(Span::styled("", Style::default().red()));
-                    }
-                    CurrentTaskState::Success(_) => {
-                        line.push_span(Span::styled("", Style::default().green()));
-                    }
-                    _ => return,
-                }
-                line.push_span(Span::raw(status_text));
-                let paragraph = Paragraph::new(line);
-                f.render_widget(paragraph, rect);
+            CurrentTaskState::Failure(_) => {
+                let line = Line::from(vec![
+                    Span::styled(" ", Style::default().red()),
+                    Span::raw(self.task.failure_str()),
+                ]);
+                f.render_widget(line, rect);
+            }
+            CurrentTaskState::Success(_) => {
+                let line = Line::from(vec![
+                    Span::styled(" ", Style::default().green()),
+                    Span::raw(self.task.success_str()),
+                ]);
+                f.render_widget(line, rect);
             }
         }
     }

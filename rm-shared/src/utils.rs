@@ -75,3 +75,12 @@ pub fn upload_speed_format(upload_speed: &str) -> String {
     }
     upload_speed.to_string()
 }
+
+pub fn truncated_str(str: &str, max: usize) -> String {
+    if str.chars().count() < max {
+        str.to_string()
+    } else {
+        let truncated: String = str.chars().take(max).collect();
+        format!("\"{truncated}...\"")
+    }
+}
