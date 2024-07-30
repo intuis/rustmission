@@ -156,6 +156,12 @@ impl SearchTab {
         self.table.scroll_to_home();
         self.ctx.send_action(Action::Render);
     }
+
+    fn xdg_open(&mut self) {
+        if let Some(magnet) = self.table.current_item() {
+            let _ = open::that_detached(&magnet.url);
+        }
+    }
 }
 
 impl Component for SearchTab {
@@ -173,6 +179,7 @@ impl Component for SearchTab {
             A::Home => self.scroll_to_home(),
             A::End => self.scroll_to_end(),
             A::Confirm => self.add_torrent(),
+            A::XdgOpen => self.xdg_open(),
 
             _ => (),
         };
