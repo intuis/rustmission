@@ -43,7 +43,7 @@ impl RustmissionTorrent {
 
     pub fn to_row_with_higlighted_indices(
         &self,
-        highlighted_indices: Vec<usize>,
+        highlighted_indices: &Vec<usize>,
         highlight_style: Style,
         headers: &Vec<Header>,
     ) -> ratatui::widgets::Row {
@@ -57,27 +57,27 @@ impl RustmissionTorrent {
             let fst = if let Some(fst) = first {
                 fst
             } else {
-                first = Some(indice);
+                first = Some(*indice);
                 continue;
             };
 
             let snd = if let Some(snd) = second {
                 snd
             } else {
-                if fst + 1 == indice {
-                    second = Some(indice);
+                if fst + 1 == *indice {
+                    second = Some(*indice);
                 } else {
                     ranges.push((fst, fst));
-                    first = Some(indice);
+                    first = Some(*indice);
                 }
                 continue;
             };
 
-            if snd + 1 == indice {
-                second = Some(indice);
+            if snd + 1 == *indice {
+                second = Some(*indice);
             } else {
                 ranges.push((fst, snd));
-                first = Some(indice);
+                first = Some(*indice);
                 second = None;
             }
         }
@@ -91,8 +91,8 @@ impl RustmissionTorrent {
         let mut last_end: usize = 0;
         let char_indices: Vec<usize> = self.torrent_name.char_indices().map(|(i, _)| i).collect();
         for (start, end) in ranges {
-            let mut start = char_indices[start];
-            let mut end = char_indices[end];
+            let mut start = char_indices[start as usize];
+            let mut end = char_indices[end as usize];
             torrent_name_line.push_span(Span::styled(
                 &self.torrent_name[last_end..start],
                 self.style,

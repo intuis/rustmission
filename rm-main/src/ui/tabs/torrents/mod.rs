@@ -102,7 +102,7 @@ impl Component for TorrentsTab {
                 }
             }
             A::AddMagnet => self.task_manager.add_magnet(),
-            A::Search => self.task_manager.search(self.table_manager.filter.clone()),
+            A::Search => self.task_manager.search(&self.table_manager.filter),
             A::MoveTorrent => {
                 if let Some(torrent) = self.table_manager.current_torrent() {
                     self.task_manager.move_torrent(torrent);
@@ -126,7 +126,7 @@ impl Component for TorrentsTab {
                 self.bottom_stats.set_free_space(free_space);
             }
             UpdateAction::SearchFilterApply(filter) => {
-                self.table_manager.filter.replace(filter);
+                self.table_manager.set_filter(filter);
                 self.table_manager.table.state.borrow_mut().select(Some(0));
                 self.table_manager.update_rows_number();
                 self.bottom_stats

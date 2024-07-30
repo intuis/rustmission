@@ -5,7 +5,7 @@ use crate::{
     app,
     ui::{
         components::{Component, ComponentAction},
-        tabs::torrents::input_manager::InputManager,
+        tabs::torrents::{input_manager::InputManager, table_manager::Filter},
         to_input_request,
     },
 };
@@ -17,12 +17,16 @@ pub struct FilterBar {
 }
 
 impl FilterBar {
-    pub fn new(ctx: app::Ctx, current_filter: Option<String>) -> Self {
-        let input = InputManager::new_with_value(
-            ctx.clone(),
-            "Search: ".to_string(),
-            current_filter.unwrap_or_default(),
-        );
+    pub fn new(ctx: app::Ctx, current_filter: &Option<Filter>) -> Self {
+        let filter = {
+            if let Some(current_filter) = current_filter {
+                current_filter.filter.clone()
+            } else {
+                "".to_string()
+            }
+        };
+
+        let input = InputManager::new_with_value(ctx.clone(), "Search: ".to_string(), filter);
         Self { ctx, input }
     }
 }
