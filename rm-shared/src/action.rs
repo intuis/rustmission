@@ -47,6 +47,7 @@ pub enum UpdateAction {
     TaskSuccess,
     TaskFailure,
     TaskSet(StatusTask),
+    TaskSetSuccess(StatusTask),
     SessionStats(Arc<SessionStats>),
     FreeSpace(Arc<FreeSpace>),
     UpdateTorrents(Vec<Torrent>),

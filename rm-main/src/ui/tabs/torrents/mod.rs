@@ -11,6 +11,7 @@ use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
 
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
+use rm_shared::status_task::StatusTask;
 use rustmission_torrent::RustmissionTorrent;
 use transmission_rpc::types::TorrentStatus;
 
@@ -265,12 +266,18 @@ impl TorrentsTab {
 
     fn open_current_torrent(&mut self) {
         if let Some(torrent) = self.table_manager.current_torrent() {
-            match open::that_detached(torrent.torrent_location()) {
-                Ok(()) => (),
+            let torrent_location = torrent.torrent_location();
+            match open::that_detached(&torrent_location) {
+                Ok(()) => {
+                    self.ctx
+                        .send_update_action(UpdateAction::TaskSetSuccess(StatusTask::new_open(
+                            torrent_location,
+                        )))
+                }
                 Err(err) => {
                     let desc = format!(
                         "Encountered an error while trying to open \"{}\"",
-                        torrent.torrent_location()
+                        torrent_location
                     );
                     let err_msg = ErrorMessage::new(
                         "Failed to open a torrent directory",

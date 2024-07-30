@@ -20,7 +20,10 @@ use crate::{
         components::{Component, ComponentAction},
     },
 };
-use rm_shared::action::{Action, ErrorMessage, UpdateAction};
+use rm_shared::{
+    action::{Action, ErrorMessage, UpdateAction},
+    status_task::StatusTask,
+};
 
 pub struct FilesPopup {
     ctx: app::Ctx,
@@ -210,7 +213,9 @@ impl Component for FilesPopup {
                     let path = format!("{}/{}", torrent.download_dir.as_ref().unwrap(), sub_path,);
 
                     match open::that_detached(&path) {
-                        Ok(()) => (),
+                        Ok(()) => self.ctx.send_update_action(UpdateAction::TaskSetSuccess(
+                            StatusTask::new_open(&path),
+                        )),
                         Err(err) => {
                             let desc =
                                 format!("An error occured while trying to open \"{}\"", path);
