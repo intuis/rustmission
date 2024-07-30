@@ -48,6 +48,25 @@ impl DeleteBar {
             mode,
         }
     }
+
+    fn delete(&self) {
+        let torrents_to_delete: Vec<Id> = self
+            .torrents_to_delete
+            .iter()
+            .map(|x| x.id.clone())
+            .collect();
+        match self.mode {
+            Mode::WithFiles => self
+                .ctx
+                .send_torrent_action(TorrentAction::DelWithFiles(torrents_to_delete)),
+            Mode::WithoutFiles => self
+                .ctx
+                .send_torrent_action(TorrentAction::DelWithoutFiles(torrents_to_delete)),
+        }
+
+        let task = StatusTask::new_del(self.torrents_to_delete[0].name.clone());
+        self.ctx.send_update_action(UpdateAction::TaskSet(task));
+    }
 }
 
 impl Component for DeleteBar {
@@ -56,31 +75,11 @@ impl Component for DeleteBar {
             Action::Input(input) => {
                 if input.code == KeyCode::Esc {
                     return ComponentAction::Quit;
-                }
-
-                if input.code == KeyCode::Enter {
+                } else if input.code == KeyCode::Enter {
                     let text = self.input_mgr.text().to_lowercase();
                     if text == "y" || text == "yes" {
-                        let torrents_to_delete: Vec<Id> = self
-                            .torrents_to_delete
-                            .iter()
-                            .map(|x| x.id.clone())
-                            .collect();
-                        match self.mode {
-                            Mode::WithFiles => self.ctx.send_torrent_action(
-                                TorrentAction::DeleteWithFiles(torrents_to_delete),
-                            ),
-                            Mode::WithoutFiles => {
-                                self.ctx
-                                    .send_torrent_action(TorrentAction::DeleteWithoutFiles(
-                                        torrents_to_delete,
-                                    ))
-                            }
-                        }
-                        self.ctx
-                            .send_update_action(UpdateAction::TaskSet(StatusTask::Delete(
-                                self.torrents_to_delete[0].name.clone(),
-                            )));
+                        self.delete();
+                        return ComponentAction::Quit;
                     } else if text == "n" || text == "no" {
                         return ComponentAction::Quit;
                     }

@@ -34,6 +34,7 @@ pub enum Action {
     MoveTorrent,
     ChangeTab(u8),
     Input(KeyEvent),
+    XdgOpen,
 }
 
 pub enum UpdateAction {
@@ -46,6 +47,7 @@ pub enum UpdateAction {
     TaskSuccess,
     TaskFailure,
     TaskSet(StatusTask),
+    TaskSetSuccess(StatusTask),
     SessionStats(Arc<SessionStats>),
     FreeSpace(Arc<FreeSpace>),
     UpdateTorrents(Vec<Torrent>),

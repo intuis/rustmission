@@ -20,7 +20,6 @@ use self::{
 };
 
 pub struct MainWindow {
-    ctx: app::Ctx,
     tabs: TabComponent,
     torrents_tab: TorrentsTab,
     search_tab: SearchTab,
@@ -30,7 +29,6 @@ pub struct MainWindow {
 impl MainWindow {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
-            ctx: ctx.clone(),
             tabs: TabComponent::new(ctx.clone()),
             torrents_tab: TorrentsTab::new(ctx.clone()),
             search_tab: SearchTab::new(ctx.clone()),
@@ -52,7 +50,6 @@ impl Component for MainWindow {
             }
             A::ChangeTab(_) | A::Left | A::Right => {
                 self.tabs.handle_actions(action);
-                self.ctx.send_action(A::Render);
             }
             _ if self.tabs.current_tab == CurrentTab::Torrents => {
                 self.torrents_tab.handle_actions(action);

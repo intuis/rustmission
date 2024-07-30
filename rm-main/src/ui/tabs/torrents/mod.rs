@@ -11,12 +11,13 @@ use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
 
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
+use rm_shared::status_task::StatusTask;
 use rustmission_torrent::RustmissionTorrent;
 use transmission_rpc::types::TorrentStatus;
 
 use crate::ui::components::{Component, ComponentAction};
 use crate::{app, transmission};
-use rm_shared::action::{Action, UpdateAction};
+use rm_shared::action::{Action, ErrorMessage, UpdateAction};
 
 use self::bottom_stats::BottomStats;
 use self::popups::files::FilesPopup;
@@ -100,15 +101,14 @@ impl Component for TorrentsTab {
                         .delete_torrent(torrent, tasks::delete_torrent::Mode::WithoutFiles);
                 }
             }
-            A::AddMagnet => {
-                self.task_manager.add_magnet();
-            }
+            A::AddMagnet => self.task_manager.add_magnet(),
             A::Search => self.task_manager.search(self.table_manager.filter.clone()),
             A::MoveTorrent => {
                 if let Some(torrent) = self.table_manager.current_torrent() {
                     self.task_manager.move_torrent(torrent);
                 }
             }
+            A::XdgOpen => self.open_current_torrent(),
             other => {
                 self.task_manager.handle_actions(other);
             }
@@ -261,6 +261,33 @@ impl TorrentsTab {
                     self.ctx.send_action(Action::Render);
                 }
             }
+        }
+    }
+
+    fn open_current_torrent(&mut self) {
+        if let Some(torrent) = self.table_manager.current_torrent() {
+            let torrent_location = torrent.torrent_location();
+            match open::that_detached(&torrent_location) {
+                Ok(()) => {
+                    self.ctx
+                        .send_update_action(UpdateAction::TaskSetSuccess(StatusTask::new_open(
+                            torrent_location,
+                        )))
+                }
+                Err(err) => {
+                    let desc = format!(
+                        "Encountered an error while trying to open \"{}\"",
+                        torrent_location
+                    );
+                    let err_msg = ErrorMessage::new(
+                        "Failed to open a torrent directory",
+                        desc,
+                        Box::new(err),
+                    );
+                    self.ctx
+                        .send_update_action(UpdateAction::Error(Box::new(err_msg)));
+                }
+            };
         }
     }
 }

@@ -1,5 +1,6 @@
 use ratatui::prelude::*;
 use throbber_widgets_tui::ThrobberState;
+use tokio::time::Instant;
 
 use crate::{
     app,
@@ -92,6 +93,7 @@ impl Component for TaskManager {
         match action {
             UpdateAction::TaskClear => self.cancel_task(),
             UpdateAction::TaskSet(task) => self.pending_task(task),
+            UpdateAction::TaskSetSuccess(task) => self.success_task(task),
             UpdateAction::TaskSuccess => {
                 if let CurrentTask::Status(status_bar) = &mut self.current_task {
                     status_bar.set_success();
@@ -152,6 +154,14 @@ impl TaskManager {
             torrent.download_dir.to_string(),
         ));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+    }
+
+    fn success_task(&mut self, task: StatusTask) {
+        self.current_task = CurrentTask::Status(StatusBar::new(
+            self.ctx.clone(),
+            task,
+            CurrentTaskState::Success(Instant::now()),
+        ))
     }
 
     fn pending_task(&mut self, task: StatusTask) {

@@ -70,6 +70,10 @@ impl RustmissionTorrent {
         Row::new(cells)
     }
 
+    pub fn torrent_location(&self) -> String {
+        format!("{}/{}", self.download_dir, self.torrent_name)
+    }
+
     fn header_to_line(&self, header: Header) -> Line {
         match header {
             Header::Name => Line::from(self.torrent_name.as_str()),

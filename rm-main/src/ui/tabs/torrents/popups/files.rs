@@ -20,7 +20,10 @@ use crate::{
         components::{Component, ComponentAction},
     },
 };
-use rm_shared::action::{Action, UpdateAction};
+use rm_shared::{
+    action::{Action, ErrorMessage, UpdateAction},
+    status_task::StatusTask,
+};
 
 pub struct FilesPopup {
     ctx: app::Ctx,
@@ -89,6 +92,14 @@ impl FilesPopup {
             CurrentFocus::Files => self.current_focus = CurrentFocus::CloseButton,
         }
     }
+
+    fn selected_ids(&self) -> Vec<i32> {
+        self.tree_state
+            .selected()
+            .iter()
+            .filter_map(|str_id| str_id.parse::<i32>().ok())
+            .collect()
+    }
 }
 
 impl Component for FilesPopup {
@@ -109,15 +120,17 @@ impl Component for FilesPopup {
                 return ComponentAction::Quit;
             }
             (A::Select | A::Confirm, CurrentFocus::Files) => {
-                if let Some(torrent) = &mut self.torrent {
-                    let wanted_ids = torrent.wanted.as_mut().unwrap();
+                if self.torrent.is_some() {
+                    let mut wanted_ids = self
+                        .torrent
+                        .as_ref()
+                        .unwrap()
+                        .wanted
+                        .as_ref()
+                        .unwrap()
+                        .clone();
 
-                    let selected_ids: Vec<_> = self
-                        .tree_state
-                        .selected()
-                        .iter()
-                        .filter_map(|str_id| str_id.parse::<i32>().ok())
-                        .collect();
+                    let selected_ids = self.selected_ids();
 
                     if selected_ids.is_empty() {
                         self.tree_state.toggle_selected();
@@ -181,6 +194,39 @@ impl Component for FilesPopup {
                 self.tree_state.key_down();
                 self.ctx.send_action(Action::Render);
             }
+            (A::XdgOpen, CurrentFocus::Files) => {
+                if let Some(torrent) = &self.torrent {
+                    let mut identifier = self.tree_state.selected().to_vec();
+
+                    if identifier.is_empty() {
+                        return ComponentAction::Nothing;
+                    }
+
+                    if let Ok(file_id) = identifier.last().unwrap().parse::<i32>() {
+                        identifier.pop();
+                        identifier
+                            .push(self.tree.get_by_ids(&[file_id]).pop().unwrap().name.clone())
+                    }
+
+                    let sub_path = identifier.join("/");
+
+                    let path = format!("{}/{}", torrent.download_dir.as_ref().unwrap(), sub_path,);
+
+                    match open::that_detached(&path) {
+                        Ok(()) => self.ctx.send_update_action(UpdateAction::TaskSetSuccess(
+                            StatusTask::new_open(&path),
+                        )),
+                        Err(err) => {
+                            let desc =
+                                format!("An error occured while trying to open \"{}\"", path);
+                            let err_msg =
+                                ErrorMessage::new("Failed to open a file", desc, Box::new(err));
+                            self.ctx
+                                .send_update_action(UpdateAction::Error(Box::new(err_msg)));
+                        }
+                    };
+                }
+            }
 
             _ => (),
         }
@@ -197,7 +243,7 @@ impl Component for FilesPopup {
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         let popup_rect = centered_rect(rect, 75, 75);
-        let block_rect = popup_rect.inner(Margin::new(1, 0));
+        let block_rect = popup_rect.inner(Margin::new(1, 1));
 
         let info_text_rect = block_rect.inner(Margin::new(3, 2));
 
@@ -234,13 +280,48 @@ impl Component for FilesPopup {
             };
 
             let download_dir = torrent.download_dir.as_ref().expect("Requested");
+
             let keybinding_tip = {
                 if self.ctx.config.general.beginner_mode {
-                    "[SPACE] - select"
+                    let mut keys = vec![];
+
+                    if let Some(key) = self
+                        .ctx
+                        .config
+                        .keybindings
+                        .get_keys_for_action(Action::Select)
+                    {
+                        keys.push(Span::raw(" "));
+                        keys.push(Span::styled(
+                            key,
+                            Style::new()
+                                .fg(self.ctx.config.general.accent_color)
+                                .underlined(),
+                        ));
+                        keys.push(Span::raw(" - toggle | "));
+                    }
+
+                    if let Some(key) = self
+                        .ctx
+                        .config
+                        .keybindings
+                        .get_keys_for_action(Action::XdgOpen)
+                    {
+                        keys.push(Span::styled(
+                            key,
+                            Style::new()
+                                .fg(self.ctx.config.general.accent_color)
+                                .underlined(),
+                        ));
+                        keys.push(Span::raw(" - xdg_open "));
+                    }
+
+                    Line::from(keys)
                 } else {
-                    ""
+                    Line::from("")
                 }
             };
+
             let block = block
                 .title(
                     Title::from(format!(" {} ", download_dir).set_style(highlight_style))
