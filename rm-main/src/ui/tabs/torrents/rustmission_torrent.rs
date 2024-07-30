@@ -88,13 +88,24 @@ impl RustmissionTorrent {
             ranges.push((first, second));
         }
 
-        // dbg!(&ranges);
         let mut last_end: usize = 0;
+        let char_indices: Vec<usize> = self.torrent_name.char_indices().map(|(i, _)| i).collect();
         for (start, end) in ranges {
+            let mut start = char_indices[start];
+            let mut end = char_indices[end];
             torrent_name_line.push_span(Span::styled(
                 &self.torrent_name[last_end..start],
                 self.style,
             ));
+
+            while !self.torrent_name.is_char_boundary(start) {
+                start -= 1;
+            }
+
+            while !self.torrent_name.is_char_boundary(end + 1) {
+                end += 1;
+            }
+
             torrent_name_line.push_span(Span::styled(
                 &self.torrent_name[start..=end],
                 highlight_style,
@@ -102,28 +113,6 @@ impl RustmissionTorrent {
             last_end = end + 1;
         }
         torrent_name_line.push_span(Span::styled(&self.torrent_name[last_end..], self.style));
-
-        // let mut styled_chars = vec![];
-        // let mut unstyled_chars = vec![];
-
-        // let flush_chars = |chars: &mut Vec<char>, line: &mut Line, style: Style| {
-        //     if !chars.is_empty() {
-        //         line.push_span(Span::styled(chars.drain(..).collect::<String>(), style));
-        //     }
-        // };
-
-        // for (index, char) in self.torrent_name.char_indices() {
-        //     if highlighted_indices.contains(&index) {
-        //         flush_chars(&mut unstyled_chars, &mut torrent_name_line, self.style);
-        //         styled_chars.push(char);
-        //     } else {
-        //         flush_chars(&mut styled_chars, &mut torrent_name_line, highlight_style);
-        //         unstyled_chars.push(char);
-        //     }
-        // }
-
-        // flush_chars(&mut unstyled_chars, &mut torrent_name_line, self.style);
-        // flush_chars(&mut styled_chars, &mut torrent_name_line, highlight_style);
 
         let mut cells = vec![];
 
