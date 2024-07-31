@@ -20,7 +20,7 @@ impl FilterBar {
     pub fn new(ctx: app::Ctx, current_filter: &Option<Filter>) -> Self {
         let filter = {
             if let Some(current_filter) = current_filter {
-                current_filter.filter.clone()
+                current_filter.pattern.clone()
             } else {
                 "".to_string()
             }

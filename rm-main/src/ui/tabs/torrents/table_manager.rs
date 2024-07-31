@@ -17,7 +17,7 @@ pub struct TableManager {
 }
 
 pub struct Filter {
-    pub filter: String,
+    pub pattern: String,
     indexes: Vec<u16>,
     highlight_indices: Vec<Vec<usize>>,
 }
@@ -79,25 +79,19 @@ impl TableManager {
     }
 
     pub fn current_torrent(&mut self) -> Option<&mut RustmissionTorrent> {
-        let matcher = SkimMatcherV2::default();
-        let index = self.table.state.borrow().selected()?;
+        let selected_idx = self.table.state.borrow().selected()?;
 
         if let Some(filter) = &self.filter {
-            let mut loop_index = 0;
-            for rustmission_torrent in &mut self.table.items {
-                if matcher
-                    .fuzzy_match(&rustmission_torrent.torrent_name, &filter.filter)
-                    .is_some()
-                {
-                    if index == loop_index {
-                        return Some(rustmission_torrent);
-                    }
-                    loop_index += 1;
-                }
+            if filter.indexes.is_empty() {
+                return None;
+            } else {
+                self.table
+                    .items
+                    .get_mut(filter.indexes[selected_idx] as usize)
             }
-            return None;
+        } else {
+            self.table.items.get_mut(selected_idx)
         }
-        self.table.items.get_mut(index)
     }
 
     pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
@@ -118,7 +112,7 @@ impl TableManager {
         }
 
         let filter = Filter {
-            filter,
+            pattern: filter,
             indexes,
             highlight_indices,
         };
