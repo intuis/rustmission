@@ -49,48 +49,9 @@ impl RustmissionTorrent {
     ) -> ratatui::widgets::Row {
         let mut torrent_name_line = Line::default();
 
-        let mut ranges = vec![];
-
-        let mut first: Option<usize> = None;
-        let mut second: Option<usize> = None;
-        for indice in highlighted_indices {
-            let fst = if let Some(fst) = first {
-                fst
-            } else {
-                first = Some(*indice);
-                continue;
-            };
-
-            let snd = if let Some(snd) = second {
-                snd
-            } else {
-                if fst + 1 == *indice {
-                    second = Some(*indice);
-                } else {
-                    ranges.push((fst, fst));
-                    first = Some(*indice);
-                }
-                continue;
-            };
-
-            if snd + 1 == *indice {
-                second = Some(*indice);
-            } else {
-                ranges.push((fst, snd));
-                first = Some(*indice);
-                second = None;
-            }
-        }
-
-        if let (Some(first), None) = (first, second) {
-            ranges.push((first, first));
-        } else if let (Some(first), Some(second)) = (first, second) {
-            ranges.push((first, second));
-        }
-
-        let mut last_end: usize = 0;
         let char_indices: Vec<usize> = self.torrent_name.char_indices().map(|(i, _)| i).collect();
-        for (start, end) in ranges {
+        let mut last_end = 0;
+        let mut flush_line = |start: usize, end: usize| {
             let mut start = char_indices[start as usize];
             let mut end = char_indices[end as usize];
             torrent_name_line.push_span(Span::styled(
@@ -111,7 +72,45 @@ impl RustmissionTorrent {
                 highlight_style,
             ));
             last_end = end + 1;
+        };
+
+        let mut first: Option<usize> = None;
+        let mut second: Option<usize> = None;
+        for indice in highlighted_indices {
+            let fst = if let Some(fst) = first {
+                fst
+            } else {
+                first = Some(*indice);
+                continue;
+            };
+
+            let snd = if let Some(snd) = second {
+                snd
+            } else {
+                if fst + 1 == *indice {
+                    second = Some(*indice);
+                } else {
+                    flush_line(fst, fst);
+                    first = Some(*indice);
+                }
+                continue;
+            };
+
+            if snd + 1 == *indice {
+                second = Some(*indice);
+            } else {
+                flush_line(fst, snd);
+                first = Some(*indice);
+                second = None;
+            }
         }
+
+        if let (Some(first), None) = (first, second) {
+            flush_line(first, first);
+        } else if let (Some(first), Some(second)) = (first, second) {
+            flush_line(first, second);
+        }
+
         torrent_name_line.push_span(Span::styled(&self.torrent_name[last_end..], self.style));
 
         let mut cells = vec![];
