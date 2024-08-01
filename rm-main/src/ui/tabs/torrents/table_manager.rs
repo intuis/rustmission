@@ -11,9 +11,15 @@ pub struct TableManager {
     ctx: app::Ctx,
     pub table: GenericTable<RustmissionTorrent>,
     pub widths: Vec<Constraint>,
-    pub filter: Option<String>,
+    pub filter: Option<Filter>,
     pub torrents_displaying_no: u16,
     headers: Vec<&'static str>,
+}
+
+pub struct Filter {
+    pub pattern: String,
+    indexes: Vec<u16>,
+    highlight_indices: Vec<Vec<usize>>,
 }
 
 impl TableManager {
@@ -37,8 +43,7 @@ impl TableManager {
 
     pub fn update_rows_number(&mut self) {
         if let Some(filter) = &self.filter {
-            let rows = self.filtered_torrents_rows(&self.table.items, filter);
-            self.table.overwrite_len(rows.len());
+            self.table.overwrite_len(filter.indexes.len());
         } else {
             self.table.items.len();
         }
@@ -46,7 +51,18 @@ impl TableManager {
 
     pub fn rows(&self) -> Vec<Row<'_>> {
         if let Some(filter) = &self.filter {
-            let rows = self.filtered_torrents_rows(&self.table.items, filter);
+            let highlight_style = Style::default().fg(self.ctx.config.general.accent_color);
+            let headers = &self.ctx.config.torrents_tab.headers;
+            let mut rows = vec![];
+            for (i, which_torrent) in filter.indexes.iter().enumerate() {
+                let row = self.table.items[*which_torrent as usize].to_row_with_higlighted_indices(
+                    &filter.highlight_indices[i],
+                    highlight_style,
+                    headers,
+                );
+                rows.push(row);
+            }
+
             self.table.overwrite_len(rows.len());
             rows
         } else {
@@ -63,25 +79,19 @@ impl TableManager {
     }
 
     pub fn current_torrent(&mut self) -> Option<&mut RustmissionTorrent> {
-        let matcher = SkimMatcherV2::default();
-        let index = self.table.state.borrow().selected()?;
+        let selected_idx = self.table.state.borrow().selected()?;
 
         if let Some(filter) = &self.filter {
-            let mut loop_index = 0;
-            for rustmission_torrent in &mut self.table.items {
-                if matcher
-                    .fuzzy_match(&rustmission_torrent.torrent_name, filter)
-                    .is_some()
-                {
-                    if index == loop_index {
-                        return Some(rustmission_torrent);
-                    }
-                    loop_index += 1;
-                }
+            if filter.indexes.is_empty() {
+                return None;
+            } else {
+                self.table
+                    .items
+                    .get_mut(filter.indexes[selected_idx] as usize)
             }
-            return None;
+        } else {
+            self.table.items.get_mut(selected_idx)
         }
-        self.table.items.get_mut(index)
     }
 
     pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
@@ -90,27 +100,24 @@ impl TableManager {
         self.update_rows_number();
     }
 
-    fn filtered_torrents_rows<'a>(
-        &self,
-        torrents: &'a [RustmissionTorrent],
-        filter: &str,
-    ) -> Vec<Row<'a>> {
+    pub fn set_filter(&mut self, filter: String) {
         let matcher = SkimMatcherV2::default();
-        let mut rows = vec![];
-
-        let highlight_style = Style::default().fg(self.ctx.config.general.accent_color);
-
-        for torrent in torrents {
-            if let Some((_, indices)) = matcher.fuzzy_indices(&torrent.torrent_name, filter) {
-                rows.push(torrent.to_row_with_higlighted_indices(
-                    indices,
-                    highlight_style,
-                    &self.ctx.config.torrents_tab.headers,
-                ))
+        let mut indexes: Vec<u16> = vec![];
+        let mut highlight_indices = vec![];
+        for (i, torrent) in self.table.items.iter().enumerate() {
+            if let Some((_, indices)) = matcher.fuzzy_indices(&torrent.torrent_name, &filter) {
+                indexes.push(i as u16);
+                highlight_indices.push(indices);
             }
         }
 
-        rows
+        let filter = Filter {
+            pattern: filter,
+            indexes,
+            highlight_indices,
+        };
+
+        self.filter = Some(filter);
     }
 
     fn default_widths(headers: &Vec<Header>) -> Vec<Constraint> {

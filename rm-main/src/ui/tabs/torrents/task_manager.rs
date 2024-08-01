@@ -13,6 +13,7 @@ use rm_shared::{
 
 use super::{
     rustmission_torrent::RustmissionTorrent,
+    table_manager::Filter,
     tasks::{
         add_magnet::AddMagnetBar,
         default::DefaultBar,
@@ -130,7 +131,7 @@ impl TaskManager {
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    pub fn search(&mut self, filter: Option<String>) {
+    pub fn search(&mut self, filter: &Option<Filter>) {
         self.current_task = CurrentTask::FilterBar(FilterBar::new(self.ctx.clone(), filter));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }

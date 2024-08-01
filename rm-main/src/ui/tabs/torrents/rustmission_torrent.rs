@@ -43,25 +43,81 @@ impl RustmissionTorrent {
 
     pub fn to_row_with_higlighted_indices(
         &self,
-        highlighted_indices: Vec<usize>,
+        highlighted_indices: &Vec<usize>,
         highlight_style: Style,
         headers: &Vec<Header>,
     ) -> ratatui::widgets::Row {
         let mut torrent_name_line = Line::default();
 
-        for (index, char) in self.torrent_name.char_indices() {
-            if highlighted_indices.contains(&index) {
-                torrent_name_line.push_span(Span::styled(char.to_string(), highlight_style));
+        let char_indices: Vec<usize> = self.torrent_name.char_indices().map(|(i, _)| i).collect();
+        let mut last_end = 0;
+        let mut flush_line = |start: usize, end: usize| {
+            let mut start = char_indices[start as usize];
+            let mut end = char_indices[end as usize];
+            torrent_name_line.push_span(Span::styled(
+                &self.torrent_name[last_end..start],
+                self.style,
+            ));
+
+            while !self.torrent_name.is_char_boundary(start) {
+                start -= 1;
+            }
+
+            while !self.torrent_name.is_char_boundary(end + 1) {
+                end += 1;
+            }
+
+            torrent_name_line.push_span(Span::styled(
+                &self.torrent_name[start..=end],
+                highlight_style,
+            ));
+            last_end = end + 1;
+        };
+
+        let mut first: Option<usize> = None;
+        let mut second: Option<usize> = None;
+        for indice in highlighted_indices {
+            let fst = if let Some(fst) = first {
+                fst
             } else {
-                torrent_name_line.push_span(Span::styled(char.to_string(), self.style))
+                first = Some(*indice);
+                continue;
+            };
+
+            let snd = if let Some(snd) = second {
+                snd
+            } else {
+                if fst + 1 == *indice {
+                    second = Some(*indice);
+                } else {
+                    flush_line(fst, fst);
+                    first = Some(*indice);
+                }
+                continue;
+            };
+
+            if snd + 1 == *indice {
+                second = Some(*indice);
+            } else {
+                flush_line(fst, snd);
+                first = Some(*indice);
+                second = None;
             }
         }
+
+        if let (Some(first), None) = (first, second) {
+            flush_line(first, first);
+        } else if let (Some(first), Some(second)) = (first, second) {
+            flush_line(first, second);
+        }
+
+        torrent_name_line.push_span(Span::styled(&self.torrent_name[last_end..], self.style));
 
         let mut cells = vec![];
 
         for header in headers {
             if *header == Header::Name {
-                cells.push(torrent_name_line.clone())
+                cells.push(std::mem::take(&mut torrent_name_line))
             } else {
                 cells.push(self.header_to_line(*header).style(self.style))
             }
