@@ -57,6 +57,7 @@ pub enum UpdateAction {
     // Search Tab
     SearchStarted,
     SearchResults(Vec<Magnet>),
+    SearchFinished,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

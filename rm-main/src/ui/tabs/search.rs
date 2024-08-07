@@ -1,12 +1,14 @@
 use std::borrow::Cow;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use magnetease::{Magnet, Magnetease};
+use futures::{stream::FuturesUnordered, StreamExt};
+use magnetease::{Magnet, Magnetease, Provider};
 use ratatui::{
     layout::Flex,
     prelude::*,
     widgets::{Cell, Paragraph, Row, Table},
 };
+use reqwest::Client;
 use throbber_widgets_tui::ThrobberState;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::Input;
@@ -20,7 +22,7 @@ use crate::{
     },
 };
 use rm_shared::{
-    action::{Action, UpdateAction},
+    action::{Action, ErrorMessage, UpdateAction},
     utils::bytes_to_human_format,
 };
 
@@ -50,6 +52,31 @@ impl SearchTab {
         tokio::task::spawn({
             let ctx = ctx.clone();
             async move {
+                let knaben = magnetease::providers::Knaben;
+                let nyaa = magnetease::providers::Nyaa;
+                let client = Client::new();
+                while let Some(phrase) = search_query_rx.recv().await {
+                    ctx.send_update_action(UpdateAction::SearchStarted);
+                    let mut futures = FuturesUnordered::new();
+                    futures.push(knaben.search(&client, &phrase));
+                    futures.push(nyaa.search(&client, &phrase));
+
+                    while let Some(result) = futures.next().await {
+                        match result {
+                            Ok(magnets) => {
+                                ctx.send_update_action(UpdateAction::SearchResults(magnets))
+                            }
+                            Err(e) => {
+                                let e_title = "Failed to search for magnets";
+                                let e_desc = "Provider error";
+                                let e_msg = ErrorMessage::new(e_title, e_desc, Box::new(e));
+                                ctx.send_update_action(UpdateAction::Error(Box::new(e_msg)));
+                            }
+                        }
+                    }
+                    ctx.send_update_action(UpdateAction::SearchFinished);
+                }
+
                 let magnetease = Magnetease::new();
                 while let Some(search_phrase) = search_query_rx.recv().await {
                     ctx.send_update_action(UpdateAction::SearchStarted);
@@ -190,14 +217,18 @@ impl Component for SearchTab {
         match action {
             UpdateAction::SearchStarted => {
                 self.search_result_info.searching(ThrobberState::default());
+                self.table.items.drain(..);
             }
             UpdateAction::SearchResults(magnets) => {
-                if magnets.is_empty() {
+                self.table.items.extend(magnets);
+                self.table.items.sort_by(|a, b| b.seeders.cmp(&a.seeders));
+            }
+            UpdateAction::SearchFinished => {
+                if self.table.items.is_empty() {
                     self.search_result_info.not_found();
                 } else {
-                    self.search_result_info.found(magnets.len());
+                    self.search_result_info.found(self.table.items.len());
                 }
-                self.table.set_items(magnets);
             }
             _ => (),
         }
