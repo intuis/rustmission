@@ -2,7 +2,10 @@ use std::borrow::Cow;
 
 use crossterm::event::{KeyCode, KeyEvent};
 use futures::{stream::FuturesUnordered, StreamExt};
-use magnetease::{Magnet, Magnetease, Provider};
+use magnetease::{
+    providers::{Knaben, Nyaa},
+    Magnet, MagneteaseError, MagneteaseErrorKind, Provider,
+};
 use ratatui::{
     layout::Flex,
     prelude::*,
@@ -22,7 +25,7 @@ use crate::{
     },
 };
 use rm_shared::{
-    action::{Action, ErrorMessage, UpdateAction},
+    action::{Action, UpdateAction},
     utils::bytes_to_human_format,
 };
 
@@ -37,7 +40,6 @@ pub(crate) struct SearchTab {
     input: Input,
     search_query_rx: UnboundedSender<String>,
     table: GenericTable<Magnet>,
-    // TODO: Change it to enum, and combine table with search_result_info
     search_result_info: SearchResultState,
     currently_displaying_no: u16,
     ctx: app::Ctx,
@@ -47,41 +49,29 @@ impl SearchTab {
     pub(crate) fn new(ctx: app::Ctx) -> Self {
         let (search_query_tx, mut search_query_rx) = mpsc::unbounded_channel::<String>();
         let table = GenericTable::new(vec![]);
-        let search_result_info = SearchResultState::new(ctx.clone());
+        let providers: &[&(dyn Provider + Send + Sync)] = &[&Knaben, &Nyaa];
+        let search_result_info = SearchResultState::new(ctx.clone(), &providers);
 
         tokio::task::spawn({
             let ctx = ctx.clone();
             async move {
-                let knaben = magnetease::providers::Knaben;
-                let nyaa = magnetease::providers::Nyaa;
                 let client = Client::new();
                 while let Some(phrase) = search_query_rx.recv().await {
                     ctx.send_update_action(UpdateAction::SearchStarted);
                     let mut futures = FuturesUnordered::new();
-                    futures.push(knaben.search(&client, &phrase));
-                    futures.push(nyaa.search(&client, &phrase));
+                    for provider in providers {
+                        futures.push(provider.search(&client, &phrase));
+                    }
 
                     while let Some(result) = futures.next().await {
                         match result {
-                            Ok(magnets) => {
-                                ctx.send_update_action(UpdateAction::SearchResults(magnets))
+                            Ok(response) => {
+                                ctx.send_update_action(UpdateAction::ProviderResult(response))
                             }
-                            Err(e) => {
-                                let e_title = "Failed to search for magnets";
-                                let e_desc = "Provider error";
-                                let e_msg = ErrorMessage::new(e_title, e_desc, Box::new(e));
-                                ctx.send_update_action(UpdateAction::Error(Box::new(e_msg)));
-                            }
+                            Err(e) => ctx.send_update_action(UpdateAction::ProviderError(e)),
                         }
                     }
                     ctx.send_update_action(UpdateAction::SearchFinished);
-                }
-
-                let magnetease = Magnetease::new();
-                while let Some(search_phrase) = search_query_rx.recv().await {
-                    ctx.send_update_action(UpdateAction::SearchStarted);
-                    let magnets = magnetease.search(&search_phrase).await.unwrap();
-                    ctx.send_update_action(UpdateAction::SearchResults(magnets));
                 }
             }
         });
@@ -218,10 +208,32 @@ impl Component for SearchTab {
             UpdateAction::SearchStarted => {
                 self.search_result_info.searching(ThrobberState::default());
                 self.table.items.drain(..);
+                self.search_result_info.provider_results.drain(..);
             }
-            UpdateAction::SearchResults(magnets) => {
-                self.table.items.extend(magnets);
+            UpdateAction::ProviderResult(response) => {
+                let provider_result = ProviderResult {
+                    name: response.provider.name(),
+                    found: response.magnets.len(),
+                    error: None,
+                };
+
+                self.search_result_info
+                    .provider_results
+                    .push(provider_result);
+
+                self.table.items.extend(response.magnets);
                 self.table.items.sort_by(|a, b| b.seeders.cmp(&a.seeders));
+            }
+            UpdateAction::ProviderError(e) => {
+                let provider_result = ProviderResult {
+                    name: e.provider.name(),
+                    found: 0,
+                    error: Some(e.kind),
+                };
+
+                self.search_result_info
+                    .provider_results
+                    .push(provider_result);
             }
             UpdateAction::SearchFinished => {
                 if self.table.items.is_empty() {
@@ -328,16 +340,25 @@ enum SearchResultStatus {
     Found(usize),
 }
 
-#[derive(Clone)]
 struct SearchResultState {
     ctx: app::Ctx,
     status: SearchResultStatus,
+    provider_results: Vec<ProviderResult>,
+    providers_count: usize,
+}
+
+struct ProviderResult {
+    name: &'static str,
+    found: usize,
+    error: Option<MagneteaseErrorKind>,
 }
 
 impl SearchResultState {
-    fn new(ctx: app::Ctx) -> Self {
+    fn new(ctx: app::Ctx, providers: &[&(dyn Provider + Send + Sync)]) -> Self {
         Self {
             ctx,
+            provider_results: vec![],
+            providers_count: providers.len(),
             status: SearchResultStatus::Nothing,
         }
     }
@@ -360,8 +381,12 @@ impl Component for SearchResultState {
         match &mut self.status {
             SearchResultStatus::Nothing => (),
             SearchResultStatus::Searching(ref mut state) => {
+                let label = format!(
+                    "Searching... {:.0}%",
+                    self.provider_results.len() / self.providers_count
+                );
                 let default_throbber = throbber_widgets_tui::Throbber::default()
-                    .label("Searching...")
+                    .label(label)
                     .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
                 f.render_stateful_widget(default_throbber.clone(), rect, state);
             }

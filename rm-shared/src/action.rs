@@ -1,7 +1,7 @@
 use std::{error::Error, sync::Arc};
 
 use crossterm::event::KeyEvent;
-use magnetease::Magnet;
+use magnetease::{Magnet, MagneteaseError, MagneteaseResult};
 use transmission_rpc::types::{FreeSpace, SessionStats, Torrent};
 
 use crate::status_task::StatusTask;
@@ -56,7 +56,8 @@ pub enum UpdateAction {
     SearchFilterClear,
     // Search Tab
     SearchStarted,
-    SearchResults(Vec<Magnet>),
+    ProviderResult(MagneteaseResult),
+    ProviderError(MagneteaseError),
     SearchFinished,
 }
 
