@@ -6,6 +6,7 @@ use rm_shared::action::Action;
 use rm_shared::action::UpdateAction;
 use std::sync::Arc;
 
+use crate::ui::components::tabs::CurrentTab;
 use crate::{
     transmission::{self, TorrentAction},
     tui::Tui,
@@ -127,11 +128,13 @@ impl App {
             let update_action = self.update_rx.recv();
             let tick_action = interval.tick();
 
+            let current_tab = self.main_window.tabs.current_tab;
+
             tokio::select! {
                 _ = tick_action => self.tick(),
 
                 event = tui_event => {
-                    event_to_action(&self.ctx, self.mode, event.unwrap());
+                    event_to_action(&self.ctx, self.mode, current_tab, event.unwrap());
                 },
 
                 update_action = update_action => self.handle_update_action(update_action.unwrap()).await,
@@ -201,13 +204,7 @@ pub enum Mode {
     Normal,
 }
 
-pub fn event_to_action(
-    ctx: &Ctx,
-    mode: Mode,
-    event: Event,
-    // sender: &UnboundedSender<Action>,
-    // keymap: &HashMap<(KeyCode, KeyModifiers), Action>,
-) {
+pub fn event_to_action(ctx: &Ctx, mode: Mode, current_tab: CurrentTab, event: Event) {
     // Handle CTRL+C first
     if let Event::Key(key_event) = event {
         if key_event.modifiers == KeyModifiers::CONTROL
@@ -220,27 +217,34 @@ pub fn event_to_action(
     match event {
         Event::Key(key) if mode == Mode::Input => ctx.send_action(Action::Input(key)),
         Event::Key(key) => {
-            if let KeyCode::Char(e) = key.code {
-                if e.is_uppercase() {
-                    if let Some(action) = ctx
-                        .config
-                        .keybindings
-                        .keymap
-                        .get(&(key.code, KeyModifiers::NONE))
-                        .cloned()
-                    {
-                        ctx.send_action(action);
-                    }
+            let keymaps = match current_tab {
+                CurrentTab::Torrents => [
+                    &ctx.config.keybindings.general_keymap,
+                    &ctx.config.keybindings.torrent_keymap,
+                ],
+                CurrentTab::Search => [
+                    &ctx.config.keybindings.general_keymap,
+                    &ctx.config.keybindings.search_keymap,
+                ],
+            };
+
+            let keybinding = match key.code {
+                KeyCode::Char(e) => {
+                    let modifier = if e.is_uppercase() {
+                        KeyModifiers::NONE
+                    } else {
+                        key.modifiers
+                    };
+                    (key.code, modifier)
                 }
-            }
-            if let Some(action) = ctx
-                .config
-                .keybindings
-                .keymap
-                .get(&(key.code, key.modifiers))
-                .cloned()
-            {
-                ctx.send_action(action);
+                _ => (key.code, key.modifiers),
+            };
+
+            for keymap in keymaps {
+                if let Some(action) = keymap.get(&keybinding).cloned() {
+                    ctx.send_action(action);
+                    return;
+                }
             }
         }
         Event::Resize(_, _) => ctx.send_action(Action::Render),

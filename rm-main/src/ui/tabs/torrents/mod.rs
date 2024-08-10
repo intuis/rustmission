@@ -66,17 +66,12 @@ impl Component for TorrentsTab {
         self.popup_manager.render(f, f.size());
     }
 
-    #[must_use]
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
 
         if self.popup_manager.is_showing_popup() {
             self.popup_manager.handle_actions(action);
             return ComponentAction::Nothing;
-        }
-
-        if action.is_quit() {
-            self.ctx.send_action(Action::Quit);
         }
 
         match action {

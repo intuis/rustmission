@@ -46,3 +46,8 @@ keybindings = [
   { on = "d", action = "DeleteWithoutFiles" },
   { on = "D", action = "DeleteWithFiles" },
 ]
+
+[search_tab]
+keybindings = [
+  { on = "p", action = "ShowProvidersInfo" }
+]

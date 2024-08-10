@@ -1,12 +1,12 @@
 use std::{io::ErrorKind, path::PathBuf, sync::OnceLock};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use ratatui::style::Color;
 use rm_shared::header::Header;
 use serde::Deserialize;
 use url::Url;
 
-use crate::utils::{self};
+use crate::utils::{self, ConfigFetchingError};
 
 #[derive(Deserialize)]
 pub struct MainConfig {
@@ -86,11 +86,17 @@ impl MainConfig {
         match utils::fetch_config::<Self>(Self::FILENAME) {
             Ok(config) => Ok(config),
             Err(e) => match e {
-                utils::ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
+                ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
                     utils::put_config::<Self>(Self::DEFAULT_CONFIG, Self::FILENAME)?;
                     println!("Update {:?} and start rustmission again", Self::path());
                     std::process::exit(0);
                 }
+                ConfigFetchingError::Toml(e) => Err(e).with_context(|| {
+                    format!(
+                        "Failed to parse config located at {:?}",
+                        utils::get_config_path(Self::FILENAME)
+                    )
+                }),
                 _ => anyhow::bail!(e),
             },
         }

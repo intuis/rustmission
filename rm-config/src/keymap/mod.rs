@@ -4,14 +4,15 @@ use std::{
     collections::HashMap, io::ErrorKind, marker::PhantomData, path::PathBuf, sync::OnceLock,
 };
 
-use anyhow::Result;
+use actions::search_tab::SearchAction;
+use anyhow::{Context, Result};
 use crossterm::event::{KeyCode, KeyModifiers as CrosstermKeyModifiers};
 use serde::{
     de::{self, Visitor},
     Deserialize, Serialize,
 };
 
-use crate::utils;
+use crate::utils::{self, ConfigFetchingError};
 use rm_shared::action::Action;
 
 use self::actions::{general::GeneralAction, torrents_tab::TorrentsAction};
@@ -20,8 +21,13 @@ use self::actions::{general::GeneralAction, torrents_tab::TorrentsAction};
 pub struct KeymapConfig {
     pub general: KeybindsHolder<GeneralAction>,
     pub torrents_tab: KeybindsHolder<TorrentsAction>,
+    pub search_tab: KeybindsHolder<SearchAction>,
     #[serde(skip)]
-    pub keymap: HashMap<(KeyCode, CrosstermKeyModifiers), Action>,
+    pub general_keymap: HashMap<(KeyCode, CrosstermKeyModifiers), Action>,
+    #[serde(skip)]
+    pub torrent_keymap: HashMap<(KeyCode, CrosstermKeyModifiers), Action>,
+    #[serde(skip)]
+    pub search_keymap: HashMap<(KeyCode, CrosstermKeyModifiers), Action>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -269,12 +275,18 @@ impl KeymapConfig {
                 Ok(keymap_config)
             }
             Err(e) => match e {
-                utils::ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
+                ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
                     let mut keymap_config =
                         utils::put_config::<Self>(Self::DEFAULT_CONFIG, Self::FILENAME)?;
                     keymap_config.populate_hashmap();
                     Ok(keymap_config)
                 }
+                ConfigFetchingError::Toml(e) => Err(e).with_context(|| {
+                    format!(
+                        "Failed to parse config located at {:?}",
+                        utils::get_config_path(Self::FILENAME)
+                    )
+                }),
                 _ => anyhow::bail!(e),
             },
         }
@@ -304,11 +316,18 @@ impl KeymapConfig {
     fn populate_hashmap(&mut self) {
         for keybinding in &self.general.keybindings {
             let hash_value = (keybinding.on, keybinding.modifier.into());
-            self.keymap.insert(hash_value, keybinding.action.into());
+            self.general_keymap
+                .insert(hash_value, keybinding.action.into());
         }
         for keybinding in &self.torrents_tab.keybindings {
             let hash_value = (keybinding.on, keybinding.modifier.into());
-            self.keymap.insert(hash_value, keybinding.action.into());
+            self.torrent_keymap
+                .insert(hash_value, keybinding.action.into());
+        }
+        for keybinding in &self.search_tab.keybindings {
+            let hash_value = (keybinding.on, keybinding.modifier.into());
+            self.search_keymap
+                .insert(hash_value, keybinding.action.into());
         }
     }
 

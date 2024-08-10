@@ -1,13 +1,14 @@
 use std::{error::Error, sync::Arc};
 
 use crossterm::event::KeyEvent;
-use magnetease::{Magnet, MagneteaseError, MagneteaseResult};
+use magnetease::{MagneteaseError, MagneteaseResult};
 use transmission_rpc::types::{FreeSpace, SessionStats, Torrent};
 
 use crate::status_task::StatusTask;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
+    // General
     HardQuit,
     Quit,
     Close,
@@ -23,22 +24,25 @@ pub enum Action {
     Confirm,
     Select,
     ShowHelp,
+    Search,
+    ChangeFocus,
+    ChangeTab(u8),
+    XdgOpen,
+    Input(KeyEvent),
+    // Torrents Tab
     ShowStats,
     ShowFiles,
-    Search,
     Pause,
     DeleteWithoutFiles,
     DeleteWithFiles,
-    ChangeFocus,
     AddMagnet,
     MoveTorrent,
-    ChangeTab(u8),
-    Input(KeyEvent),
-    XdgOpen,
+    // Search Tab
+    ShowProvidersInfo,
 }
 
 pub enum UpdateAction {
-    // Global
+    // General
     SwitchToInputMode,
     SwitchToNormalMode,
     Error(Box<ErrorMessage>),

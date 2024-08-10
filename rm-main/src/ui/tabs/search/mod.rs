@@ -1,4 +1,5 @@
 mod bottom_bar;
+mod popups;
 
 use std::borrow::Cow;
 
@@ -9,6 +10,7 @@ use magnetease::{
     providers::{Knaben, Nyaa},
     Magnet, MagneteaseErrorKind, Provider,
 };
+use popups::PopupManager;
 use ratatui::{
     layout::Flex,
     prelude::*,
@@ -42,6 +44,7 @@ pub(crate) struct SearchTab {
     input: Input,
     search_query_rx: UnboundedSender<String>,
     table: GenericTable<Magnet>,
+    popup_manager: PopupManager,
     bottom_bar: BottomBar,
     currently_displaying_no: u16,
     ctx: app::Ctx,
@@ -85,6 +88,7 @@ impl SearchTab {
             bottom_bar,
             search_query_rx: search_query_tx,
             currently_displaying_no: 0,
+            popup_manager: PopupManager::new(ctx.clone()),
             ctx,
         }
     }
@@ -181,11 +185,22 @@ impl SearchTab {
             let _ = open::that_detached(&magnet.url);
         }
     }
+
+    fn show_providers_info(&mut self) {
+        self.popup_manager.show_providers_info_popup();
+        self.ctx.send_action(Action::Render);
+    }
 }
 
 impl Component for SearchTab {
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
+
+        if self.popup_manager.is_showing_popup() {
+            self.popup_manager.handle_actions(action);
+            return ComponentAction::Nothing;
+        }
+
         match action {
             A::Quit => self.ctx.send_action(Action::Quit),
             A::Search => self.start_search(),
@@ -199,6 +214,7 @@ impl Component for SearchTab {
             A::End => self.scroll_to_end(),
             A::Confirm => self.add_torrent(),
             A::XdgOpen => self.xdg_open(),
+            A::ShowProvidersInfo => self.show_providers_info(),
 
             _ => (),
         };
@@ -333,6 +349,7 @@ impl Component for SearchTab {
         f.render_stateful_widget(table, rest, &mut self.table.state.borrow_mut());
 
         self.bottom_bar.render(f, bottom_line);
+        self.popup_manager.render(f, f.size());
     }
 }
 

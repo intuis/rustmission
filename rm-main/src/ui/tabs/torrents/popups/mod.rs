@@ -37,7 +37,7 @@ impl PopupManager {
     }
 
     pub fn close_popup(&mut self) {
-        self.current_popup = None
+        self.current_popup = None;
     }
 }
 
