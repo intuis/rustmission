@@ -1,10 +1,13 @@
+mod bottom_bar;
+
 use std::borrow::Cow;
 
+use bottom_bar::BottomBar;
 use crossterm::event::{KeyCode, KeyEvent};
 use futures::{stream::FuturesUnordered, StreamExt};
 use magnetease::{
     providers::{Knaben, Nyaa},
-    Magnet, MagneteaseError, MagneteaseErrorKind, Provider,
+    Magnet, MagneteaseErrorKind, Provider,
 };
 use ratatui::{
     layout::Flex,
@@ -12,7 +15,6 @@ use ratatui::{
     widgets::{Cell, Paragraph, Row, Table},
 };
 use reqwest::Client;
-use throbber_widgets_tui::ThrobberState;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::Input;
 
@@ -40,7 +42,7 @@ pub(crate) struct SearchTab {
     input: Input,
     search_query_rx: UnboundedSender<String>,
     table: GenericTable<Magnet>,
-    search_result_info: SearchResultState,
+    bottom_bar: BottomBar,
     currently_displaying_no: u16,
     ctx: app::Ctx,
 }
@@ -50,7 +52,7 @@ impl SearchTab {
         let (search_query_tx, mut search_query_rx) = mpsc::unbounded_channel::<String>();
         let table = GenericTable::new(vec![]);
         let providers: &[&(dyn Provider + Send + Sync)] = &[&Knaben, &Nyaa];
-        let search_result_info = SearchResultState::new(ctx.clone(), &providers);
+        let bottom_bar = BottomBar::new(ctx.clone(), &providers);
 
         tokio::task::spawn({
             let ctx = ctx.clone();
@@ -80,7 +82,7 @@ impl SearchTab {
             focus: SearchTabFocus::List,
             input: Input::default(),
             table,
-            search_result_info,
+            bottom_bar,
             search_query_rx: search_query_tx,
             currently_displaying_no: 0,
             ctx,
@@ -206,9 +208,9 @@ impl Component for SearchTab {
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
             UpdateAction::SearchStarted => {
-                self.search_result_info.searching(ThrobberState::default());
                 self.table.items.drain(..);
-                self.search_result_info.provider_results.drain(..);
+                self.bottom_bar
+                    .handle_update_action(UpdateAction::SearchStarted);
             }
             UpdateAction::ProviderResult(response) => {
                 let provider_result = ProviderResult {
@@ -217,7 +219,8 @@ impl Component for SearchTab {
                     error: None,
                 };
 
-                self.search_result_info
+                self.bottom_bar
+                    .search_state
                     .provider_results
                     .push(provider_result);
 
@@ -231,15 +234,16 @@ impl Component for SearchTab {
                     error: Some(e.kind),
                 };
 
-                self.search_result_info
+                self.bottom_bar
+                    .search_state
                     .provider_results
                     .push(provider_result);
             }
             UpdateAction::SearchFinished => {
                 if self.table.items.is_empty() {
-                    self.search_result_info.not_found();
+                    self.bottom_bar.search_state.not_found();
                 } else {
-                    self.search_result_info.found(self.table.items.len());
+                    self.bottom_bar.search_state.found(self.table.items.len());
                 }
             }
             _ => (),
@@ -247,7 +251,7 @@ impl Component for SearchTab {
     }
 
     fn tick(&mut self) {
-        self.search_result_info.tick();
+        self.bottom_bar.tick();
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
@@ -328,89 +332,12 @@ impl Component for SearchTab {
 
         f.render_stateful_widget(table, rest, &mut self.table.state.borrow_mut());
 
-        self.search_result_info.render(f, bottom_line);
+        self.bottom_bar.render(f, bottom_line);
     }
-}
-
-#[derive(Clone)]
-enum SearchResultStatus {
-    Nothing,
-    NoResults,
-    Searching(ThrobberState),
-    Found(usize),
-}
-
-struct SearchResultState {
-    ctx: app::Ctx,
-    status: SearchResultStatus,
-    provider_results: Vec<ProviderResult>,
-    providers_count: usize,
 }
 
 struct ProviderResult {
     name: &'static str,
     found: usize,
     error: Option<MagneteaseErrorKind>,
-}
-
-impl SearchResultState {
-    fn new(ctx: app::Ctx, providers: &[&(dyn Provider + Send + Sync)]) -> Self {
-        Self {
-            ctx,
-            provider_results: vec![],
-            providers_count: providers.len(),
-            status: SearchResultStatus::Nothing,
-        }
-    }
-
-    fn searching(&mut self, state: ThrobberState) {
-        self.status = SearchResultStatus::Searching(state);
-    }
-
-    fn not_found(&mut self) {
-        self.status = SearchResultStatus::NoResults;
-    }
-
-    fn found(&mut self, count: usize) {
-        self.status = SearchResultStatus::Found(count);
-    }
-}
-
-impl Component for SearchResultState {
-    fn render(&mut self, f: &mut Frame, rect: Rect) {
-        match &mut self.status {
-            SearchResultStatus::Nothing => (),
-            SearchResultStatus::Searching(ref mut state) => {
-                let label = format!(
-                    "Searching... {:.0}%",
-                    self.provider_results.len() / self.providers_count
-                );
-                let default_throbber = throbber_widgets_tui::Throbber::default()
-                    .label(label)
-                    .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
-                f.render_stateful_widget(default_throbber.clone(), rect, state);
-            }
-            SearchResultStatus::NoResults => {
-                let mut line = Line::default();
-                line.push_span(Span::styled("", Style::default().red()));
-                line.push_span(Span::raw(" No results"));
-                let paragraph = Paragraph::new(line);
-                f.render_widget(paragraph, rect);
-            }
-            SearchResultStatus::Found(count) => {
-                let mut line = Line::default();
-                line.push_span(Span::styled("", Style::default().green()));
-                line.push_span(Span::raw(format!(" Found {count}")));
-                let paragraph = Paragraph::new(line);
-                f.render_widget(paragraph, rect);
-            }
-        }
-    }
-
-    fn tick(&mut self) {
-        if let SearchResultStatus::Searching(state) = &mut self.status {
-            state.calc_next();
-            self.ctx.send_action(Action::Render);
-        }
-    }
 }
