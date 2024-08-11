@@ -1,7 +1,6 @@
 mod providers;
 
 use providers::ProvidersPopup;
-use ratatui::prelude::Rect;
 use ratatui::prelude::*;
 use ratatui::Frame;
 use rm_shared::action::Action;
@@ -10,6 +9,8 @@ use crate::{
     app,
     ui::components::{Component, ComponentAction},
 };
+
+use super::ConfiguredProvider;
 
 pub struct PopupManager {
     ctx: app::Ctx,
@@ -36,9 +37,10 @@ impl PopupManager {
         self.current_popup = Some(popup);
     }
 
-    pub fn show_providers_info_popup(&mut self) {
+    pub fn show_providers_info_popup(&mut self, providers: Vec<ConfiguredProvider>) {
         self.show_popup(CurrentPopup::Providers(ProvidersPopup::new(
             self.ctx.clone(),
+            providers,
         )));
     }
 

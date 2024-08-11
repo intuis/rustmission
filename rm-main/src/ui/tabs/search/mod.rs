@@ -1,12 +1,12 @@
 mod bottom_bar;
 mod popups;
 
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use bottom_bar::BottomBar;
 use crossterm::event::{KeyCode, KeyEvent};
 use futures::{stream::FuturesUnordered, StreamExt};
-use magnetease::{Magnet, MagneteaseError, MagneteaseErrorKind, MagneteaseResult, WhichProvider};
+use magnetease::{Magnet, MagneteaseErrorKind, WhichProvider};
 use popups::PopupManager;
 use ratatui::{
     layout::Flex,
@@ -194,7 +194,8 @@ impl SearchTab {
     }
 
     fn show_providers_info(&mut self) {
-        self.popup_manager.show_providers_info_popup();
+        self.popup_manager
+            .show_providers_info_popup(self.configured_providers.clone());
         self.ctx.send_action(Action::Render);
     }
 
@@ -222,7 +223,7 @@ impl SearchTab {
     fn provider_state_error(&mut self, provider: WhichProvider, error: MagneteaseErrorKind) {
         for configured_provider in &mut self.configured_providers {
             if configured_provider.provider == provider {
-                configured_provider.provider_state = ProviderState::Error(Box::new(error));
+                configured_provider.provider_state = ProviderState::Error(Arc::new(error));
                 break;
             }
         }
@@ -384,6 +385,7 @@ impl Component for SearchTab {
     }
 }
 
+#[derive(Clone)]
 pub struct ConfiguredProvider {
     provider: WhichProvider,
     provider_state: ProviderState,
@@ -400,9 +402,10 @@ impl ConfiguredProvider {
     }
 }
 
+#[derive(Clone)]
 enum ProviderState {
     Idle,
     Searching,
     Found(u16),
-    Error(Box<MagneteaseErrorKind>),
+    Error(Arc<MagneteaseErrorKind>),
 }
