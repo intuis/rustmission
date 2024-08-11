@@ -6,10 +6,7 @@ use std::borrow::Cow;
 use bottom_bar::BottomBar;
 use crossterm::event::{KeyCode, KeyEvent};
 use futures::{stream::FuturesUnordered, StreamExt};
-use magnetease::{
-    providers::{Knaben, Nyaa},
-    Magnet, MagneteaseErrorKind, Provider,
-};
+use magnetease::{Magnet, MagneteaseError, MagneteaseErrorKind, MagneteaseResult, WhichProvider};
 use popups::PopupManager;
 use ratatui::{
     layout::Flex,
@@ -45,6 +42,7 @@ pub(crate) struct SearchTab {
     search_query_rx: UnboundedSender<String>,
     table: GenericTable<Magnet>,
     popup_manager: PopupManager,
+    configured_providers: Vec<ConfiguredProvider>,
     bottom_bar: BottomBar,
     currently_displaying_no: u16,
     ctx: app::Ctx,
@@ -54,8 +52,16 @@ impl SearchTab {
     pub(crate) fn new(ctx: app::Ctx) -> Self {
         let (search_query_tx, mut search_query_rx) = mpsc::unbounded_channel::<String>();
         let table = GenericTable::new(vec![]);
-        let providers: &[&(dyn Provider + Send + Sync)] = &[&Knaben, &Nyaa];
-        let bottom_bar = BottomBar::new(ctx.clone(), &providers);
+
+        let providers = vec![WhichProvider::Knaben, WhichProvider::Nyaa];
+
+        let mut configured_providers = vec![];
+
+        for provider in providers.clone() {
+            configured_providers.push(ConfiguredProvider::new(provider));
+        }
+
+        let bottom_bar = BottomBar::new(ctx.clone(), &configured_providers);
 
         tokio::task::spawn({
             let ctx = ctx.clone();
@@ -64,7 +70,7 @@ impl SearchTab {
                 while let Some(phrase) = search_query_rx.recv().await {
                     ctx.send_update_action(UpdateAction::SearchStarted);
                     let mut futures = FuturesUnordered::new();
-                    for provider in providers {
+                    for provider in &providers {
                         futures.push(provider.search(&client, &phrase));
                     }
 
@@ -90,6 +96,7 @@ impl SearchTab {
             currently_displaying_no: 0,
             popup_manager: PopupManager::new(ctx.clone()),
             ctx,
+            configured_providers,
         }
     }
 
@@ -190,6 +197,36 @@ impl SearchTab {
         self.popup_manager.show_providers_info_popup();
         self.ctx.send_action(Action::Render);
     }
+
+    fn providers_reset(&mut self) {
+        for configured_provider in &mut self.configured_providers {
+            configured_provider.provider_state = ProviderState::Idle;
+        }
+    }
+
+    fn providers_searching(&mut self) {
+        for configured_provider in &mut self.configured_providers {
+            configured_provider.provider_state = ProviderState::Searching;
+        }
+    }
+
+    fn provider_state_success(&mut self, provider: WhichProvider, results_count: u16) {
+        for configured_provider in &mut self.configured_providers {
+            if configured_provider.provider == provider {
+                configured_provider.provider_state = ProviderState::Found(results_count);
+                break;
+            }
+        }
+    }
+
+    fn provider_state_error(&mut self, provider: WhichProvider, error: MagneteaseErrorKind) {
+        for configured_provider in &mut self.configured_providers {
+            if configured_provider.provider == provider {
+                configured_provider.provider_state = ProviderState::Error(Box::new(error));
+                break;
+            }
+        }
+    }
 }
 
 impl Component for SearchTab {
@@ -225,35 +262,29 @@ impl Component for SearchTab {
         match action {
             UpdateAction::SearchStarted => {
                 self.table.items.drain(..);
+                self.providers_searching();
                 self.bottom_bar
                     .handle_update_action(UpdateAction::SearchStarted);
             }
             UpdateAction::ProviderResult(response) => {
-                let provider_result = ProviderResult {
-                    name: response.provider.name(),
-                    found: response.magnets.len(),
-                    error: None,
-                };
+                self.provider_state_success(
+                    response.provider,
+                    u16::try_from(response.magnets.len()).unwrap(),
+                );
 
                 self.bottom_bar
                     .search_state
-                    .provider_results
-                    .push(provider_result);
+                    .update_counts(&self.configured_providers);
 
                 self.table.items.extend(response.magnets);
                 self.table.items.sort_by(|a, b| b.seeders.cmp(&a.seeders));
             }
             UpdateAction::ProviderError(e) => {
-                let provider_result = ProviderResult {
-                    name: e.provider.name(),
-                    found: 0,
-                    error: Some(e.kind),
-                };
+                self.provider_state_error(e.provider, e.kind);
 
                 self.bottom_bar
                     .search_state
-                    .provider_results
-                    .push(provider_result);
+                    .update_counts(&self.configured_providers);
             }
             UpdateAction::SearchFinished => {
                 if self.table.items.is_empty() {
@@ -353,8 +384,25 @@ impl Component for SearchTab {
     }
 }
 
-struct ProviderResult {
-    name: &'static str,
-    found: usize,
-    error: Option<MagneteaseErrorKind>,
+pub struct ConfiguredProvider {
+    provider: WhichProvider,
+    provider_state: ProviderState,
+    enabled: bool,
+}
+
+impl ConfiguredProvider {
+    fn new(provider: WhichProvider) -> Self {
+        Self {
+            provider,
+            provider_state: ProviderState::Idle,
+            enabled: true,
+        }
+    }
+}
+
+enum ProviderState {
+    Idle,
+    Searching,
+    Found(u16),
+    Error(Box<MagneteaseErrorKind>),
 }

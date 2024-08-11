@@ -1,4 +1,3 @@
-use magnetease::Provider;
 use ratatui::{
     layout::Rect,
     style::{Style, Stylize},
@@ -11,14 +10,14 @@ use throbber_widgets_tui::ThrobberState;
 
 use crate::{app, ui::components::Component};
 
-use super::ProviderResult;
+use super::{ConfiguredProvider, ProviderState};
 
 pub struct BottomBar {
     pub search_state: SearchState,
 }
 
 impl BottomBar {
-    pub fn new(ctx: app::Ctx, providers: &[&(dyn Provider + Send + Sync)]) -> Self {
+    pub fn new(ctx: app::Ctx, providers: &Vec<ConfiguredProvider>) -> Self {
         Self {
             search_state: SearchState::new(ctx, providers),
         }
@@ -38,8 +37,9 @@ impl Component for BottomBar {
 pub struct SearchState {
     ctx: app::Ctx,
     stage: SearchStage,
-    pub provider_results: Vec<ProviderResult>,
-    providers_count: usize,
+    providers_finished: u8,
+    providers_errored: u8,
+    providers_count: u8,
 }
 
 #[derive(Clone)]
@@ -51,12 +51,32 @@ enum SearchStage {
 }
 
 impl SearchState {
-    fn new(ctx: app::Ctx, providers: &[&(dyn Provider + Send + Sync)]) -> Self {
+    fn new(ctx: app::Ctx, providers: &Vec<ConfiguredProvider>) -> Self {
+        let mut providers_count = 0u8;
+        for provider in providers {
+            if provider.enabled {
+                providers_count += 1;
+            }
+        }
+
         Self {
             ctx,
             stage: SearchStage::Nothing,
-            provider_results: vec![],
-            providers_count: providers.len(),
+            providers_errored: 0,
+            providers_finished: 0,
+            providers_count,
+        }
+    }
+
+    pub fn update_counts(&mut self, providers: &Vec<ConfiguredProvider>) {
+        for provider in providers {
+            if provider.enabled {
+                if matches!(provider.provider_state, ProviderState::Found(_)) {
+                    self.providers_finished += 1;
+                } else if matches!(provider.provider_state, ProviderState::Error(_)) {
+                    self.providers_errored += 1;
+                }
+            }
         }
     }
 
@@ -78,7 +98,6 @@ impl Component for SearchState {
         match action {
             UpdateAction::SearchStarted => {
                 self.searching();
-                self.provider_results.drain(..);
             }
             _ => (),
         };
@@ -90,7 +109,7 @@ impl Component for SearchState {
             SearchStage::Searching(ref mut state) => {
                 let label = format!(
                     "Searching... {:.0}%",
-                    self.provider_results.len() / self.providers_count
+                    self.providers_finished / self.providers_count
                 );
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label(label)
