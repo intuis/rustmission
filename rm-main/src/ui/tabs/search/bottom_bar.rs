@@ -95,11 +95,8 @@ impl SearchState {
 
 impl Component for SearchState {
     fn handle_update_action(&mut self, action: UpdateAction) {
-        match action {
-            UpdateAction::SearchStarted => {
-                self.searching();
-            }
-            _ => (),
+        if let UpdateAction::SearchStarted = action {
+            self.searching();
         };
     }
 

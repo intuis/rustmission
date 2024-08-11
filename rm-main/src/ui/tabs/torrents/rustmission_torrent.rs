@@ -52,8 +52,8 @@ impl RustmissionTorrent {
         let char_indices: Vec<usize> = self.torrent_name.char_indices().map(|(i, _)| i).collect();
         let mut last_end = 0;
         let mut flush_line = |start: usize, end: usize| {
-            let mut start = char_indices[start as usize];
-            let mut end = char_indices[end as usize];
+            let mut start = char_indices[start];
+            let mut end = char_indices[end];
             torrent_name_line.push_span(Span::styled(
                 &self.torrent_name[last_end..start],
                 self.style,

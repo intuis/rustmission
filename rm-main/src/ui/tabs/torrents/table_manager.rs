@@ -83,7 +83,7 @@ impl TableManager {
 
         if let Some(filter) = &self.filter {
             if filter.indexes.is_empty() {
-                return None;
+                None
             } else {
                 self.table
                     .items

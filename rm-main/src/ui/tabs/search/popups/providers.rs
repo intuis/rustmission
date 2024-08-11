@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Margin},
     prelude::Rect,
     style::{Style, Styled, Stylize},
-    text::{Line, Span, ToLine, ToSpan},
+    text::{Line, ToLine},
     widgets::{
         block::{Position, Title},
         Block, BorderType, Clear, Row, Table,
@@ -37,12 +37,12 @@ impl From<&ConfiguredProvider> for Row<'_> {
 
         name.push_span(value.provider.name());
 
-        let category = match value.provider.category() {
-            ProviderCategory::General => " General",
-            ProviderCategory::Anime => "󰎁 Anime",
+        let category: Line = match value.provider.category() {
+            ProviderCategory::General => " General".to_line(),
+            ProviderCategory::Anime => "󰎁 Anime".to_line(),
         };
 
-        let url = format!("({})", value.provider.display_url());
+        let url: Line = format!("({})", value.provider.display_url()).into();
 
         let status: Line = match &value.provider_state {
             _ if !value.enabled => "Disabled".into(),
@@ -55,10 +55,10 @@ impl From<&ConfiguredProvider> for Row<'_> {
                 line.push_span(")");
                 line
             }
-            ProviderState::Error(e) => e.to_string().into(),
+            ProviderState::Error(e) => e.to_string().red().into(),
         };
 
-        Row::new(vec![name, url.into(), category.into(), status.into()])
+        Row::new(vec![name, url, category, status])
     }
 }
 
