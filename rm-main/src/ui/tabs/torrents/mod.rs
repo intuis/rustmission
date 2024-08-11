@@ -74,6 +74,10 @@ impl Component for TorrentsTab {
             return ComponentAction::Nothing;
         }
 
+        if action.is_quit() {
+            self.ctx.send_action(Action::HardQuit);
+        }
+
         match action {
             A::Up => self.previous_torrent(),
             A::Down => self.next_torrent(),

@@ -44,38 +44,31 @@ impl From<&ConfiguredProvider> for Row<'_> {
 
         let url = format!("({})", value.provider.display_url());
 
-        let status: Span = match &value.provider_state {
+        let status: Line = match &value.provider_state {
             _ if !value.enabled => "Disabled".into(),
             ProviderState::Idle => "Idle".into(),
-            ProviderState::Searching => " Searching...".yellow(),
-            ProviderState::Found(_) => format!("Found").into(),
+            ProviderState::Searching => " Searching...".yellow().into(),
+            ProviderState::Found(count) => {
+                let mut line = Line::default();
+                line.push_span("Found(");
+                line.push_span(count.to_string().green());
+                line.push_span(")");
+                line
+            }
             ProviderState::Error(e) => e.to_string().into(),
         };
 
-        let padding = "";
-
-        let count = {
-            if let ProviderState::Found(count) = value.provider_state {
-                count.to_string().green()
-            } else {
-                "".into()
-            }
-        };
-
-        Row::new(vec![
-            name,
-            url.into(),
-            category.into(),
-            status.into(),
-            padding.into(),
-            count.into(),
-        ])
+        Row::new(vec![name, url.into(), category.into(), status.into()])
     }
 }
 
 impl ProvidersPopup {
     pub const fn new(ctx: app::Ctx, providers: Vec<ConfiguredProvider>) -> Self {
         Self { ctx, providers }
+    }
+
+    pub fn update_providers(&mut self, providers: Vec<ConfiguredProvider>) {
+        self.providers = providers;
     }
 }
 
@@ -104,12 +97,10 @@ impl Component for ProvidersPopup {
             );
 
         let widths = [
-            Constraint::Length(10),
-            Constraint::Length(15),
-            Constraint::Length(15),
-            Constraint::Length(15),
-            Constraint::Percentage(100),
-            Constraint::Length(4),
+            Constraint::Length(10), // Provider name (and icon status prefix)
+            Constraint::Length(15), // Provider URL
+            Constraint::Length(15), // Provider category
+            Constraint::Length(15), // Provider stuatus
         ];
 
         let rows: Vec<Row<'_>> = self

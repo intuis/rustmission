@@ -91,6 +91,10 @@ impl Action {
         *self == Self::Render
     }
 
+    pub fn is_hard_quit(&self) -> bool {
+        *self == Self::HardQuit
+    }
+
     pub fn is_quit(&self) -> bool {
         *self == Self::HardQuit || *self == Self::Quit
     }

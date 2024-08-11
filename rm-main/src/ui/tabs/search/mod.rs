@@ -7,7 +7,7 @@ use bottom_bar::BottomBar;
 use crossterm::event::{KeyCode, KeyEvent};
 use futures::{stream::FuturesUnordered, StreamExt};
 use magnetease::{Magnet, MagneteaseErrorKind, WhichProvider};
-use popups::PopupManager;
+use popups::{CurrentPopup, PopupManager};
 use ratatui::{
     layout::Flex,
     prelude::*,
@@ -199,12 +199,6 @@ impl SearchTab {
         self.ctx.send_action(Action::Render);
     }
 
-    fn providers_reset(&mut self) {
-        for configured_provider in &mut self.configured_providers {
-            configured_provider.provider_state = ProviderState::Idle;
-        }
-    }
-
     fn providers_searching(&mut self) {
         for configured_provider in &mut self.configured_providers {
             configured_provider.provider_state = ProviderState::Searching;
@@ -228,6 +222,12 @@ impl SearchTab {
             }
         }
     }
+
+    fn update_providers_popup(&mut self) {
+        if let Some(CurrentPopup::Providers(popup)) = &mut self.popup_manager.current_popup {
+            popup.update_providers(self.configured_providers.clone());
+        }
+    }
 }
 
 impl Component for SearchTab {
@@ -237,6 +237,10 @@ impl Component for SearchTab {
         if self.popup_manager.is_showing_popup() {
             self.popup_manager.handle_actions(action);
             return ComponentAction::Nothing;
+        }
+
+        if action.is_quit() {
+            self.ctx.send_action(Action::HardQuit);
         }
 
         match action {
@@ -262,10 +266,13 @@ impl Component for SearchTab {
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
             UpdateAction::SearchStarted => {
-                self.table.items.drain(..);
                 self.providers_searching();
+
+                self.table.items.drain(..);
+
                 self.bottom_bar
                     .handle_update_action(UpdateAction::SearchStarted);
+                self.update_providers_popup();
             }
             UpdateAction::ProviderResult(response) => {
                 self.provider_state_success(
@@ -276,6 +283,7 @@ impl Component for SearchTab {
                 self.bottom_bar
                     .search_state
                     .update_counts(&self.configured_providers);
+                self.update_providers_popup();
 
                 self.table.items.extend(response.magnets);
                 self.table.items.sort_by(|a, b| b.seeders.cmp(&a.seeders));
@@ -286,6 +294,7 @@ impl Component for SearchTab {
                 self.bottom_bar
                     .search_state
                     .update_counts(&self.configured_providers);
+                self.update_providers_popup();
             }
             UpdateAction::SearchFinished => {
                 if self.table.items.is_empty() {

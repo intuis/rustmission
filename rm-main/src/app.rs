@@ -143,8 +143,6 @@ impl App {
                     if let Some(action) = action {
                         if action.is_render() {
                             self.render(tui)?;
-                        } else if action.is_quit() {
-                            self.should_quit = true;
                         } else {
                             self.handle_user_action(action).await
                         }

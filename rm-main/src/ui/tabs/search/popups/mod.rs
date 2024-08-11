@@ -14,7 +14,7 @@ use super::ConfiguredProvider;
 
 pub struct PopupManager {
     ctx: app::Ctx,
-    current_popup: Option<CurrentPopup>,
+    pub current_popup: Option<CurrentPopup>,
 }
 
 pub enum CurrentPopup {
