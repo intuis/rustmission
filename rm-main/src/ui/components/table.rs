@@ -50,6 +50,8 @@ impl<T: Clone> GenericTable<T> {
             } else {
                 state.select(Some(curr + 1));
             }
+        } else {
+            state.select(Some(0));
         }
     }
 
@@ -67,6 +69,8 @@ impl<T: Clone> GenericTable<T> {
             } else {
                 state.select(Some(curr - 1));
             }
+        } else {
+            state.select(Some(0));
         }
     }
 

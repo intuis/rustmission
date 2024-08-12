@@ -1,7 +1,10 @@
 mod bottom_bar;
 mod popups;
 
-use std::{borrow::Cow, sync::Arc};
+use std::{
+    borrow::{BorrowMut, Cow},
+    sync::Arc,
+};
 
 use bottom_bar::BottomBar;
 use crossterm::event::{KeyCode, KeyEvent};
@@ -269,6 +272,7 @@ impl Component for SearchTab {
                 self.providers_searching();
 
                 self.table.items.drain(..);
+                self.table.state.borrow_mut().select(None);
 
                 self.bottom_bar
                     .handle_update_action(UpdateAction::SearchStarted);
@@ -287,6 +291,11 @@ impl Component for SearchTab {
 
                 self.table.items.extend(response.magnets);
                 self.table.items.sort_by(|a, b| b.seeders.cmp(&a.seeders));
+
+                let mut state = self.table.state.borrow_mut();
+                if !self.table.items.is_empty() && state.selected().is_none() {
+                    state.select(Some(0))
+                }
             }
             UpdateAction::ProviderError(e) => {
                 self.provider_state_error(e.provider, e.kind);
