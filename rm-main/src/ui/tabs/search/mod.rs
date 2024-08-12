@@ -1,10 +1,7 @@
 mod bottom_bar;
 mod popups;
 
-use std::{
-    borrow::{BorrowMut, Cow},
-    sync::Arc,
-};
+use std::{borrow::Cow, sync::Arc};
 
 use bottom_bar::BottomBar;
 use crossterm::event::{KeyCode, KeyEvent};

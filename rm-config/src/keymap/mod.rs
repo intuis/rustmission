@@ -41,6 +41,7 @@ pub struct Keybinding<T: Into<Action>> {
     #[serde(default)]
     pub modifier: KeyModifier,
     pub action: T,
+    pub show_in_help: bool,
 }
 
 impl<T: Into<Action>> Keybinding<T> {
@@ -90,11 +91,12 @@ impl<T: Into<Action>> Keybinding<T> {
 }
 
 impl<T: Into<Action>> Keybinding<T> {
-    fn new(on: KeyCode, action: T, modifier: Option<KeyModifier>) -> Self {
+    fn new(on: KeyCode, action: T, modifier: Option<KeyModifier>, show_in_help: bool) -> Self {
         Self {
             on,
             modifier: modifier.unwrap_or(KeyModifier::None),
             action,
+            show_in_help,
         }
     }
 }
@@ -105,11 +107,12 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
         D: serde::Deserializer<'de>,
     {
         #[derive(Deserialize)]
-        #[serde(field_identifier, rename_all = "lowercase")]
+        #[serde(field_identifier, rename_all = "snake_case")]
         enum Field {
             On,
             Modifier,
             Action,
+            ShowInHelp,
         }
 
         struct KeybindingVisitor<T> {
@@ -130,6 +133,7 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
                 let mut on = None;
                 let mut modifier = None;
                 let mut action = None;
+                let mut show_in_help = None;
                 while let Some(key) = map.next_key()? {
                     match key {
                         Field::On => {
@@ -187,11 +191,18 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
                             }
                             action = Some(map.next_value());
                         }
+                        Field::ShowInHelp => {
+                            if show_in_help.is_some() {
+                                return Err(de::Error::duplicate_field("action"));
+                            }
+                            show_in_help = Some(map.next_value());
+                        }
                     }
                 }
                 let on = on.ok_or_else(|| de::Error::missing_field("on"))?;
                 let action = action.ok_or_else(|| de::Error::missing_field("action"))??;
                 let modifier = modifier.transpose().unwrap();
+                let show_in_help = show_in_help.transpose().unwrap().unwrap_or(true);
 
                 if modifier.is_some() {
                     if let KeyCode::Char(char) = on {
@@ -203,7 +214,7 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
                     }
                 }
 
-                Ok(Keybinding::new(on, action, modifier))
+                Ok(Keybinding::new(on, action, modifier, show_in_help))
             }
         }
 
@@ -301,6 +312,11 @@ impl KeymapConfig {
             }
         }
         for keybinding in &self.torrents_tab.keybindings {
+            if action == keybinding.action.into() {
+                keys.push(keybinding.keycode_string());
+            }
+        }
+        for keybinding in &self.search_tab.keybindings {
             if action == keybinding.action.into() {
                 keys.push(keybinding.keycode_string());
             }

@@ -101,6 +101,24 @@ impl Component for SearchState {
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
+        let append_key_info = |line: &mut Line| {
+            let providers_key = self
+                .ctx
+                .config
+                .keybindings
+                .get_keys_for_action(Action::ShowProvidersInfo);
+            if let Some(key) = providers_key {
+                line.push_span(Span::raw("Press "));
+                line.push_span(Span::styled(
+                    key,
+                    Style::default()
+                        .fg(self.ctx.config.general.accent_color)
+                        .underlined(),
+                ));
+                line.push_span(Span::raw(" for details."))
+            }
+        };
+
         match &mut self.stage {
             SearchStage::Nothing => (),
             SearchStage::Searching(ref mut state) => {
@@ -116,14 +134,16 @@ impl Component for SearchState {
             SearchStage::NoResults => {
                 let mut line = Line::default();
                 line.push_span(Span::styled("", Style::default().red()));
-                line.push_span(Span::raw(" No results"));
+                line.push_span(Span::raw(" No results."));
+                append_key_info(&mut line);
                 let paragraph = Paragraph::new(line);
                 f.render_widget(paragraph, rect);
             }
             SearchStage::Found(count) => {
                 let mut line = Line::default();
                 line.push_span(Span::styled("", Style::default().green()));
-                line.push_span(Span::raw(format!(" Found {count}")));
+                line.push_span(Span::raw(format!(" Found {count}. ")));
+                append_key_info(&mut line);
                 let paragraph = Paragraph::new(line);
                 f.render_widget(paragraph, rect);
             }
