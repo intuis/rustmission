@@ -53,25 +53,37 @@ impl SearchTab {
         let (search_query_tx, mut search_query_rx) = mpsc::unbounded_channel::<String>();
         let table = GenericTable::new(vec![]);
 
-        let providers = vec![WhichProvider::Knaben, WhichProvider::Nyaa];
-
         let mut configured_providers = vec![];
 
-        for provider in providers.clone() {
-            configured_providers.push(ConfiguredProvider::new(provider));
+        for provider in WhichProvider::all() {
+            configured_providers.push(ConfiguredProvider::new(provider.clone(), false));
+        }
+
+        for configured_provider in &mut configured_providers {
+            if ctx
+                .config
+                .search_tab
+                .providers
+                .contains(&configured_provider.provider)
+            {
+                configured_provider.enabled = true;
+            }
         }
 
         let bottom_bar = BottomBar::new(ctx.clone(), &configured_providers);
 
         tokio::task::spawn({
             let ctx = ctx.clone();
+            let configured_providers = configured_providers.clone();
             async move {
                 let client = Client::new();
                 while let Some(phrase) = search_query_rx.recv().await {
                     ctx.send_update_action(UpdateAction::SearchStarted);
                     let mut futures = FuturesUnordered::new();
-                    for provider in &providers {
-                        futures.push(provider.search(&client, &phrase));
+                    for configured_provider in &configured_providers {
+                        if configured_provider.enabled {
+                            futures.push(configured_provider.provider.search(&client, &phrase));
+                        }
                     }
 
                     while let Some(result) = futures.next().await {
@@ -201,7 +213,9 @@ impl SearchTab {
 
     fn providers_searching(&mut self) {
         for configured_provider in &mut self.configured_providers {
-            configured_provider.provider_state = ProviderState::Searching;
+            if configured_provider.enabled {
+                configured_provider.provider_state = ProviderState::Searching;
+            }
         }
     }
 
@@ -408,11 +422,11 @@ pub struct ConfiguredProvider {
 }
 
 impl ConfiguredProvider {
-    fn new(provider: WhichProvider) -> Self {
+    fn new(provider: WhichProvider, enabled: bool) -> Self {
         Self {
             provider,
             provider_state: ProviderState::Idle,
-            enabled: true,
+            enabled,
         }
     }
 }

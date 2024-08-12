@@ -1625,6 +1625,7 @@ version = "0.4.3"
 dependencies = [
  "anyhow",
  "crossterm",
+ "magnetease",
  "ratatui",
  "rm-shared",
  "serde",

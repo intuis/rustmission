@@ -1,6 +1,7 @@
 use std::{io::ErrorKind, path::PathBuf, sync::OnceLock};
 
 use anyhow::{Context, Result};
+use magnetease::WhichProvider;
 use ratatui::style::Color;
 use rm_shared::header::Header;
 use serde::Deserialize;
@@ -14,6 +15,8 @@ pub struct MainConfig {
     pub connection: Connection,
     #[serde(default)]
     pub torrents_tab: TorrentsTab,
+    #[serde(default)]
+    pub search_tab: SearchTab,
 }
 
 #[derive(Deserialize)]
@@ -74,6 +77,23 @@ impl Default for TorrentsTab {
     fn default() -> Self {
         Self {
             headers: default_headers(),
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct SearchTab {
+    pub providers: Vec<WhichProvider>,
+}
+
+fn default_providers() -> Vec<WhichProvider> {
+    vec![WhichProvider::Knaben, WhichProvider::Nyaa]
+}
+
+impl Default for SearchTab {
+    fn default() -> Self {
+        Self {
+            providers: default_providers(),
         }
     }
 }

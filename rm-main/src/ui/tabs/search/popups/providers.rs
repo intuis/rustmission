@@ -29,6 +29,7 @@ pub struct ProvidersPopup {
 impl From<&ConfiguredProvider> for Row<'_> {
     fn from(value: &ConfiguredProvider) -> Self {
         let mut name: Line = match value.provider_state {
+            _ if !value.enabled => " 󰪎 ".into(),
             ProviderState::Idle => " 󱗼 ".yellow().into(),
             ProviderState::Searching => "  ".yellow().into(),
             ProviderState::Found(_) => "  ".green().into(),
@@ -58,7 +59,13 @@ impl From<&ConfiguredProvider> for Row<'_> {
             ProviderState::Error(e) => e.to_string().red().into(),
         };
 
-        Row::new(vec![name, url, category, status])
+        let row = Row::new(vec![name, url, category, status]);
+
+        if value.enabled {
+            row
+        } else {
+            row.dark_gray()
+        }
     }
 }
 
