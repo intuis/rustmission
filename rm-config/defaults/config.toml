@@ -33,3 +33,8 @@ free_space_refresh = 10
 # Padding, UploadRatio, UploadedEver, AddedDate, ActivityDate, PeersConnected
 # SmallStatus
 headers = ["Name", "SizeWhenDone", "Progress", "DownloadRate", "UploadRate"]
+
+[search_tab]
+# If you uncomment this, providers won't be automatically added in future
+# versions of Rustmission.
+# providers = ["Knaben", "Nyaa"]
