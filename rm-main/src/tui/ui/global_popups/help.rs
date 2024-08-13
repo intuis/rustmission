@@ -80,14 +80,13 @@ impl HelpPopup {
                 .push(keybinding.keycode_string());
         }
 
-        for (_, keycodes) in &keys {
-            let delimiter_len;
+        for keycodes in keys.values() {
             let mut keycodes_total_len = 0;
-            if keycodes.len() >= 2 {
-                delimiter_len = (keycodes.len() - 1) * 3;
+            let delimiter_len = if keycodes.len() >= 2 {
+                (keycodes.len() - 1) * 3
             } else {
-                delimiter_len = 0;
-            }
+                0
+            };
 
             for keycode in keycodes {
                 keycodes_total_len += keycode.chars().count();

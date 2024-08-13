@@ -3,11 +3,9 @@ pub mod global_popups;
 pub mod tabs;
 
 use components::ComponentAction;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use global_popups::ErrorPopup;
 use ratatui::prelude::*;
 use tabs::torrents::TorrentsTab;
-use tui_input::InputRequest;
 
 use rm_shared::action::{Action, UpdateAction};
 
@@ -99,17 +97,17 @@ impl Component for MainWindow {
     }
 }
 
-const fn to_input_request(key_event: KeyEvent) -> Option<InputRequest> {
-    use InputRequest as R;
+// const fn to_input_request(key_event: KeyEvent) -> Option<InputRequest> {
+//     use InputRequest as R;
 
-    match (key_event.code, key_event.modifiers) {
-        (KeyCode::Backspace, KeyModifiers::ALT) => Some(R::DeletePrevWord),
-        (KeyCode::Backspace, _) => Some(R::DeletePrevChar),
-        (KeyCode::Delete, _) => Some(R::DeleteNextChar),
-        (KeyCode::Char(char), _) => Some(R::InsertChar(char)),
-        _ => None,
-    }
-}
+//     match (key_event.code, key_event.modifiers) {
+//         (KeyCode::Backspace, KeyModifiers::ALT) => Some(R::DeletePrevWord),
+//         (KeyCode::Backspace, _) => Some(R::DeletePrevChar),
+//         (KeyCode::Delete, _) => Some(R::DeleteNextChar),
+//         (KeyCode::Char(char), _) => Some(R::InsertChar(char)),
+//         _ => None,
+//     }
+// }
 
 fn centered_rect(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
     let popup_layout = Layout::vertical([

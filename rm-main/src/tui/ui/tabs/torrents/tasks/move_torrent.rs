@@ -13,7 +13,6 @@ use crate::{
         ui::{
             components::{Component, ComponentAction},
             tabs::torrents::input_manager::InputManager,
-            to_input_request,
         },
     },
 };
@@ -46,19 +45,15 @@ impl MoveBar {
             let task = StatusTask::new_move(new_location);
             self.ctx.send_update_action(UpdateAction::TaskSet(task));
 
-            return ComponentAction::Quit;
-        }
-
-        if input.code == KeyCode::Esc {
-            return ComponentAction::Quit;
-        }
-
-        if let Some(req) = to_input_request(input) {
-            self.input_mgr.handle(req);
+            ComponentAction::Quit
+        } else if input.code == KeyCode::Esc {
+            ComponentAction::Quit
+        } else if self.input_mgr.handle_key(input).is_some() {
             self.ctx.send_action(Action::Render);
+            ComponentAction::Nothing
+        } else {
+            ComponentAction::Nothing
         }
-
-        ComponentAction::Nothing
     }
 }
 

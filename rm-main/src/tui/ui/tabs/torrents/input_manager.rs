@@ -1,9 +1,10 @@
+use crossterm::event::{Event, KeyEvent};
 use ratatui::{
     prelude::*,
     widgets::{Clear, Paragraph},
 };
 use rm_config::CONFIG;
-use tui_input::{Input, InputRequest};
+use tui_input::{backend::crossterm::to_input_request, Input, InputResponse};
 
 use crate::tui::ui::components::Component;
 
@@ -31,8 +32,14 @@ impl InputManager {
         self.input.to_string()
     }
 
-    pub fn handle(&mut self, req: InputRequest) {
-        self.input.handle(req);
+    pub fn handle_key(&mut self, key: KeyEvent) -> InputResponse {
+        let event = Event::Key(key);
+
+        if let Some(req) = to_input_request(&event) {
+            self.input.handle(req)
+        } else {
+            None
+        }
     }
 }
 

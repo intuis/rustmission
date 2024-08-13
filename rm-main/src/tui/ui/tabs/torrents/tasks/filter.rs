@@ -8,7 +8,6 @@ use crate::tui::{
     ui::{
         components::{Component, ComponentAction},
         tabs::torrents::{input_manager::InputManager, table_manager::Filter},
-        to_input_request,
     },
 };
 
@@ -40,16 +39,14 @@ impl Component for FilterBar {
                     if self.input.text().is_empty() {
                         self.ctx.send_update_action(UpdateAction::SearchFilterClear);
                     }
-                    return ComponentAction::Quit;
-                }
-
-                if let Some(req) = to_input_request(input) {
-                    self.input.handle(req);
+                    ComponentAction::Quit
+                } else if self.input.handle_key(input).is_some() {
                     self.ctx
                         .send_update_action(UpdateAction::SearchFilterApply(self.input.text()));
+                    ComponentAction::Nothing
+                } else {
+                    ComponentAction::Nothing
                 }
-
-                ComponentAction::Nothing
             }
             _ => ComponentAction::Nothing,
         }

@@ -4,7 +4,7 @@ mod popups;
 use std::{borrow::Cow, sync::Arc};
 
 use bottom_bar::BottomBar;
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{Event, KeyCode, KeyEvent};
 use futures::{stream::FuturesUnordered, StreamExt};
 use magnetease::{Magnet, MagneteaseErrorKind, WhichProvider};
 use popups::{CurrentPopup, PopupManager};
@@ -16,16 +16,13 @@ use ratatui::{
 use reqwest::Client;
 use rm_config::CONFIG;
 use tokio::sync::mpsc::{self, UnboundedSender};
-use tui_input::Input;
+use tui_input::{backend::crossterm::to_input_request, Input};
 
 use crate::{
     transmission::TorrentAction,
     tui::{
         app,
-        ui::{
-            components::{table::GenericTable, Component, ComponentAction},
-            to_input_request,
-        },
+        ui::components::{table::GenericTable, Component, ComponentAction},
     },
 };
 use rm_shared::{
@@ -59,7 +56,7 @@ impl SearchTab {
         let mut configured_providers = vec![];
 
         for provider in WhichProvider::all() {
-            configured_providers.push(ConfiguredProvider::new(provider.clone(), false));
+            configured_providers.push(ConfiguredProvider::new(provider, false));
         }
 
         for configured_provider in &mut configured_providers {
@@ -156,7 +153,8 @@ impl SearchTab {
                     .send_update_action(UpdateAction::SwitchToNormalMode);
             }
             _ => {
-                if let Some(req) = to_input_request(input) {
+                let event = Event::Key(input);
+                if let Some(req) = to_input_request(&event) {
                     self.input.handle(req);
                     self.ctx.send_action(A::Render);
                 }

@@ -8,7 +8,6 @@ use crate::{
         ui::{
             components::{Component, ComponentAction},
             tabs::torrents::input_manager::InputManager,
-            to_input_request,
         },
     },
 };
@@ -60,10 +59,8 @@ impl AddMagnetBar {
             return ComponentAction::Quit;
         }
 
-        if let Some(req) = to_input_request(input) {
-            self.input_magnet_mgr.handle(req);
+        if let Some(_) = self.input_magnet_mgr.handle_key(input) {
             self.ctx.send_action(Action::Render);
-            return ComponentAction::Nothing;
         }
 
         ComponentAction::Nothing
@@ -80,22 +77,15 @@ impl AddMagnetBar {
             let task = StatusTask::new_add(self.input_magnet_mgr.text());
             self.ctx.send_update_action(UpdateAction::TaskSet(task));
 
-            let update_action = UpdateAction::SwitchToNormalMode;
-            self.ctx.send_update_action(update_action);
-
-            return ComponentAction::Quit;
-        }
-        if input.code == KeyCode::Esc {
-            return ComponentAction::Quit;
-        }
-
-        if let Some(req) = to_input_request(input) {
-            self.input_location_mgr.handle(req);
+            ComponentAction::Quit
+        } else if input.code == KeyCode::Esc {
+            ComponentAction::Quit
+        } else if self.input_location_mgr.handle_key(input).is_some() {
             self.ctx.send_action(Action::Render);
-            return ComponentAction::Nothing;
+            ComponentAction::Nothing
+        } else {
+            ComponentAction::Nothing
         }
-
-        ComponentAction::Nothing
     }
 }
 
