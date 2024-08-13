@@ -4,8 +4,7 @@ use transmission_rpc::types::Id;
 
 use crate::transmission::TorrentAction;
 use crate::tui::app;
-use crate::tui::components::{Component, ComponentAction};
-use crate::tui::tabs::torrents::input_manager::InputManager;
+use crate::tui::components::{Component, ComponentAction, InputManager};
 use rm_shared::action::{Action, UpdateAction};
 use rm_shared::status_task::StatusTask;
 
@@ -80,7 +79,7 @@ impl Component for DeleteBar {
                     }
                 }
 
-                if let Some(_) = self.input_mgr.handle_key(input) {
+                if self.input_mgr.handle_key(input).is_some() {
                     self.ctx.send_action(Action::Render);
                 }
 

@@ -1,5 +1,10 @@
-pub mod table;
-pub mod tabs;
+mod input_manager;
+mod table;
+mod tabs;
+
+pub use input_manager::InputManager;
+pub use table::GenericTable;
+pub use tabs::{CurrentTab, TabComponent};
 
 use ratatui::prelude::*;
 use ratatui::Frame;

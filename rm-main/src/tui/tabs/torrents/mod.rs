@@ -1,5 +1,4 @@
 mod bottom_stats;
-mod input_manager;
 pub mod popups;
 pub mod rustmission_torrent;
 pub mod table_manager;

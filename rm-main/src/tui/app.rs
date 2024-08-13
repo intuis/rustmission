@@ -13,7 +13,7 @@ use crossterm::event::{Event, KeyCode, KeyModifiers};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use transmission_rpc::{types::SessionGet, TransClient};
 
-use super::{components::tabs::CurrentTab, main_window::MainWindow, terminal::Tui};
+use super::{components::CurrentTab, main_window::MainWindow, terminal::Tui};
 
 #[derive(Clone)]
 pub struct Ctx {

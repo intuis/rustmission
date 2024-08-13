@@ -5,8 +5,8 @@ use rm_shared::action::{Action, UpdateAction};
 
 use crate::tui::{
     app,
-    components::{Component, ComponentAction},
-    tabs::torrents::{input_manager::InputManager, table_manager::Filter},
+    components::{Component, ComponentAction, InputManager},
+    tabs::torrents::table_manager::Filter,
 };
 
 pub struct FilterBar {

@@ -2,11 +2,11 @@ use ratatui::prelude::*;
 
 use rm_shared::action::{Action, UpdateAction};
 
-use crate::tui::components::tabs::CurrentTab;
+use crate::tui::components::CurrentTab;
 
 use super::{
     app,
-    components::{tabs::TabComponent, Component, ComponentAction},
+    components::{Component, ComponentAction, TabComponent},
     global_popups::{ErrorPopup, GlobalPopupManager},
     tabs::{search::SearchTab, torrents::TorrentsTab},
 };

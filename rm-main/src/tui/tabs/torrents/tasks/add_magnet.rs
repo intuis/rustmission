@@ -5,8 +5,7 @@ use crate::{
     transmission::TorrentAction,
     tui::{
         app,
-        components::{Component, ComponentAction},
-        tabs::torrents::input_manager::InputManager,
+        components::{Component, ComponentAction, InputManager},
     },
 };
 use rm_shared::{
@@ -57,7 +56,7 @@ impl AddMagnetBar {
             return ComponentAction::Quit;
         }
 
-        if let Some(_) = self.input_magnet_mgr.handle_key(input) {
+        if self.input_magnet_mgr.handle_key(input).is_some() {
             self.ctx.send_action(Action::Render);
         }
 
