@@ -11,7 +11,7 @@ accent_color = "LightMagenta"
 # a little bit cluttered interface.
 beginner_mode = true
 
-# If enabled, hides header row of torrents tab
+# If enabled, hides table headers
 headers_hide = false
 
 [connection]
@@ -29,10 +29,10 @@ free_space_refresh = 10
 
 [torrents_tab]
 # Available fields:
-# Id, Name, SizeWhenDone, Progress, DownloadRate, UploadRate, DownloadDir,
+# Id, Name, SizeWhenDone, Progress, Eta, DownloadRate, UploadRate, DownloadDir,
 # Padding, UploadRatio, UploadedEver, AddedDate, ActivityDate, PeersConnected
 # SmallStatus
-headers = ["Name", "SizeWhenDone", "Progress", "DownloadRate", "UploadRate"]
+headers = ["Name", "SizeWhenDone", "Progress", "Eta", "DownloadRate", "UploadRate"]
 
 [search_tab]
 # If you uncomment this, providers won't be automatically added in future

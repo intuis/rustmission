@@ -169,7 +169,7 @@ impl TorrentsTab {
         let table_widget = {
             let table = Table::new(self.table_manager.rows(), &self.table_manager.widths)
                 .highlight_style(highlight_table_style);
-            if CONFIG.general.headers_hide {
+            if !CONFIG.general.headers_hide {
                 table.header(Row::new(self.table_manager.headers().iter().cloned()))
             } else {
                 table
