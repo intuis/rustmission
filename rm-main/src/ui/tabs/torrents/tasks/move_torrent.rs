@@ -28,7 +28,7 @@ impl MoveBar {
 
         Self {
             torrents_to_move,
-            input_mgr: InputManager::new_with_value(ctx.clone(), prompt, existing_location),
+            input_mgr: InputManager::new_with_value(prompt, existing_location),
             ctx,
         }
     }

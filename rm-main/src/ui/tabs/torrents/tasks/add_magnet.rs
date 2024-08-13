@@ -30,12 +30,8 @@ enum Stage {
 impl AddMagnetBar {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
-            input_magnet_mgr: InputManager::new(
-                ctx.clone(),
-                "Add (Magnet URL / Torrent path): ".to_string(),
-            ),
+            input_magnet_mgr: InputManager::new("Add (Magnet URL / Torrent path): ".to_string()),
             input_location_mgr: InputManager::new_with_value(
-                ctx.clone(),
                 "Directory: ".to_string(),
                 ctx.session_info.download_dir.clone(),
             ),

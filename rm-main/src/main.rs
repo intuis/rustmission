@@ -5,7 +5,6 @@ pub mod tui;
 mod ui;
 
 use app::App;
-use rm_config::Config;
 
 use anyhow::Result;
 use clap::Parser;
@@ -14,19 +13,17 @@ use clap::Parser;
 async fn main() -> Result<()> {
     let args = cli::Args::parse();
 
-    let config = Config::init()?;
-
     if let Some(command) = args.command {
-        cli::handle_command(&config, command).await?;
+        cli::handle_command(command).await?;
     } else {
-        run_tui(config).await?;
+        run_tui().await?;
     }
 
     Ok(())
 }
 
-async fn run_tui(config: Config) -> Result<()> {
-    let mut app = App::new(config).await?;
+async fn run_tui() -> Result<()> {
+    let mut app = App::new().await?;
     app.run().await?;
     Ok(())
 }

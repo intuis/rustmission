@@ -1,5 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
+use rm_config::CONFIG;
 use tokio::sync::oneshot;
 use transmission_rpc::types::TorrentGetField;
 
@@ -22,7 +23,7 @@ pub async fn stats(ctx: app::Ctx) {
             }
         };
 
-        tokio::time::sleep(Duration::from_secs(ctx.config.connection.stats_refresh)).await;
+        tokio::time::sleep(Duration::from_secs(CONFIG.connection.stats_refresh)).await;
     }
 }
 
@@ -57,10 +58,7 @@ pub async fn free_space(ctx: app::Ctx) {
             }
         }
 
-        tokio::time::sleep(Duration::from_secs(
-            ctx.config.connection.free_space_refresh,
-        ))
-        .await;
+        tokio::time::sleep(Duration::from_secs(CONFIG.connection.free_space_refresh)).await;
     }
 }
 
@@ -98,6 +96,6 @@ pub async fn torrents(ctx: app::Ctx) {
             }
         };
 
-        tokio::time::sleep(Duration::from_secs(ctx.config.connection.torrents_refresh)).await;
+        tokio::time::sleep(Duration::from_secs(CONFIG.connection.torrents_refresh)).await;
     }
 }

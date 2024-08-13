@@ -1,23 +1,20 @@
-use crate::{app, ui::components::Component};
+use crate::ui::components::Component;
 
 use ratatui::prelude::*;
+use rm_config::CONFIG;
 
-pub struct DefaultBar {
-    ctx: app::Ctx,
-}
+pub struct DefaultBar {}
 
 impl DefaultBar {
-    pub const fn new(ctx: app::Ctx) -> Self {
-        Self { ctx }
+    pub const fn new() -> Self {
+        Self {}
     }
 }
 
 impl Component for DefaultBar {
     fn render(&mut self, f: &mut ratatui::Frame<'_>, rect: Rect) {
-        if self.ctx.config.general.beginner_mode {
-            if let Some(keys) = self
-                .ctx
-                .config
+        if CONFIG.general.beginner_mode {
+            if let Some(keys) = CONFIG
                 .keybindings
                 .get_keys_for_action(rm_shared::action::Action::ShowHelp)
             {

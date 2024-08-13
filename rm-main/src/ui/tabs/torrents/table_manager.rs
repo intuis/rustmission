@@ -1,14 +1,14 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{prelude::*, widgets::Row};
+use rm_config::CONFIG;
 use rm_shared::header::Header;
 use std::collections::HashMap;
 
-use crate::{app, ui::components::table::GenericTable};
+use crate::ui::components::table::GenericTable;
 
 use super::rustmission_torrent::RustmissionTorrent;
 
 pub struct TableManager {
-    ctx: app::Ctx,
     pub table: GenericTable<RustmissionTorrent>,
     pub widths: Vec<Constraint>,
     pub filter: Option<Filter>,
@@ -23,16 +23,15 @@ pub struct Filter {
 }
 
 impl TableManager {
-    pub fn new(ctx: app::Ctx) -> Self {
+    pub fn new() -> Self {
         let table = GenericTable::new(vec![]);
-        let widths = Self::default_widths(&ctx.config.torrents_tab.headers);
+        let widths = Self::default_widths(&CONFIG.torrents_tab.headers);
         let mut headers = vec![];
-        for header in &ctx.config.torrents_tab.headers {
+        for header in &CONFIG.torrents_tab.headers {
             headers.push(header.header_name());
         }
 
         Self {
-            ctx,
             table,
             widths,
             filter: None,
@@ -51,8 +50,8 @@ impl TableManager {
 
     pub fn rows(&self) -> Vec<Row<'_>> {
         if let Some(filter) = &self.filter {
-            let highlight_style = Style::default().fg(self.ctx.config.general.accent_color);
-            let headers = &self.ctx.config.torrents_tab.headers;
+            let highlight_style = Style::default().fg(CONFIG.general.accent_color);
+            let headers = &CONFIG.torrents_tab.headers;
             let mut rows = vec![];
             for (i, which_torrent) in filter.indexes.iter().enumerate() {
                 let row = self.table.items[*which_torrent as usize].to_row_with_higlighted_indices(
@@ -69,7 +68,7 @@ impl TableManager {
             self.table
                 .items
                 .iter()
-                .map(|t| t.to_row(&self.ctx.config.torrents_tab.headers))
+                .map(|t| t.to_row(&CONFIG.torrents_tab.headers))
                 .collect()
         }
     }
@@ -130,9 +129,9 @@ impl TableManager {
     }
 
     fn header_widths(&self, rows: &[RustmissionTorrent]) -> Vec<Constraint> {
-        let headers = &self.ctx.config.torrents_tab.headers;
+        let headers = &CONFIG.torrents_tab.headers;
 
-        if !self.ctx.config.general.auto_hide {
+        if !CONFIG.general.auto_hide {
             return Self::default_widths(headers);
         }
 

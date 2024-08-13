@@ -10,19 +10,16 @@ use ratatui::{
     },
     Frame,
 };
+use rm_config::CONFIG;
 use rm_shared::action::Action;
 
-use crate::{
-    app,
-    ui::{
-        centered_rect,
-        components::{Component, ComponentAction},
-        tabs::search::{ConfiguredProvider, ProviderState},
-    },
+use crate::ui::{
+    centered_rect,
+    components::{Component, ComponentAction},
+    tabs::search::{ConfiguredProvider, ProviderState},
 };
 
 pub struct ProvidersPopup {
-    ctx: app::Ctx,
     providers: Vec<ConfiguredProvider>,
 }
 
@@ -70,8 +67,8 @@ impl From<&ConfiguredProvider> for Row<'_> {
 }
 
 impl ProvidersPopup {
-    pub const fn new(ctx: app::Ctx, providers: Vec<ConfiguredProvider>) -> Self {
-        Self { ctx, providers }
+    pub const fn new(providers: Vec<ConfiguredProvider>) -> Self {
+        Self { providers }
     }
 
     pub fn update_providers(&mut self, providers: Vec<ConfiguredProvider>) {
@@ -93,7 +90,7 @@ impl Component for ProvidersPopup {
         let block_rect = popup_rect.inner(Margin::new(1, 1));
         let table_rect = block_rect.inner(Margin::new(1, 1));
 
-        let title_style = Style::default().fg(self.ctx.config.general.accent_color);
+        let title_style = Style::default().fg(CONFIG.general.accent_color);
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
             .title(Title::from(" Providers ".set_style(title_style)))

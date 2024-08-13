@@ -8,6 +8,7 @@ use ratatui::{
         Block, BorderType, Clear, Paragraph,
     },
 };
+use rm_config::CONFIG;
 use tokio::{sync::oneshot, task::JoinHandle};
 use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
@@ -247,7 +248,7 @@ impl Component for FilesPopup {
 
         let info_text_rect = block_rect.inner(Margin::new(3, 2));
 
-        let highlight_style = Style::default().fg(self.ctx.config.general.accent_color);
+        let highlight_style = Style::default().fg(CONFIG.general.accent_color);
         let bold_highlight_style = highlight_style.on_black().bold();
 
         let block = Block::bordered()
@@ -282,36 +283,22 @@ impl Component for FilesPopup {
             let download_dir = torrent.download_dir.as_ref().expect("Requested");
 
             let keybinding_tip = {
-                if self.ctx.config.general.beginner_mode {
+                if CONFIG.general.beginner_mode {
                     let mut keys = vec![];
 
-                    if let Some(key) = self
-                        .ctx
-                        .config
-                        .keybindings
-                        .get_keys_for_action(Action::Select)
-                    {
+                    if let Some(key) = CONFIG.keybindings.get_keys_for_action(Action::Select) {
                         keys.push(Span::raw(" "));
                         keys.push(Span::styled(
                             key,
-                            Style::new()
-                                .fg(self.ctx.config.general.accent_color)
-                                .underlined(),
+                            Style::new().fg(CONFIG.general.accent_color).underlined(),
                         ));
                         keys.push(Span::raw(" - toggle | "));
                     }
 
-                    if let Some(key) = self
-                        .ctx
-                        .config
-                        .keybindings
-                        .get_keys_for_action(Action::XdgOpen)
-                    {
+                    if let Some(key) = CONFIG.keybindings.get_keys_for_action(Action::XdgOpen) {
                         keys.push(Span::styled(
                             key,
-                            Style::new()
-                                .fg(self.ctx.config.general.accent_color)
-                                .underlined(),
+                            Style::new().fg(CONFIG.general.accent_color).underlined(),
                         ));
                         keys.push(Span::raw(" - xdg_open "));
                     }

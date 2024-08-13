@@ -32,7 +32,7 @@ pub struct TaskManager {
 impl TaskManager {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
-            current_task: CurrentTask::Default(DefaultBar::new(ctx.clone())),
+            current_task: CurrentTask::Default(DefaultBar::new()),
             ctx,
         }
     }
@@ -185,7 +185,7 @@ impl TaskManager {
             return;
         }
 
-        self.current_task = CurrentTask::Default(DefaultBar::new(self.ctx.clone()));
+        self.current_task = CurrentTask::Default(DefaultBar::new());
         self.ctx
             .send_update_action(UpdateAction::SwitchToNormalMode);
     }

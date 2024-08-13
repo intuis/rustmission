@@ -11,6 +11,7 @@ use crate::ui::tabs::torrents::popups::stats::StatisticsPopup;
 
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
+use rm_config::CONFIG;
 use rm_shared::status_task::StatusTask;
 use rustmission_torrent::RustmissionTorrent;
 use transmission_rpc::types::TorrentStatus;
@@ -35,7 +36,7 @@ pub struct TorrentsTab {
 
 impl TorrentsTab {
     pub fn new(ctx: app::Ctx) -> Self {
-        let table_manager = TableManager::new(ctx.clone());
+        let table_manager = TableManager::new();
         let bottom_stats = BottomStats::new();
 
         tokio::spawn(transmission::fetchers::stats(ctx.clone()));
@@ -160,16 +161,15 @@ impl TorrentsTab {
     fn render_table(&mut self, f: &mut Frame, rect: Rect) {
         self.table_manager.torrents_displaying_no = rect.height;
 
-        let highlight_table_style = Style::default().on_black().bold().fg(self
-            .ctx
-            .config
-            .general
-            .accent_color);
+        let highlight_table_style = Style::default()
+            .on_black()
+            .bold()
+            .fg(CONFIG.general.accent_color);
 
         let table_widget = {
             let table = Table::new(self.table_manager.rows(), &self.table_manager.widths)
                 .highlight_style(highlight_table_style);
-            if !self.ctx.config.general.headers_hide {
+            if CONFIG.general.headers_hide {
                 table.header(Row::new(self.table_manager.headers().iter().cloned()))
             } else {
                 table
@@ -193,7 +193,7 @@ impl TorrentsTab {
 
     fn show_statistics_popup(&mut self) {
         if let Some(stats) = &self.bottom_stats.stats {
-            let popup = StatisticsPopup::new(self.ctx.clone(), stats.clone());
+            let popup = StatisticsPopup::new(stats.clone());
             self.popup_manager.show_popup(CurrentPopup::Stats(popup));
             self.ctx.send_action(Action::Render)
         }
