@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Margin},
     prelude::Rect,
     style::{Style, Styled, Stylize},
-    text::{Line, ToLine},
+    text::Line,
     widgets::{
         block::{Position, Title},
         Block, BorderType, Clear, Row, Table,
@@ -26,18 +26,22 @@ pub struct ProvidersPopup {
 impl From<&ConfiguredProvider> for Row<'_> {
     fn from(value: &ConfiguredProvider) -> Self {
         let mut name: Line = match value.provider_state {
-            _ if !value.enabled => " 󰪎 ".into(),
-            ProviderState::Idle => " 󱗼 ".yellow().into(),
-            ProviderState::Searching => "  ".yellow().into(),
-            ProviderState::Found(_) => "  ".green().into(),
-            ProviderState::Error(_) => "  ".red().into(),
+            _ if !value.enabled => format!(" {} ", CONFIG.icons.provider_disabled).into(),
+            ProviderState::Idle => format!(" {} ", CONFIG.icons.idle).yellow().into(),
+            ProviderState::Searching => format!(" {} ", CONFIG.icons.searching).yellow().into(),
+            ProviderState::Found(_) => format!(" {} ", CONFIG.icons.success).green().into(),
+            ProviderState::Error(_) => format!(" {} ", CONFIG.icons.failure).red().into(),
         };
 
         name.push_span(value.provider.name());
 
-        let category: Line = match value.provider.category() {
-            ProviderCategory::General => " General".to_line(),
-            ProviderCategory::Anime => "󰎁 Anime".to_line(),
+        let category = match value.provider.category() {
+            ProviderCategory::General => {
+                format!("{} General", CONFIG.icons.provider_category_general)
+            }
+            ProviderCategory::Anime => {
+                format!("{} Anime", CONFIG.icons.provider_category_anime)
+            }
         };
 
         let url: Line = format!("({})", value.provider.display_url()).into();
@@ -45,7 +49,9 @@ impl From<&ConfiguredProvider> for Row<'_> {
         let status: Line = match &value.provider_state {
             _ if !value.enabled => "Disabled".into(),
             ProviderState::Idle => "Idle".into(),
-            ProviderState::Searching => " Searching...".yellow().into(),
+            ProviderState::Searching => format!("{} Searching...", CONFIG.icons.searching)
+                .yellow()
+                .into(),
             ProviderState::Found(count) => {
                 let mut line = Line::default();
                 line.push_span("Found(");
@@ -56,7 +62,7 @@ impl From<&ConfiguredProvider> for Row<'_> {
             ProviderState::Error(e) => e.to_string().red().into(),
         };
 
-        let row = Row::new(vec![name, url, category, status]);
+        let row = Row::new(vec![name, url, category.into(), status]);
 
         if value.enabled {
             row

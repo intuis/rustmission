@@ -4,6 +4,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::Row,
 };
+use rm_config::CONFIG;
 use rm_shared::{
     header::Header,
     utils::{
@@ -151,23 +152,23 @@ impl RustmissionTorrent {
             Header::PeersConnected => Line::from(self.peers_connected.to_string()),
             Header::SmallStatus => {
                 if self.error.is_some() {
-                    return Line::from("");
+                    return Line::from(CONFIG.icons.failure.as_str());
                 }
 
                 match self.status() {
-                    TorrentStatus::Stopped => Line::from("󰏤"),
-                    TorrentStatus::QueuedToVerify => Line::from("󱥸"),
-                    TorrentStatus::Verifying => Line::from("󰑓"),
-                    TorrentStatus::QueuedToDownload => Line::from("󱥸"),
-                    TorrentStatus::QueuedToSeed => Line::from("󱥸"),
+                    TorrentStatus::Stopped => Line::from(CONFIG.icons.pause.as_str()),
+                    TorrentStatus::QueuedToVerify => Line::from(CONFIG.icons.loading.as_str()),
+                    TorrentStatus::Verifying => Line::from(CONFIG.icons.verifying.as_str()),
+                    TorrentStatus::QueuedToDownload => Line::from(CONFIG.icons.loading.as_str()),
+                    TorrentStatus::QueuedToSeed => Line::from(CONFIG.icons.loading.as_str()),
+                    TorrentStatus::Downloading => Line::from(CONFIG.icons.download.as_str()),
                     TorrentStatus::Seeding => {
                         if !self.upload_speed.is_empty() {
-                            Line::from("")
+                            Line::from(CONFIG.icons.upload.as_str())
                         } else {
-                            Line::from("󰄬")
+                            Line::from(CONFIG.icons.success.as_str())
                         }
                     }
-                    TorrentStatus::Downloading => Line::from(""),
                 }
             }
         }

@@ -12,7 +12,10 @@ use serde::{
     Deserialize, Serialize,
 };
 
-use crate::utils::{self, ConfigFetchingError};
+use crate::{
+    utils::{self, ConfigFetchingError},
+    CONFIG,
+};
 use rm_shared::action::Action;
 
 use self::actions::{general::GeneralAction, torrents_tab::TorrentsAction};
@@ -49,10 +52,10 @@ impl<T: Into<Action>> Keybinding<T> {
         let key = match self.on {
             KeyCode::Backspace => "Backspace".into(),
             KeyCode::Enter => "Enter".into(),
-            KeyCode::Left => "".into(),
-            KeyCode::Right => "".into(),
-            KeyCode::Up => "".into(),
-            KeyCode::Down => "".into(),
+            KeyCode::Left => CONFIG.icons.arrow_left.clone(),
+            KeyCode::Right => CONFIG.icons.arrow_right.clone(),
+            KeyCode::Up => CONFIG.icons.arrow_up.clone(),
+            KeyCode::Down => CONFIG.icons.arrow_down.clone(),
             KeyCode::Home => "Home".into(),
             KeyCode::End => "End".into(),
             KeyCode::PageUp => "PageUp".into(),

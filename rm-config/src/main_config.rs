@@ -17,6 +17,8 @@ pub struct MainConfig {
     pub torrents_tab: TorrentsTab,
     #[serde(default)]
     pub search_tab: SearchTab,
+    #[serde(default)]
+    pub icons: Icons,
 }
 
 #[derive(Deserialize)]
@@ -94,6 +96,59 @@ impl Default for SearchTab {
     fn default() -> Self {
         Self {
             providers: default_providers(),
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct Icons {
+    pub upload: String,
+    pub download: String,
+    pub arrow_left: String,
+    pub arrow_right: String,
+    pub arrow_up: String,
+    pub arrow_down: String,
+    pub triangle_right: String,
+    pub triangle_down: String,
+    pub file: String,
+    pub disk: String,
+    pub help: String,
+    pub success: String,
+    pub failure: String,
+    pub searching: String,
+    pub verifying: String,
+    pub loading: String,
+    pub pause: String,
+    pub idle: String,
+    pub provider_disabled: String,
+    pub provider_category_general: String,
+    pub provider_category_anime: String,
+}
+
+impl Default for Icons {
+    fn default() -> Self {
+        Self {
+            upload: "".into(),
+            download: "".into(),
+            arrow_left: "".into(),
+            arrow_right: "".into(),
+            arrow_up: "".into(),
+            arrow_down: "".into(),
+            triangle_right: "▶".into(),
+            triangle_down: "▼".into(),
+            file: "".into(),
+            disk: "󰋊".into(),
+            help: "󰘥".into(),
+            success: "".into(),
+            failure: "".into(),
+            searching: "".into(),
+            verifying: "󰑓".into(),
+            loading: "󱥸".into(),
+            pause: "󰏤".into(),
+            idle: "󱗼".into(),
+            provider_disabled: "󰪎".into(),
+            provider_category_general: "".into(),
+            provider_category_anime: "󰎁".into(),
         }
     }
 }
