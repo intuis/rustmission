@@ -1,7 +1,7 @@
 use ratatui::prelude::*;
 use rm_config::CONFIG;
 
-use crate::tui::ui::components::Component;
+use crate::tui::components::Component;
 
 pub struct DefaultBar {}
 

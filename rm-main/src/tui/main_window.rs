@@ -1,21 +1,15 @@
-pub mod components;
-pub mod global_popups;
-pub mod tabs;
-
-use components::ComponentAction;
-use global_popups::ErrorPopup;
 use ratatui::prelude::*;
-use tabs::torrents::TorrentsTab;
 
 use rm_shared::action::{Action, UpdateAction};
 
-use self::{
-    components::{tabs::CurrentTab, Component, TabComponent},
-    global_popups::GlobalPopupManager,
-    tabs::search::SearchTab,
-};
+use crate::tui::components::tabs::CurrentTab;
 
-use super::app;
+use super::{
+    app,
+    components::{tabs::TabComponent, Component, ComponentAction},
+    global_popups::{ErrorPopup, GlobalPopupManager},
+    tabs::{search::SearchTab, torrents::TorrentsTab},
+};
 
 pub struct MainWindow {
     pub tabs: TabComponent,
@@ -97,7 +91,7 @@ impl Component for MainWindow {
     }
 }
 
-fn centered_rect(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
+pub fn centered_rect(r: Rect, percent_x: u16, percent_y: u16) -> Rect {
     let popup_layout = Layout::vertical([
         Constraint::Percentage((100 - percent_y) / 2),
         Constraint::Percentage(percent_y),

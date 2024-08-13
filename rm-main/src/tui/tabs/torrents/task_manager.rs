@@ -9,7 +9,7 @@ use rm_shared::{
 
 use crate::tui::{
     app,
-    ui::components::{Component, ComponentAction},
+    components::{Component, ComponentAction},
 };
 
 use super::{

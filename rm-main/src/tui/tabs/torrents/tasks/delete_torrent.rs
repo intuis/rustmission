@@ -4,8 +4,8 @@ use transmission_rpc::types::Id;
 
 use crate::transmission::TorrentAction;
 use crate::tui::app;
-use crate::tui::ui::components::{Component, ComponentAction};
-use crate::tui::ui::tabs::torrents::input_manager::InputManager;
+use crate::tui::components::{Component, ComponentAction};
+use crate::tui::tabs::torrents::input_manager::InputManager;
 use rm_shared::action::{Action, UpdateAction};
 use rm_shared::status_task::StatusTask;
 

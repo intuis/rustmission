@@ -6,8 +6,8 @@ use ratatui::Frame;
 use rm_shared::action::Action;
 
 use crate::tui::app;
-use crate::tui::ui::components::Component;
-use crate::tui::ui::components::ComponentAction;
+use crate::tui::components::Component;
+use crate::tui::components::ComponentAction;
 
 use super::ConfiguredProvider;
 

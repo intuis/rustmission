@@ -6,7 +6,6 @@ use ratatui::Frame;
 
 use rm_shared::action::Action;
 use rm_shared::action::UpdateAction;
-pub use tabs::TabComponent;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ComponentAction {

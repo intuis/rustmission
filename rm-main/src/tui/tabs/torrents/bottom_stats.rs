@@ -8,7 +8,7 @@ use ratatui::{
 use rm_shared::utils::bytes_to_human_format;
 use transmission_rpc::types::{FreeSpace, SessionStats};
 
-use crate::tui::ui::components::Component;
+use crate::tui::components::Component;
 
 use super::table_manager::TableManager;
 

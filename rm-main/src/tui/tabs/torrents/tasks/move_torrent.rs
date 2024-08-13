@@ -10,10 +10,8 @@ use crate::{
     transmission::TorrentAction,
     tui::{
         app,
-        ui::{
-            components::{Component, ComponentAction},
-            tabs::torrents::input_manager::InputManager,
-        },
+        components::{Component, ComponentAction},
+        tabs::torrents::input_manager::InputManager,
     },
 };
 

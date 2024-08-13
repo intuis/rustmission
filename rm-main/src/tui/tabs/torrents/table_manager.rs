@@ -4,7 +4,7 @@ use rm_config::CONFIG;
 use rm_shared::header::Header;
 use std::collections::HashMap;
 
-use crate::tui::ui::components::table::GenericTable;
+use crate::tui::components::table::GenericTable;
 
 use super::rustmission_torrent::RustmissionTorrent;
 

@@ -17,10 +17,8 @@ use crate::{
     transmission::TorrentAction,
     tui::{
         app,
-        ui::{
-            centered_rect,
-            components::{Component, ComponentAction},
-        },
+        components::{Component, ComponentAction},
+        main_window::centered_rect,
     },
 };
 use rm_shared::{

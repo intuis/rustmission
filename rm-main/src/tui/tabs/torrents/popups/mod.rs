@@ -1,6 +1,6 @@
 use crate::tui::{
     app,
-    ui::components::{Component, ComponentAction},
+    components::{Component, ComponentAction},
 };
 
 use self::{files::FilesPopup, stats::StatisticsPopup};

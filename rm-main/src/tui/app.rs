@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use crate::tui::ui::components::Component;
 use crate::{
     transmission::{self, TorrentAction},
-    tui::Tui,
+    tui::components::Component,
 };
 
 use rm_config::CONFIG;
@@ -14,8 +13,7 @@ use crossterm::event::{Event, KeyCode, KeyModifiers};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use transmission_rpc::{types::SessionGet, TransClient};
 
-use super::ui::components::tabs::CurrentTab;
-use super::ui::MainWindow;
+use super::{components::tabs::CurrentTab, main_window::MainWindow, terminal::Tui};
 
 #[derive(Clone)]
 pub struct Ctx {

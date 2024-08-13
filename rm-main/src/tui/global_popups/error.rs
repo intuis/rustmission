@@ -5,9 +5,9 @@ use ratatui::{
 
 use rm_shared::action::Action;
 
-use crate::tui::ui::{
-    centered_rect,
+use crate::tui::{
     components::{Component, ComponentAction},
+    main_window::centered_rect,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -13,9 +13,9 @@ use transmission_rpc::types::SessionStats;
 
 use rm_shared::{action::Action, utils::bytes_to_human_format};
 
-use crate::tui::ui::{
-    centered_rect,
+use crate::tui::{
     components::{Component, ComponentAction},
+    main_window::centered_rect,
 };
 
 pub struct StatisticsPopup {

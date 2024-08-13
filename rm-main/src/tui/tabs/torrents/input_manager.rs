@@ -6,7 +6,7 @@ use ratatui::{
 use rm_config::CONFIG;
 use tui_input::{backend::crossterm::to_input_request, Input, InputResponse};
 
-use crate::tui::ui::components::Component;
+use crate::tui::components::Component;
 
 pub struct InputManager {
     input: Input,

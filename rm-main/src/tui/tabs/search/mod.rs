@@ -22,7 +22,7 @@ use crate::{
     transmission::TorrentAction,
     tui::{
         app,
-        ui::components::{table::GenericTable, Component, ComponentAction},
+        components::{table::GenericTable, Component, ComponentAction},
     },
 };
 use rm_shared::{

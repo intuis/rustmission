@@ -9,7 +9,7 @@ use rm_config::CONFIG;
 use rm_shared::action::{Action, UpdateAction};
 use throbber_widgets_tui::ThrobberState;
 
-use crate::tui::{app, ui::components::Component};
+use crate::tui::{app, components::Component};
 
 use super::{ConfiguredProvider, ProviderState};
 

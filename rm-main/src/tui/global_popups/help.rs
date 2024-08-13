@@ -16,10 +16,8 @@ use rm_shared::action::Action;
 
 use crate::tui::{
     app,
-    ui::{
-        centered_rect,
-        components::{Component, ComponentAction},
-    },
+    components::{Component, ComponentAction},
+    main_window::centered_rect,
 };
 
 macro_rules! add_line {

@@ -8,7 +8,7 @@ pub mod tasks;
 
 use crate::transmission::TorrentAction;
 use crate::tui::app;
-use crate::tui::ui::components::{Component, ComponentAction};
+use crate::tui::components::{Component, ComponentAction};
 
 use popups::stats::StatisticsPopup;
 use ratatui::prelude::*;

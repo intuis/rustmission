@@ -6,7 +6,7 @@ use rm_shared::{
 use throbber_widgets_tui::ThrobberState;
 use tokio::time::{self, Instant};
 
-use crate::tui::{app, ui::components::Component};
+use crate::tui::{app, components::Component};
 
 pub struct StatusBar {
     task: StatusTask,
