@@ -134,7 +134,7 @@ impl Component for SearchState {
             SearchStage::NoResults => {
                 let mut line = Line::default();
                 line.push_span(Span::styled("", Style::default().red()));
-                line.push_span(Span::raw(" No results."));
+                line.push_span(Span::raw(" No results. "));
                 append_key_info(&mut line);
                 let paragraph = Paragraph::new(line);
                 f.render_widget(paragraph, rect);

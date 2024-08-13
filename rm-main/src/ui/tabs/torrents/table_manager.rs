@@ -95,7 +95,7 @@ impl TableManager {
     }
 
     pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
-        self.table.items = rows;
+        self.table.set_items(rows);
         self.widths = self.header_widths(&self.table.items);
         self.update_rows_number();
     }
