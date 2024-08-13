@@ -1,13 +1,10 @@
-pub mod app;
 mod cli;
 pub mod transmission;
-pub mod tui;
-mod ui;
-
-use app::App;
+mod tui;
 
 use anyhow::Result;
 use clap::Parser;
+use tui::app::App;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
