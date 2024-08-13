@@ -4,8 +4,9 @@ use rm_config::CONFIG;
 use tokio::sync::oneshot;
 use transmission_rpc::types::TorrentGetField;
 
-use crate::app;
 use rm_shared::action::UpdateAction;
+
+use crate::tui::app;
 
 use super::TorrentAction;
 
