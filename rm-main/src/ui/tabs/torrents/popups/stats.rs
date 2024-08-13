@@ -8,25 +8,22 @@ use ratatui::{
         Block, BorderType, Clear, Paragraph,
     },
 };
+use rm_config::CONFIG;
 use transmission_rpc::types::SessionStats;
 
-use crate::{
-    app,
-    ui::{
-        centered_rect,
-        components::{Component, ComponentAction},
-    },
+use crate::ui::{
+    centered_rect,
+    components::{Component, ComponentAction},
 };
 use rm_shared::{action::Action, utils::bytes_to_human_format};
 
 pub struct StatisticsPopup {
     stats: Arc<SessionStats>,
-    ctx: app::Ctx,
 }
 
 impl StatisticsPopup {
-    pub const fn new(ctx: app::Ctx, stats: Arc<SessionStats>) -> Self {
-        Self { ctx, stats }
+    pub const fn new(stats: Arc<SessionStats>) -> Self {
+        Self { stats }
     }
 }
 
@@ -45,7 +42,7 @@ impl Component for StatisticsPopup {
         let block_rect = popup_rect.inner(Margin::new(1, 1));
         let text_rect = block_rect.inner(Margin::new(3, 2));
 
-        let title_style = Style::default().fg(self.ctx.config.general.accent_color);
+        let title_style = Style::default().fg(CONFIG.general.accent_color);
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
             .title(Title::from(" Statistics ".set_style(title_style)))

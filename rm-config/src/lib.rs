@@ -2,11 +2,18 @@ pub mod keymap;
 pub mod main_config;
 mod utils;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::LazyLock};
 
 use anyhow::Result;
 use keymap::KeymapConfig;
 use main_config::MainConfig;
+
+pub static CONFIG: LazyLock<Config> = LazyLock::new(|| {
+    Config::init().unwrap_or_else(|e| {
+        eprintln!("{:?}", e);
+        std::process::exit(1);
+    })
+});
 
 pub struct Config {
     pub general: main_config::General,
@@ -23,7 +30,7 @@ pub struct Directories {
 }
 
 impl Config {
-    pub fn init() -> Result<Self> {
+    fn init() -> Result<Self> {
         let main_config = MainConfig::init()?;
         let keybindings = KeymapConfig::init()?;
 

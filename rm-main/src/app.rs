@@ -1,7 +1,7 @@
 use crossterm::event::Event;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyModifiers;
-use rm_config::Config;
+use rm_config::CONFIG;
 use rm_shared::action::Action;
 use rm_shared::action::UpdateAction;
 use std::sync::Arc;
@@ -19,7 +19,6 @@ use transmission_rpc::{types::SessionGet, TransClient};
 
 #[derive(Clone)]
 pub struct Ctx {
-    pub config: Arc<Config>,
     pub session_info: Arc<SessionGet>,
     action_tx: UnboundedSender<Action>,
     update_tx: UnboundedSender<UpdateAction>,
@@ -29,7 +28,6 @@ pub struct Ctx {
 impl Ctx {
     async fn new(
         client: &mut TransClient,
-        config: Config,
         action_tx: UnboundedSender<Action>,
         update_tx: UnboundedSender<UpdateAction>,
         trans_tx: UnboundedSender<TorrentAction>,
@@ -39,7 +37,6 @@ impl Ctx {
             Ok(res) => {
                 let session_info = Arc::new(res.arguments);
                 Ok(Self {
-                    config: Arc::new(config),
                     action_tx,
                     trans_tx,
                     update_tx,
@@ -47,7 +44,7 @@ impl Ctx {
                 })
             }
             Err(e) => {
-                let config_path = config.directories.main_path;
+                let config_path = CONFIG.directories.main_path;
                 Err(Error::msg(format!(
                     "{e}\nIs the connection info in {:?} correct?",
                     config_path
@@ -79,21 +76,14 @@ pub struct App {
 }
 
 impl App {
-    pub async fn new(config: Config) -> Result<Self> {
+    pub async fn new() -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (update_tx, update_rx) = mpsc::unbounded_channel();
 
-        let mut client = transmission::utils::client_from_config(&config);
+        let mut client = transmission::utils::new_client();
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
-        let ctx = Ctx::new(
-            &mut client,
-            config,
-            action_tx.clone(),
-            update_tx.clone(),
-            trans_tx,
-        )
-        .await?;
+        let ctx = Ctx::new(&mut client, action_tx.clone(), update_tx.clone(), trans_tx).await?;
 
         tokio::spawn(transmission::action_handler(client, trans_rx, update_tx));
 
@@ -217,12 +207,12 @@ pub fn event_to_action(ctx: &Ctx, mode: Mode, current_tab: CurrentTab, event: Ev
         Event::Key(key) => {
             let keymaps = match current_tab {
                 CurrentTab::Torrents => [
-                    &ctx.config.keybindings.general_keymap,
-                    &ctx.config.keybindings.torrent_keymap,
+                    &CONFIG.keybindings.general_keymap,
+                    &CONFIG.keybindings.torrent_keymap,
                 ],
                 CurrentTab::Search => [
-                    &ctx.config.keybindings.general_keymap,
-                    &ctx.config.keybindings.search_keymap,
+                    &CONFIG.keybindings.general_keymap,
+                    &CONFIG.keybindings.search_keymap,
                 ],
             };
 

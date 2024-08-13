@@ -14,6 +14,7 @@ use ratatui::{
     widgets::{Cell, Paragraph, Row, Table},
 };
 use reqwest::Client;
+use rm_config::CONFIG;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::Input;
 
@@ -60,8 +61,7 @@ impl SearchTab {
         }
 
         for configured_provider in &mut configured_providers {
-            if ctx
-                .config
+            if CONFIG
                 .search_tab
                 .providers
                 .contains(&configured_provider.provider)
@@ -361,7 +361,7 @@ impl Component for SearchTab {
             if self.focus == SearchTabFocus::Search {
                 Style::default()
                     .underlined()
-                    .fg(self.ctx.config.general.accent_color)
+                    .fg(CONFIG.general.accent_color)
             } else {
                 Style::default().underlined().gray()
             }
@@ -392,15 +392,14 @@ impl Component for SearchTab {
             Constraint::Length(8),                                  // Size
         ];
 
-        let table_higlight_style = Style::default().on_black().bold().fg(self
-            .ctx
-            .config
-            .general
-            .accent_color);
+        let table_higlight_style = Style::default()
+            .on_black()
+            .bold()
+            .fg(CONFIG.general.accent_color);
 
         let table = {
             let table = Table::new(items, widths).highlight_style(table_higlight_style);
-            if !self.ctx.config.general.headers_hide {
+            if !CONFIG.general.headers_hide {
                 table.header(header)
             } else {
                 table

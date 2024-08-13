@@ -15,7 +15,10 @@ use crate::{
         components::{Component, ComponentAction},
     },
 };
-use rm_config::keymap::{actions::UserAction, Keybinding};
+use rm_config::{
+    keymap::{actions::UserAction, Keybinding},
+    CONFIG,
+};
 use rm_shared::action::Action;
 
 macro_rules! add_line {
@@ -165,17 +168,13 @@ impl Component for HelpPopup {
         let popup_rect = centered_rect.inner(Margin::new(1, 1));
         let text_rect = popup_rect.inner(Margin::new(3, 2));
 
-        let title_style = Style::new().fg(self.ctx.config.general.accent_color);
+        let title_style = Style::new().fg(CONFIG.general.accent_color);
         let block = Block::bordered()
             .border_set(symbols::border::ROUNDED)
             .title(
-                Title::from(
-                    " [ CLOSE ] "
-                        .fg(self.ctx.config.general.accent_color)
-                        .bold(),
-                )
-                .alignment(Alignment::Right)
-                .position(Position::Bottom),
+                Title::from(" [ CLOSE ] ".fg(CONFIG.general.accent_color).bold())
+                    .alignment(Alignment::Right)
+                    .position(Position::Bottom),
             )
             .title(" Help ")
             .title_style(title_style);
@@ -186,7 +185,7 @@ impl Component for HelpPopup {
         )])
         .centered()];
 
-        Self::write_keybindings(&self.ctx.config.keybindings.general.keybindings, &mut lines);
+        Self::write_keybindings(&CONFIG.keybindings.general.keybindings, &mut lines);
 
         lines.push(
             Line::from(vec![Span::styled(
@@ -196,10 +195,7 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        Self::write_keybindings(
-            &self.ctx.config.keybindings.torrents_tab.keybindings,
-            &mut lines,
-        );
+        Self::write_keybindings(&CONFIG.keybindings.torrents_tab.keybindings, &mut lines);
 
         lines.push(
             Line::from(vec![Span::styled(
@@ -209,10 +205,7 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        Self::write_keybindings(
-            &self.ctx.config.keybindings.search_tab.keybindings,
-            &mut lines,
-        );
+        Self::write_keybindings(&CONFIG.keybindings.search_tab.keybindings, &mut lines);
 
         let help_text = Text::from(lines);
 
@@ -254,7 +247,7 @@ impl Component for HelpPopup {
 
         if let Some(scroll) = &mut self.scroll {
             let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
-                .thumb_style(Style::default().fg(self.ctx.config.general.accent_color));
+                .thumb_style(Style::default().fg(CONFIG.general.accent_color));
 
             f.render_stateful_widget(
                 scrollbar,

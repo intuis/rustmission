@@ -26,7 +26,7 @@ impl FilterBar {
             }
         };
 
-        let input = InputManager::new_with_value(ctx.clone(), "Search: ".to_string(), filter);
+        let input = InputManager::new_with_value("Search: ".to_string(), filter);
         Self { ctx, input }
     }
 }

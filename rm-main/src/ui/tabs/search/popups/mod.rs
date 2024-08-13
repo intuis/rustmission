@@ -38,10 +38,7 @@ impl PopupManager {
     }
 
     pub fn show_providers_info_popup(&mut self, providers: Vec<ConfiguredProvider>) {
-        self.show_popup(CurrentPopup::Providers(ProvidersPopup::new(
-            self.ctx.clone(),
-            providers,
-        )));
+        self.show_popup(CurrentPopup::Providers(ProvidersPopup::new(providers)));
     }
 
     pub fn close_popup(&mut self) {

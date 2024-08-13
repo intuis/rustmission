@@ -4,7 +4,6 @@ use anyhow::{bail, Result};
 use base64::Engine;
 use clap::{Parser, Subcommand};
 use regex::Regex;
-use rm_config::Config;
 use transmission_rpc::types::TorrentAddArgs;
 
 use crate::transmission;
@@ -22,16 +21,16 @@ pub enum Commands {
     FetchRss { url: String, filter: Option<String> },
 }
 
-pub async fn handle_command(config: &Config, command: Commands) -> Result<()> {
+pub async fn handle_command(command: Commands) -> Result<()> {
     match command {
-        Commands::AddTorrent { torrent } => add_torrent(config, torrent).await?,
-        Commands::FetchRss { url, filter } => fetch_rss(config, &url, filter.as_deref()).await?,
+        Commands::AddTorrent { torrent } => add_torrent(torrent).await?,
+        Commands::FetchRss { url, filter } => fetch_rss(&url, filter.as_deref()).await?,
     }
     Ok(())
 }
 
-async fn add_torrent(config: &Config, torrent: String) -> Result<()> {
-    let mut transclient = transmission::utils::client_from_config(config);
+async fn add_torrent(torrent: String) -> Result<()> {
+    let mut transclient = transmission::utils::new_client();
     let args = {
         if torrent.starts_with("magnet:")
             || torrent.starts_with("http:")
@@ -69,8 +68,8 @@ async fn add_torrent(config: &Config, torrent: String) -> Result<()> {
     Ok(())
 }
 
-async fn fetch_rss(config: &Config, url: &str, filter: Option<&str>) -> Result<()> {
-    let mut transclient = transmission::utils::client_from_config(config);
+async fn fetch_rss(url: &str, filter: Option<&str>) -> Result<()> {
+    let mut transclient = transmission::utils::new_client();
     let content = reqwest::get(url).await?.bytes().await?;
     let channel = rss::Channel::read_from(&content[..])?;
     let re: Option<Regex> = {

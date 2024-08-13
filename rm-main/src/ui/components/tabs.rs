@@ -1,4 +1,5 @@
 use crate::app;
+use rm_config::CONFIG;
 use rm_shared::action::Action;
 
 use super::{Component, ComponentAction};
@@ -19,7 +20,7 @@ pub struct TabComponent {
 impl TabComponent {
     pub fn new(ctx: app::Ctx) -> Self {
         let tabs_list = {
-            if ctx.config.general.beginner_mode {
+            if CONFIG.general.beginner_mode {
                 ["1. Torrents", "2. Search"]
             } else {
                 ["Torrents", "Search"]
@@ -52,7 +53,7 @@ impl Component for TabComponent {
             .flex(Flex::Center)
             .split(rect)[0];
 
-        let tabs_highlight_style = Style::default().fg(self.ctx.config.general.accent_color);
+        let tabs_highlight_style = Style::default().fg(CONFIG.general.accent_color);
         let tabs = Tabs::new(self.tabs_list)
             .style(Style::default().white())
             .highlight_style(tabs_highlight_style)

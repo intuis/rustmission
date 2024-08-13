@@ -5,6 +5,7 @@ use ratatui::{
     widgets::Paragraph,
     Frame,
 };
+use rm_config::CONFIG;
 use rm_shared::action::{Action, UpdateAction};
 use throbber_widgets_tui::ThrobberState;
 
@@ -102,9 +103,7 @@ impl Component for SearchState {
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         let append_key_info = |line: &mut Line| {
-            let providers_key = self
-                .ctx
-                .config
+            let providers_key = CONFIG
                 .keybindings
                 .get_keys_for_action(Action::ShowProvidersInfo);
             if let Some(key) = providers_key {
@@ -112,7 +111,7 @@ impl Component for SearchState {
                 line.push_span(Span::styled(
                     key,
                     Style::default()
-                        .fg(self.ctx.config.general.accent_color)
+                        .fg(CONFIG.general.accent_color)
                         .underlined(),
                 ));
                 line.push_span(Span::raw(" for details."))

@@ -2,28 +2,26 @@ use ratatui::{
     prelude::*,
     widgets::{Clear, Paragraph},
 };
+use rm_config::CONFIG;
 use tui_input::{Input, InputRequest};
 
-use crate::{app, ui::components::Component};
+use crate::ui::components::Component;
 
 pub struct InputManager {
     input: Input,
     prompt: String,
-    ctx: app::Ctx,
 }
 
 impl InputManager {
-    pub fn new(ctx: app::Ctx, prompt: String) -> Self {
+    pub fn new(prompt: String) -> Self {
         Self {
-            ctx,
             prompt,
             input: Input::default(),
         }
     }
 
-    pub fn new_with_value(ctx: app::Ctx, prompt: String, value: String) -> Self {
+    pub fn new_with_value(prompt: String, value: String) -> Self {
         Self {
-            ctx,
             prompt,
             input: Input::default().with_value(value),
         }
@@ -45,7 +43,7 @@ impl Component for InputManager {
         let spans = vec![
             Span::styled(
                 self.prompt.as_str(),
-                Style::default().fg(self.ctx.config.general.accent_color),
+                Style::default().fg(CONFIG.general.accent_color),
             ),
             Span::raw(self.text()),
         ];
