@@ -1,13 +1,19 @@
-use std::borrow::Cow;
+mod bottom_bar;
+mod popups;
 
+use std::{borrow::Cow, sync::Arc};
+
+use bottom_bar::BottomBar;
 use crossterm::event::{KeyCode, KeyEvent};
-use magnetease::{Magnet, Magnetease};
+use futures::{stream::FuturesUnordered, StreamExt};
+use magnetease::{Magnet, MagneteaseErrorKind, WhichProvider};
+use popups::{CurrentPopup, PopupManager};
 use ratatui::{
     layout::Flex,
     prelude::*,
     widgets::{Cell, Paragraph, Row, Table},
 };
-use throbber_widgets_tui::ThrobberState;
+use reqwest::Client;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::Input;
 
@@ -35,8 +41,9 @@ pub(crate) struct SearchTab {
     input: Input,
     search_query_rx: UnboundedSender<String>,
     table: GenericTable<Magnet>,
-    // TODO: Change it to enum, and combine table with search_result_info
-    search_result_info: SearchResultState,
+    popup_manager: PopupManager,
+    configured_providers: Vec<ConfiguredProvider>,
+    bottom_bar: BottomBar,
     currently_displaying_no: u16,
     ctx: app::Ctx,
 }
@@ -45,16 +52,49 @@ impl SearchTab {
     pub(crate) fn new(ctx: app::Ctx) -> Self {
         let (search_query_tx, mut search_query_rx) = mpsc::unbounded_channel::<String>();
         let table = GenericTable::new(vec![]);
-        let search_result_info = SearchResultState::new(ctx.clone());
+
+        let mut configured_providers = vec![];
+
+        for provider in WhichProvider::all() {
+            configured_providers.push(ConfiguredProvider::new(provider.clone(), false));
+        }
+
+        for configured_provider in &mut configured_providers {
+            if ctx
+                .config
+                .search_tab
+                .providers
+                .contains(&configured_provider.provider)
+            {
+                configured_provider.enabled = true;
+            }
+        }
+
+        let bottom_bar = BottomBar::new(ctx.clone(), &configured_providers);
 
         tokio::task::spawn({
             let ctx = ctx.clone();
+            let configured_providers = configured_providers.clone();
             async move {
-                let magnetease = Magnetease::new();
-                while let Some(search_phrase) = search_query_rx.recv().await {
+                let client = Client::new();
+                while let Some(phrase) = search_query_rx.recv().await {
                     ctx.send_update_action(UpdateAction::SearchStarted);
-                    let magnets = magnetease.search(&search_phrase).await.unwrap();
-                    ctx.send_update_action(UpdateAction::SearchResults(magnets));
+                    let mut futures = FuturesUnordered::new();
+                    for configured_provider in &configured_providers {
+                        if configured_provider.enabled {
+                            futures.push(configured_provider.provider.search(&client, &phrase));
+                        }
+                    }
+
+                    while let Some(result) = futures.next().await {
+                        match result {
+                            Ok(response) => {
+                                ctx.send_update_action(UpdateAction::ProviderResult(response))
+                            }
+                            Err(e) => ctx.send_update_action(UpdateAction::ProviderError(e)),
+                        }
+                    }
+                    ctx.send_update_action(UpdateAction::SearchFinished);
                 }
             }
         });
@@ -63,10 +103,12 @@ impl SearchTab {
             focus: SearchTabFocus::List,
             input: Input::default(),
             table,
-            search_result_info,
+            bottom_bar,
             search_query_rx: search_query_tx,
             currently_displaying_no: 0,
+            popup_manager: PopupManager::new(ctx.clone()),
             ctx,
+            configured_providers,
         }
     }
 
@@ -162,11 +204,59 @@ impl SearchTab {
             let _ = open::that_detached(&magnet.url);
         }
     }
+
+    fn show_providers_info(&mut self) {
+        self.popup_manager
+            .show_providers_info_popup(self.configured_providers.clone());
+        self.ctx.send_action(Action::Render);
+    }
+
+    fn providers_searching(&mut self) {
+        for configured_provider in &mut self.configured_providers {
+            if configured_provider.enabled {
+                configured_provider.provider_state = ProviderState::Searching;
+            }
+        }
+    }
+
+    fn provider_state_success(&mut self, provider: WhichProvider, results_count: u16) {
+        for configured_provider in &mut self.configured_providers {
+            if configured_provider.provider == provider {
+                configured_provider.provider_state = ProviderState::Found(results_count);
+                break;
+            }
+        }
+    }
+
+    fn provider_state_error(&mut self, provider: WhichProvider, error: MagneteaseErrorKind) {
+        for configured_provider in &mut self.configured_providers {
+            if configured_provider.provider == provider {
+                configured_provider.provider_state = ProviderState::Error(Arc::new(error));
+                break;
+            }
+        }
+    }
+
+    fn update_providers_popup(&mut self) {
+        if let Some(CurrentPopup::Providers(popup)) = &mut self.popup_manager.current_popup {
+            popup.update_providers(self.configured_providers.clone());
+        }
+    }
 }
 
 impl Component for SearchTab {
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
+
+        if self.popup_manager.is_showing_popup() {
+            self.popup_manager.handle_actions(action);
+            return ComponentAction::Nothing;
+        }
+
+        if action.is_quit() {
+            self.ctx.send_action(Action::HardQuit);
+        }
+
         match action {
             A::Quit => self.ctx.send_action(Action::Quit),
             A::Search => self.start_search(),
@@ -180,6 +270,7 @@ impl Component for SearchTab {
             A::End => self.scroll_to_end(),
             A::Confirm => self.add_torrent(),
             A::XdgOpen => self.xdg_open(),
+            A::ShowProvidersInfo => self.show_providers_info(),
 
             _ => (),
         };
@@ -189,22 +280,55 @@ impl Component for SearchTab {
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
             UpdateAction::SearchStarted => {
-                self.search_result_info.searching(ThrobberState::default());
+                self.providers_searching();
+
+                self.table.items.drain(..);
+                self.table.state.borrow_mut().select(None);
+
+                self.bottom_bar
+                    .handle_update_action(UpdateAction::SearchStarted);
+                self.update_providers_popup();
             }
-            UpdateAction::SearchResults(magnets) => {
-                if magnets.is_empty() {
-                    self.search_result_info.not_found();
-                } else {
-                    self.search_result_info.found(magnets.len());
+            UpdateAction::ProviderResult(response) => {
+                self.provider_state_success(
+                    response.provider,
+                    u16::try_from(response.magnets.len()).unwrap(),
+                );
+
+                self.bottom_bar
+                    .search_state
+                    .update_counts(&self.configured_providers);
+                self.update_providers_popup();
+
+                self.table.items.extend(response.magnets);
+                self.table.items.sort_by(|a, b| b.seeders.cmp(&a.seeders));
+
+                let mut state = self.table.state.borrow_mut();
+                if !self.table.items.is_empty() && state.selected().is_none() {
+                    state.select(Some(0))
                 }
-                self.table.set_items(magnets);
+            }
+            UpdateAction::ProviderError(e) => {
+                self.provider_state_error(e.provider, e.kind);
+
+                self.bottom_bar
+                    .search_state
+                    .update_counts(&self.configured_providers);
+                self.update_providers_popup();
+            }
+            UpdateAction::SearchFinished => {
+                if self.table.items.is_empty() {
+                    self.bottom_bar.search_state.not_found();
+                } else {
+                    self.bottom_bar.search_state.found(self.table.items.len());
+                }
             }
             _ => (),
         }
     }
 
     fn tick(&mut self) {
-        self.search_result_info.tick();
+        self.bottom_bar.tick();
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
@@ -285,76 +409,32 @@ impl Component for SearchTab {
 
         f.render_stateful_widget(table, rest, &mut self.table.state.borrow_mut());
 
-        self.search_result_info.render(f, bottom_line);
+        self.bottom_bar.render(f, bottom_line);
+        self.popup_manager.render(f, f.size());
     }
 }
 
 #[derive(Clone)]
-enum SearchResultStatus {
-    Nothing,
-    NoResults,
-    Searching(ThrobberState),
-    Found(usize),
+pub struct ConfiguredProvider {
+    provider: WhichProvider,
+    provider_state: ProviderState,
+    enabled: bool,
 }
 
-#[derive(Clone)]
-struct SearchResultState {
-    ctx: app::Ctx,
-    status: SearchResultStatus,
-}
-
-impl SearchResultState {
-    fn new(ctx: app::Ctx) -> Self {
+impl ConfiguredProvider {
+    fn new(provider: WhichProvider, enabled: bool) -> Self {
         Self {
-            ctx,
-            status: SearchResultStatus::Nothing,
+            provider,
+            provider_state: ProviderState::Idle,
+            enabled,
         }
-    }
-
-    fn searching(&mut self, state: ThrobberState) {
-        self.status = SearchResultStatus::Searching(state);
-    }
-
-    fn not_found(&mut self) {
-        self.status = SearchResultStatus::NoResults;
-    }
-
-    fn found(&mut self, count: usize) {
-        self.status = SearchResultStatus::Found(count);
     }
 }
 
-impl Component for SearchResultState {
-    fn render(&mut self, f: &mut Frame, rect: Rect) {
-        match &mut self.status {
-            SearchResultStatus::Nothing => (),
-            SearchResultStatus::Searching(ref mut state) => {
-                let default_throbber = throbber_widgets_tui::Throbber::default()
-                    .label("Searching...")
-                    .style(ratatui::style::Style::default().fg(ratatui::style::Color::Yellow));
-                f.render_stateful_widget(default_throbber.clone(), rect, state);
-            }
-            SearchResultStatus::NoResults => {
-                let mut line = Line::default();
-                line.push_span(Span::styled("", Style::default().red()));
-                line.push_span(Span::raw(" No results"));
-                let paragraph = Paragraph::new(line);
-                f.render_widget(paragraph, rect);
-            }
-            SearchResultStatus::Found(count) => {
-                let mut line = Line::default();
-                line.push_span(Span::styled("", Style::default().green()));
-                line.push_span(Span::raw(format!(" Found {count}")));
-                let paragraph = Paragraph::new(line);
-                f.render_widget(paragraph, rect);
-            }
-        }
-    }
-
-    fn tick(&mut self) {
-        if let SearchResultStatus::Searching(state) = &mut self.status {
-            state.calc_next();
-            self.ctx.send_action(Action::Render);
-        }
-    }
+#[derive(Clone)]
+enum ProviderState {
+    Idle,
+    Searching,
+    Found(u16),
+    Error(Arc<MagneteaseErrorKind>),
 }

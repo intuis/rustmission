@@ -83,7 +83,7 @@ impl TableManager {
 
         if let Some(filter) = &self.filter {
             if filter.indexes.is_empty() {
-                return None;
+                None
             } else {
                 self.table
                     .items
@@ -95,7 +95,7 @@ impl TableManager {
     }
 
     pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
-        self.table.items = rows;
+        self.table.set_items(rows);
         self.widths = self.header_widths(&self.table.items);
         self.update_rows_number();
     }

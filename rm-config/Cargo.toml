@@ -21,3 +21,4 @@ ratatui.workspace = true
 crossterm.workspace = true
 thiserror.workspace = true
 transmission-rpc.workspace = true
+magnetease.workspace = true

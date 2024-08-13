@@ -1,12 +1,13 @@
 use std::{io::ErrorKind, path::PathBuf, sync::OnceLock};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
+use magnetease::WhichProvider;
 use ratatui::style::Color;
 use rm_shared::header::Header;
 use serde::Deserialize;
 use url::Url;
 
-use crate::utils::{self};
+use crate::utils::{self, ConfigFetchingError};
 
 #[derive(Deserialize)]
 pub struct MainConfig {
@@ -14,6 +15,8 @@ pub struct MainConfig {
     pub connection: Connection,
     #[serde(default)]
     pub torrents_tab: TorrentsTab,
+    #[serde(default)]
+    pub search_tab: SearchTab,
 }
 
 #[derive(Deserialize)]
@@ -78,6 +81,23 @@ impl Default for TorrentsTab {
     }
 }
 
+#[derive(Deserialize)]
+pub struct SearchTab {
+    pub providers: Vec<WhichProvider>,
+}
+
+fn default_providers() -> Vec<WhichProvider> {
+    vec![WhichProvider::Knaben, WhichProvider::Nyaa]
+}
+
+impl Default for SearchTab {
+    fn default() -> Self {
+        Self {
+            providers: default_providers(),
+        }
+    }
+}
+
 impl MainConfig {
     pub(crate) const FILENAME: &'static str = "config.toml";
     const DEFAULT_CONFIG: &'static str = include_str!("../defaults/config.toml");
@@ -86,11 +106,17 @@ impl MainConfig {
         match utils::fetch_config::<Self>(Self::FILENAME) {
             Ok(config) => Ok(config),
             Err(e) => match e {
-                utils::ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
+                ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
                     utils::put_config::<Self>(Self::DEFAULT_CONFIG, Self::FILENAME)?;
                     println!("Update {:?} and start rustmission again", Self::path());
                     std::process::exit(0);
                 }
+                ConfigFetchingError::Toml(e) => Err(e).with_context(|| {
+                    format!(
+                        "Failed to parse config located at {:?}",
+                        utils::get_config_path(Self::FILENAME)
+                    )
+                }),
                 _ => anyhow::bail!(e),
             },
         }

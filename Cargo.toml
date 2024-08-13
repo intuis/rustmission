@@ -17,7 +17,7 @@ license = "GPL-3.0-or-later"
 rm-config = { version = "0.4", path = "rm-config" }
 rm-shared = { version = "0.4", path = "rm-shared" }
 
-magnetease = "0.1"
+magnetease = "0.3"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 transmission-rpc = "0.4"

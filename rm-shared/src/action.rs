@@ -1,13 +1,14 @@
 use std::{error::Error, sync::Arc};
 
 use crossterm::event::KeyEvent;
-use magnetease::Magnet;
+use magnetease::{MagneteaseError, MagneteaseResult};
 use transmission_rpc::types::{FreeSpace, SessionStats, Torrent};
 
 use crate::status_task::StatusTask;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
+    // General
     HardQuit,
     Quit,
     Close,
@@ -23,22 +24,25 @@ pub enum Action {
     Confirm,
     Select,
     ShowHelp,
+    Search,
+    ChangeFocus,
+    ChangeTab(u8),
+    XdgOpen,
+    Input(KeyEvent),
+    // Torrents Tab
     ShowStats,
     ShowFiles,
-    Search,
     Pause,
     DeleteWithoutFiles,
     DeleteWithFiles,
-    ChangeFocus,
     AddMagnet,
     MoveTorrent,
-    ChangeTab(u8),
-    Input(KeyEvent),
-    XdgOpen,
+    // Search Tab
+    ShowProvidersInfo,
 }
 
 pub enum UpdateAction {
-    // Global
+    // General
     SwitchToInputMode,
     SwitchToNormalMode,
     Error(Box<ErrorMessage>),
@@ -56,7 +60,9 @@ pub enum UpdateAction {
     SearchFilterClear,
     // Search Tab
     SearchStarted,
-    SearchResults(Vec<Magnet>),
+    ProviderResult(MagneteaseResult),
+    ProviderError(MagneteaseError),
+    SearchFinished,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -83,6 +89,10 @@ impl ErrorMessage {
 impl Action {
     pub fn is_render(&self) -> bool {
         *self == Self::Render
+    }
+
+    pub fn is_hard_quit(&self) -> bool {
+        *self == Self::HardQuit
     }
 
     pub fn is_quit(&self) -> bool {

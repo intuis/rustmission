@@ -59,15 +59,49 @@ impl HelpPopup {
         lines: &mut Vec<Line>,
     ) {
         let mut keys = BTreeMap::new();
+        let mut max_len = 0;
 
         for keybinding in keybindings {
+            if !keybinding.show_in_help {
+                continue;
+            }
+
+            let keycode = keybinding.keycode_string();
+            if keycode.len() > max_len {
+                max_len = keycode.chars().count();
+            }
+
             keys.entry(&keybinding.action)
                 .or_insert_with(Vec::new)
                 .push(keybinding.keycode_string());
         }
 
+        for (_, keycodes) in &keys {
+            let delimiter_len;
+            let mut keycodes_total_len = 0;
+            if keycodes.len() >= 2 {
+                delimiter_len = (keycodes.len() - 1) * 3;
+            } else {
+                delimiter_len = 0;
+            }
+
+            for keycode in keycodes {
+                keycodes_total_len += keycode.chars().count();
+            }
+
+            if keycodes_total_len + delimiter_len > max_len {
+                max_len = keycodes_total_len + delimiter_len;
+            }
+        }
+
         for (action, keycodes) in keys {
-            let keycode_string = keycodes.join(" / ");
+            let mut keycode_string = keycodes.join(" / ");
+            let mut how_much_to_pad = max_len - keycode_string.chars().count();
+            while how_much_to_pad > 0 {
+                keycode_string.insert(0, ' ');
+                how_much_to_pad -= 1;
+            }
+
             add_line!(lines, keycode_string, action.desc());
         }
     }
@@ -164,6 +198,19 @@ impl Component for HelpPopup {
 
         Self::write_keybindings(
             &self.ctx.config.keybindings.torrents_tab.keybindings,
+            &mut lines,
+        );
+
+        lines.push(
+            Line::from(vec![Span::styled(
+                "Search Tab",
+                Style::default().bold().underlined(),
+            )])
+            .centered(),
+        );
+
+        Self::write_keybindings(
+            &self.ctx.config.keybindings.search_tab.keybindings,
             &mut lines,
         );
 

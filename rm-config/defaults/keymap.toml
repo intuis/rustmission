@@ -1,7 +1,7 @@
 [general]
 keybindings = [
-  { on = "?", action = "ShowHelp" },
-  { on = "F1", action = "ShowHelp" },
+  { on = "?", action = "ShowHelp", show_in_help = false },
+  { on = "F1", action = "ShowHelp", show_in_help = false },
 
   { on = "q", action = "Quit" },
   { on = "Esc", action = "Close" },
@@ -16,8 +16,8 @@ keybindings = [
 
   { on = "Home", action = "GoToBeginning" },
   { on = "End", action = "GoToEnd" },
-  { on = "PageUp", action = "ScrollPageUp" },
-  { on = "PageDown", action = "ScrollPageDown" },
+  { on = "PageUp", action = "ScrollPageUp", show_in_help = false },
+  { on = "PageDown", action = "ScrollPageDown", show_in_help = false },
 
   { modifier = "Ctrl", on = "u", action = "ScrollPageUp" },
   { modifier = "Ctrl", on = "d", action = "ScrollPageDown" },
@@ -46,3 +46,9 @@ keybindings = [
   { on = "d", action = "DeleteWithoutFiles" },
   { on = "D", action = "DeleteWithFiles" },
 ]
+
+[search_tab]
+keybindings = [
+  { on = "p", action = "ShowProvidersInfo" }
+]
+

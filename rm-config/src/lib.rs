@@ -12,6 +12,7 @@ pub struct Config {
     pub general: main_config::General,
     pub connection: main_config::Connection,
     pub torrents_tab: main_config::TorrentsTab,
+    pub search_tab: main_config::SearchTab,
     pub keybindings: KeymapConfig,
     pub directories: Directories,
 }
@@ -35,6 +36,7 @@ impl Config {
             general: main_config.general,
             connection: main_config.connection,
             torrents_tab: main_config.torrents_tab,
+            search_tab: main_config.search_tab,
             keybindings: keybindings.clone(),
             directories,
         })

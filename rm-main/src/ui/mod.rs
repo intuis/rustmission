@@ -20,7 +20,7 @@ use self::{
 };
 
 pub struct MainWindow {
-    tabs: TabComponent,
+    pub tabs: TabComponent,
     torrents_tab: TorrentsTab,
     search_tab: SearchTab,
     global_popup_manager: GlobalPopupManager,

@@ -4,14 +4,15 @@ use std::{
     collections::HashMap, io::ErrorKind, marker::PhantomData, path::PathBuf, sync::OnceLock,
 };
 
-use anyhow::Result;
+use actions::search_tab::SearchAction;
+use anyhow::{Context, Result};
 use crossterm::event::{KeyCode, KeyModifiers as CrosstermKeyModifiers};
 use serde::{
     de::{self, Visitor},
     Deserialize, Serialize,
 };
 
-use crate::utils;
+use crate::utils::{self, ConfigFetchingError};
 use rm_shared::action::Action;
 
 use self::actions::{general::GeneralAction, torrents_tab::TorrentsAction};
@@ -20,8 +21,13 @@ use self::actions::{general::GeneralAction, torrents_tab::TorrentsAction};
 pub struct KeymapConfig {
     pub general: KeybindsHolder<GeneralAction>,
     pub torrents_tab: KeybindsHolder<TorrentsAction>,
+    pub search_tab: KeybindsHolder<SearchAction>,
     #[serde(skip)]
-    pub keymap: HashMap<(KeyCode, CrosstermKeyModifiers), Action>,
+    pub general_keymap: HashMap<(KeyCode, CrosstermKeyModifiers), Action>,
+    #[serde(skip)]
+    pub torrent_keymap: HashMap<(KeyCode, CrosstermKeyModifiers), Action>,
+    #[serde(skip)]
+    pub search_keymap: HashMap<(KeyCode, CrosstermKeyModifiers), Action>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -35,6 +41,7 @@ pub struct Keybinding<T: Into<Action>> {
     #[serde(default)]
     pub modifier: KeyModifier,
     pub action: T,
+    pub show_in_help: bool,
 }
 
 impl<T: Into<Action>> Keybinding<T> {
@@ -84,11 +91,12 @@ impl<T: Into<Action>> Keybinding<T> {
 }
 
 impl<T: Into<Action>> Keybinding<T> {
-    fn new(on: KeyCode, action: T, modifier: Option<KeyModifier>) -> Self {
+    fn new(on: KeyCode, action: T, modifier: Option<KeyModifier>, show_in_help: bool) -> Self {
         Self {
             on,
             modifier: modifier.unwrap_or(KeyModifier::None),
             action,
+            show_in_help,
         }
     }
 }
@@ -99,11 +107,12 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
         D: serde::Deserializer<'de>,
     {
         #[derive(Deserialize)]
-        #[serde(field_identifier, rename_all = "lowercase")]
+        #[serde(field_identifier, rename_all = "snake_case")]
         enum Field {
             On,
             Modifier,
             Action,
+            ShowInHelp,
         }
 
         struct KeybindingVisitor<T> {
@@ -124,6 +133,7 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
                 let mut on = None;
                 let mut modifier = None;
                 let mut action = None;
+                let mut show_in_help = None;
                 while let Some(key) = map.next_key()? {
                     match key {
                         Field::On => {
@@ -181,11 +191,18 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
                             }
                             action = Some(map.next_value());
                         }
+                        Field::ShowInHelp => {
+                            if show_in_help.is_some() {
+                                return Err(de::Error::duplicate_field("action"));
+                            }
+                            show_in_help = Some(map.next_value());
+                        }
                     }
                 }
                 let on = on.ok_or_else(|| de::Error::missing_field("on"))?;
                 let action = action.ok_or_else(|| de::Error::missing_field("action"))??;
                 let modifier = modifier.transpose().unwrap();
+                let show_in_help = show_in_help.transpose().unwrap().unwrap_or(true);
 
                 if modifier.is_some() {
                     if let KeyCode::Char(char) = on {
@@ -197,7 +214,7 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
                     }
                 }
 
-                Ok(Keybinding::new(on, action, modifier))
+                Ok(Keybinding::new(on, action, modifier, show_in_help))
             }
         }
 
@@ -269,12 +286,18 @@ impl KeymapConfig {
                 Ok(keymap_config)
             }
             Err(e) => match e {
-                utils::ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
+                ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
                     let mut keymap_config =
                         utils::put_config::<Self>(Self::DEFAULT_CONFIG, Self::FILENAME)?;
                     keymap_config.populate_hashmap();
                     Ok(keymap_config)
                 }
+                ConfigFetchingError::Toml(e) => Err(e).with_context(|| {
+                    format!(
+                        "Failed to parse config located at {:?}",
+                        utils::get_config_path(Self::FILENAME)
+                    )
+                }),
                 _ => anyhow::bail!(e),
             },
         }
@@ -293,6 +316,11 @@ impl KeymapConfig {
                 keys.push(keybinding.keycode_string());
             }
         }
+        for keybinding in &self.search_tab.keybindings {
+            if action == keybinding.action.into() {
+                keys.push(keybinding.keycode_string());
+            }
+        }
 
         if keys.is_empty() {
             None
@@ -304,11 +332,18 @@ impl KeymapConfig {
     fn populate_hashmap(&mut self) {
         for keybinding in &self.general.keybindings {
             let hash_value = (keybinding.on, keybinding.modifier.into());
-            self.keymap.insert(hash_value, keybinding.action.into());
+            self.general_keymap
+                .insert(hash_value, keybinding.action.into());
         }
         for keybinding in &self.torrents_tab.keybindings {
             let hash_value = (keybinding.on, keybinding.modifier.into());
-            self.keymap.insert(hash_value, keybinding.action.into());
+            self.torrent_keymap
+                .insert(hash_value, keybinding.action.into());
+        }
+        for keybinding in &self.search_tab.keybindings {
+            let hash_value = (keybinding.on, keybinding.modifier.into());
+            self.search_keymap
+                .insert(hash_value, keybinding.action.into());
         }
     }
 
