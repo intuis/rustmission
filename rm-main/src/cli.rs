@@ -11,21 +11,48 @@ use crate::transmission;
 
 #[derive(Parser)]
 #[command(version, about)]
+#[derive(Debug)]
 pub struct Args {
     #[command(subcommand)]
     pub command: Option<Commands>,
 }
 
+#[derive(Debug)]
+pub enum ConfigType {
+    DefaultConfig,
+    DefaultKeymap
+}
+
 #[derive(Subcommand)]
+#[derive(Debug)]
 pub enum Commands {
     AddTorrent { torrent: String },
     FetchRss { url: String, filter: Option<String> },
+    PrintDefaultConfig { },
+    PrintDefaultKeyMap { }
 }
 
 pub async fn handle_command(config: &Config, command: Commands) -> Result<()> {
     match command {
         Commands::AddTorrent { torrent } => add_torrent(config, torrent).await?,
         Commands::FetchRss { url, filter } => fetch_rss(config, &url, filter.as_deref()).await?,
+        Commands::PrintDefaultConfig { } => print_config(ConfigType::DefaultConfig).await?,
+        Commands::PrintDefaultKeyMap { } => print_config(ConfigType::DefaultKeymap).await?,
+    }
+    Ok(())
+}
+
+async fn print_config(config_type: ConfigType) -> Result<()> {
+    let conf_path: &str;
+    match config_type {
+        ConfigType::DefaultConfig => conf_path = "./rm-config/defaults/config.toml",
+        ConfigType::DefaultKeymap => conf_path = "./rm-config/defaults/keymap.toml",
+    }
+    let mut file = File::open(conf_path)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    for line in contents.lines() {
+        println!("{}", line)
     }
     Ok(())
 }
