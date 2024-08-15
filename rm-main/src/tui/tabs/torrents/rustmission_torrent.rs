@@ -7,9 +7,7 @@ use ratatui::{
 use rm_config::CONFIG;
 use rm_shared::{
     header::Header,
-    utils::{
-        bytes_to_human_format, download_speed_format, seconds_to_human_format, upload_speed_format,
-    },
+    utils::{bytes_to_human_format, seconds_to_human_format},
 };
 use transmission_rpc::types::{ErrorType, Id, Torrent, TorrentStatus};
 
@@ -294,4 +292,18 @@ fn time_to_line<'a>(time: NaiveDateTime) -> Line<'a> {
     } else {
         Line::from(time.format("%y|%m|%d %H:%M").to_string())
     }
+}
+
+fn download_speed_format(download_speed: &str) -> String {
+    if !download_speed.is_empty() {
+        return format!("{} {}", CONFIG.icons.download, download_speed);
+    }
+    download_speed.to_string()
+}
+
+fn upload_speed_format(upload_speed: &str) -> String {
+    if !upload_speed.is_empty() {
+        return format!("{} {}", CONFIG.icons.upload, upload_speed);
+    }
+    upload_speed.to_string()
 }
