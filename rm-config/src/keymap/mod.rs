@@ -277,7 +277,7 @@ impl Default for KeyModifier {
 
 impl KeymapConfig {
     pub const FILENAME: &'static str = "keymap.toml";
-    pub const DEFAULT_CONFIG: &'static str = include_str!("../../defaults/keymap.toml");
+    const DEFAULT_CONFIG: &'static str = include_str!("../../defaults/keymap.toml");
 
     pub fn init() -> Result<Self> {
         match utils::fetch_config::<Self>(Self::FILENAME) {

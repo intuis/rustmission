@@ -100,7 +100,7 @@ impl Default for SearchTab {
 
 impl MainConfig {
     pub(crate) const FILENAME: &'static str = "config.toml";
-    pub const DEFAULT_CONFIG: &'static str = include_str!("../defaults/config.toml");
+    const DEFAULT_CONFIG: &'static str = include_str!("../defaults/config.toml");
 
     pub(crate) fn init() -> Result<Self> {
         match utils::fetch_config::<Self>(Self::FILENAME) {
