@@ -18,12 +18,20 @@ pub struct Args {
 pub enum Commands {
     AddTorrent { torrent: String },
     FetchRss { url: String, filter: Option<String> },
+    PrintDefaultConfig {},
+    PrintDefaultKeymap {},
 }
 
 pub async fn handle_command(command: Commands) -> Result<()> {
     match command {
         Commands::AddTorrent { torrent } => add_torrent(torrent).await?,
         Commands::FetchRss { url, filter } => fetch_rss(&url, filter.as_deref()).await?,
+        Commands::PrintDefaultConfig {} => {
+            println!("{}", rm_config::main_config::MainConfig::DEFAULT_CONFIG)
+        }
+        Commands::PrintDefaultKeymap {} => {
+            println!("{}", rm_config::keymap::KeymapConfig::DEFAULT_CONFIG)
+        }
     }
     Ok(())
 }
