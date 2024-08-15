@@ -38,3 +38,26 @@ headers = ["Name", "SizeWhenDone", "Progress", "Eta", "DownloadRate", "UploadRat
 # If you uncomment this, providers won't be automatically added in future
 # versions of Rustmission.
 # providers = ["Knaben", "Nyaa"]
+
+[icons]
+upload = ""
+download = ""
+arrow_left = ""
+arrow_right = ""
+arrow_up = ""
+arrow_down = ""
+triangle_right = "▶"
+triangle_down = "▼"
+file = ""
+disk = "󰋊"
+help = "󰘥"
+success = ""
+failure = ""
+searching = ""
+verifying = "󰑓"
+loading = "󱥸"
+pause = "󰏤"
+idle = "󱗼"
+provider_disabled = "󰪎"
+provider_category_general = ""
+provider_category_anime = "󰎁"

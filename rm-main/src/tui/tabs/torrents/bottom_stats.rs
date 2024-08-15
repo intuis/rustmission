@@ -5,6 +5,7 @@ use ratatui::{
     widgets::Paragraph,
     Frame,
 };
+use rm_config::CONFIG;
 use rm_shared::utils::bytes_to_human_format;
 use transmission_rpc::types::{FreeSpace, SessionStats};
 
@@ -48,7 +49,10 @@ impl Component for BottomStats {
             let download = bytes_to_human_format(stats.download_speed);
             let upload = bytes_to_human_format(stats.upload_speed);
 
-            let mut text = format!(" {download} |  {upload}");
+            let mut text = format!(
+                "{} {download} | {} {upload}",
+                CONFIG.icons.download, CONFIG.icons.upload
+            );
 
             if let Some(free_space) = &self.free_space {
                 let free_space = bytes_to_human_format(free_space.size_bytes);
@@ -57,12 +61,12 @@ impl Component for BottomStats {
 
             if self.torrent_count > 0 {
                 text = format!(
-                    " {}/{} | {text}",
-                    self.torrent_currently_selected, self.torrent_count
+                    "{} {}/{} | {text}",
+                    CONFIG.icons.file, self.torrent_currently_selected, self.torrent_count
                 );
             } else {
                 // dont display index if nothing is selected
-                text = format!(" {} | {text}", self.torrent_count);
+                text = format!("{} {} | {text}", CONFIG.icons.file, self.torrent_count);
             }
 
             let paragraph = Paragraph::new(text).alignment(Alignment::Right);

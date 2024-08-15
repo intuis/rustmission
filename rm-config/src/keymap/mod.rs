@@ -39,7 +39,7 @@ pub struct KeybindsHolder<T: Into<Action>> {
 }
 
 #[derive(Serialize, Clone)]
-pub struct Keybinding<T: Into<Action>> {
+pub struct Keybinding<T> {
     pub on: KeyCode,
     #[serde(default)]
     pub modifier: KeyModifier,
@@ -93,7 +93,7 @@ impl<T: Into<Action>> Keybinding<T> {
     }
 }
 
-impl<T: Into<Action>> Keybinding<T> {
+impl<T> Keybinding<T> {
     fn new(on: KeyCode, action: T, modifier: Option<KeyModifier>, show_in_help: bool) -> Self {
         Self {
             on,
@@ -104,7 +104,7 @@ impl<T: Into<Action>> Keybinding<T> {
     }
 }
 
-impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T> {
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Keybinding<T> {
     fn deserialize<D>(deserializer: D) -> std::prelude::v1::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -122,7 +122,7 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
             phantom: PhantomData<T>,
         }
 
-        impl<'de, T: Into<Action> + Deserialize<'de>> Visitor<'de> for KeybindingVisitor<T> {
+        impl<'de, T: Deserialize<'de>> Visitor<'de> for KeybindingVisitor<T> {
             type Value = Keybinding<T>;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -280,7 +280,7 @@ impl Default for KeyModifier {
 
 impl KeymapConfig {
     pub const FILENAME: &'static str = "keymap.toml";
-    const DEFAULT_CONFIG: &'static str = include_str!("../../defaults/keymap.toml");
+    pub const DEFAULT_CONFIG: &'static str = include_str!("../../defaults/keymap.toml");
 
     pub fn init() -> Result<Self> {
         match utils::fetch_config::<Self>(Self::FILENAME) {
