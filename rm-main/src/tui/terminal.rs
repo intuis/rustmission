@@ -3,7 +3,7 @@ use std::{io, time::Duration};
 use anyhow::Result;
 use crossterm::{
     cursor,
-    event::{Event, KeyEventKind},
+    event::{EnableMouseCapture, Event, KeyEventKind},
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
 use futures::{FutureExt, StreamExt};
@@ -47,6 +47,7 @@ impl Tui {
                     event_tx.send(Event::Key(key)).unwrap();
                 }
             }
+            Some(Ok(Event::Mouse(event))) => event_tx.send(Event::Mouse(event)).unwrap(),
             Some(Ok(Event::Resize(x, y))) => event_tx.send(Event::Resize(x, y)).unwrap(),
             Some(Err(e)) => Err(e)?,
             _ => (),
@@ -95,7 +96,12 @@ impl Tui {
         }
         if crossterm::terminal::is_raw_mode_enabled()? {
             self.terminal.flush()?;
-            crossterm::execute!(std::io::stdout(), LeaveAlternateScreen, cursor::Show)?;
+            crossterm::execute!(
+                std::io::stdout(),
+                LeaveAlternateScreen,
+                cursor::Show,
+                EnableMouseCapture
+            )?;
             crossterm::terminal::disable_raw_mode()?;
         }
         Ok(())

@@ -177,15 +177,25 @@ impl SearchTab {
         self.ctx.send_action(Action::Render);
     }
 
+    fn scroll_up_by(&mut self, amount: u8) {
+        self.table.scroll_up_by(usize::from(amount));
+        self.ctx.send_action(Action::Render);
+    }
+
+    fn scroll_down_by(&mut self, amount: u8) {
+        self.table.scroll_down_by(usize::from(amount));
+        self.ctx.send_action(Action::Render);
+    }
+
     fn scroll_down_page(&mut self) {
         self.table
-            .scroll_down_by(self.currently_displaying_no as usize);
+            .scroll_down_by(usize::from(self.currently_displaying_no));
         self.ctx.send_action(Action::Render);
     }
 
     fn scroll_up_page(&mut self) {
         self.table
-            .scroll_up_by(self.currently_displaying_no as usize);
+            .scroll_up_by(usize::from(self.currently_displaying_no));
         self.ctx.send_action(Action::Render);
     }
 
@@ -264,6 +274,8 @@ impl Component for SearchTab {
             A::Input(input) => self.handle_input(input),
             A::Down => self.next_torrent(),
             A::Up => self.previous_torrent(),
+            A::ScrollUpBy(amount) => self.scroll_up_by(amount),
+            A::ScrollDownBy(amount) => self.scroll_down_by(amount),
             A::ScrollDownPage => self.scroll_down_page(),
             A::ScrollUpPage => self.scroll_up_page(),
             A::Home => self.scroll_to_home(),
