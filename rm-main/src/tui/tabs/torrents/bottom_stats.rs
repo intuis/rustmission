@@ -56,7 +56,7 @@ impl Component for BottomStats {
 
             if let Some(free_space) = &self.free_space {
                 let free_space = bytes_to_human_format(free_space.size_bytes);
-                text = format!("󰋊 {free_space} | {text}")
+                text = format!("{} {free_space} | {text}", CONFIG.icons.disk)
             }
 
             if self.torrent_count > 0 {
