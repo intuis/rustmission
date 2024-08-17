@@ -368,7 +368,7 @@ impl Component for SearchTab {
         };
 
         let paragraph_text = format!("{} {input}", CONFIG.icons.magnifying_glass);
-        let prefix_len = paragraph_text.len() - input.len() - 2;
+        let prefix_len = paragraph_text.chars().count() - input.chars().count();
         let paragraph = Paragraph::new(paragraph_text).style(search_style);
 
         f.render_widget(paragraph, search_rect);
