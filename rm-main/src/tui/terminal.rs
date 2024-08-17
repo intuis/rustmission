@@ -37,24 +37,6 @@ impl Tui {
         })
     }
 
-    fn handle_crossterm_event(
-        event: Option<Result<Event, io::Error>>,
-        event_tx: &UnboundedSender<Event>,
-    ) -> Result<()> {
-        match event {
-            Some(Ok(Event::Key(key))) => {
-                if key.kind == KeyEventKind::Press {
-                    event_tx.send(Event::Key(key)).unwrap();
-                }
-            }
-            Some(Ok(Event::Mouse(event))) => event_tx.send(Event::Mouse(event)).unwrap(),
-            Some(Ok(Event::Resize(x, y))) => event_tx.send(Event::Resize(x, y)).unwrap(),
-            Some(Err(e)) => Err(e)?,
-            _ => (),
-        }
-        Ok(())
-    }
-
     pub(crate) fn enter(&mut self) -> Result<()> {
         crossterm::terminal::enable_raw_mode()?;
         crossterm::execute!(std::io::stdout(), EnterAlternateScreen, cursor::Hide)?;
@@ -78,6 +60,23 @@ impl Tui {
             }
             Ok(())
         });
+        Ok(())
+    }
+
+    fn handle_crossterm_event(
+        event: Option<Result<Event, io::Error>>,
+        event_tx: &UnboundedSender<Event>,
+    ) -> Result<()> {
+        match event {
+            Some(Ok(Event::Key(key))) => {
+                if key.kind == KeyEventKind::Press {
+                    event_tx.send(Event::Key(key)).unwrap();
+                }
+            }
+            Some(Ok(event)) => event_tx.send(event).unwrap(),
+            Some(Err(e)) => Err(e)?,
+            _ => (),
+        }
         Ok(())
     }
 
