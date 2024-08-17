@@ -12,7 +12,10 @@ use serde::{
     Deserialize, Serialize,
 };
 
-use crate::utils::{self, ConfigFetchingError};
+use crate::{
+    utils::{self, ConfigFetchingError},
+    CONFIG,
+};
 use rm_shared::action::Action;
 
 use self::actions::{general::GeneralAction, torrents_tab::TorrentsAction};
@@ -36,7 +39,7 @@ pub struct KeybindsHolder<T: Into<Action>> {
 }
 
 #[derive(Serialize, Clone)]
-pub struct Keybinding<T: Into<Action>> {
+pub struct Keybinding<T> {
     pub on: KeyCode,
     #[serde(default)]
     pub modifier: KeyModifier,
@@ -49,10 +52,10 @@ impl<T: Into<Action>> Keybinding<T> {
         let key = match self.on {
             KeyCode::Backspace => "Backspace".into(),
             KeyCode::Enter => "Enter".into(),
-            KeyCode::Left => "".into(),
-            KeyCode::Right => "".into(),
-            KeyCode::Up => "".into(),
-            KeyCode::Down => "".into(),
+            KeyCode::Left => CONFIG.icons.arrow_left.clone(),
+            KeyCode::Right => CONFIG.icons.arrow_right.clone(),
+            KeyCode::Up => CONFIG.icons.arrow_up.clone(),
+            KeyCode::Down => CONFIG.icons.arrow_down.clone(),
             KeyCode::Home => "Home".into(),
             KeyCode::End => "End".into(),
             KeyCode::PageUp => "PageUp".into(),
@@ -90,7 +93,7 @@ impl<T: Into<Action>> Keybinding<T> {
     }
 }
 
-impl<T: Into<Action>> Keybinding<T> {
+impl<T> Keybinding<T> {
     fn new(on: KeyCode, action: T, modifier: Option<KeyModifier>, show_in_help: bool) -> Self {
         Self {
             on,
@@ -101,7 +104,7 @@ impl<T: Into<Action>> Keybinding<T> {
     }
 }
 
-impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T> {
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Keybinding<T> {
     fn deserialize<D>(deserializer: D) -> std::prelude::v1::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -119,7 +122,7 @@ impl<'de, T: Into<Action> + Deserialize<'de>> Deserialize<'de> for Keybinding<T>
             phantom: PhantomData<T>,
         }
 
-        impl<'de, T: Into<Action> + Deserialize<'de>> Visitor<'de> for KeybindingVisitor<T> {
+        impl<'de, T: Deserialize<'de>> Visitor<'de> for KeybindingVisitor<T> {
             type Value = Keybinding<T>;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
