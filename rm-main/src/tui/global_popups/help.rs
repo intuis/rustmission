@@ -153,8 +153,8 @@ impl Component for HelpPopup {
         match action {
             action if action.is_soft_quit() => ComponentAction::Quit,
             Action::Confirm | Action::ShowHelp => ComponentAction::Quit,
-            Action::Up => self.scroll_up(),
-            Action::Down => self.scroll_down(),
+            Action::Up | Action::ScrollUpBy(_) => self.scroll_up(),
+            Action::Down | Action::ScrollDownBy(_) => self.scroll_down(),
             Action::ScrollUpPage | Action::Home => self.scroll_to_home(),
             Action::ScrollDownPage | Action::End => self.scroll_to_end(),
             _ => ComponentAction::Nothing,

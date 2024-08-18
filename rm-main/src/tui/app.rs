@@ -202,6 +202,13 @@ pub fn event_to_action(ctx: &Ctx, mode: Mode, current_tab: CurrentTab, event: Ev
 
     match event {
         Event::Key(key) if mode == Mode::Input => ctx.send_action(Action::Input(key)),
+        Event::Mouse(mouse_event) => match mouse_event.kind {
+            crossterm::event::MouseEventKind::ScrollDown => {
+                ctx.send_action(Action::ScrollDownBy(3))
+            }
+            crossterm::event::MouseEventKind::ScrollUp => ctx.send_action(Action::ScrollUpBy(3)),
+            _ => (),
+        },
         Event::Key(key) => {
             let keymaps = match current_tab {
                 CurrentTab::Torrents => [

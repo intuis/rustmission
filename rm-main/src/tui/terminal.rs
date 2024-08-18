@@ -3,7 +3,7 @@ use std::{io, time::Duration};
 use anyhow::Result;
 use crossterm::{
     cursor,
-    event::{Event, KeyEventKind},
+    event::{DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind},
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
 use futures::{FutureExt, StreamExt};
@@ -37,26 +37,14 @@ impl Tui {
         })
     }
 
-    fn handle_crossterm_event(
-        event: Option<Result<Event, io::Error>>,
-        event_tx: &UnboundedSender<Event>,
-    ) -> Result<()> {
-        match event {
-            Some(Ok(Event::Key(key))) => {
-                if key.kind == KeyEventKind::Press {
-                    event_tx.send(Event::Key(key)).unwrap();
-                }
-            }
-            Some(Ok(Event::Resize(x, y))) => event_tx.send(Event::Resize(x, y)).unwrap(),
-            Some(Err(e)) => Err(e)?,
-            _ => (),
-        }
-        Ok(())
-    }
-
     pub(crate) fn enter(&mut self) -> Result<()> {
         crossterm::terminal::enable_raw_mode()?;
-        crossterm::execute!(std::io::stdout(), EnterAlternateScreen, cursor::Hide)?;
+        crossterm::execute!(
+            std::io::stdout(),
+            EnterAlternateScreen,
+            cursor::Hide,
+            EnableMouseCapture
+        )?;
         self.start()?;
         Ok(())
     }
@@ -80,6 +68,23 @@ impl Tui {
         Ok(())
     }
 
+    fn handle_crossterm_event(
+        event: Option<Result<Event, io::Error>>,
+        event_tx: &UnboundedSender<Event>,
+    ) -> Result<()> {
+        match event {
+            Some(Ok(Event::Key(key))) => {
+                if key.kind == KeyEventKind::Press {
+                    event_tx.send(Event::Key(key)).unwrap();
+                }
+            }
+            Some(Ok(event)) => event_tx.send(event).unwrap(),
+            Some(Err(e)) => Err(e)?,
+            _ => (),
+        }
+        Ok(())
+    }
+
     pub(crate) fn exit(&mut self) -> Result<()> {
         self.cancellation_token.cancel();
         let mut counter = 0;
@@ -95,7 +100,12 @@ impl Tui {
         }
         if crossterm::terminal::is_raw_mode_enabled()? {
             self.terminal.flush()?;
-            crossterm::execute!(std::io::stdout(), LeaveAlternateScreen, cursor::Show)?;
+            crossterm::execute!(
+                std::io::stdout(),
+                LeaveAlternateScreen,
+                cursor::Show,
+                DisableMouseCapture
+            )?;
             crossterm::terminal::disable_raw_mode()?;
         }
         Ok(())
