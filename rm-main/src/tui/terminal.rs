@@ -39,7 +39,12 @@ impl Tui {
 
     pub(crate) fn enter(&mut self) -> Result<()> {
         crossterm::terminal::enable_raw_mode()?;
-        crossterm::execute!(std::io::stdout(), EnterAlternateScreen, cursor::Hide)?;
+        crossterm::execute!(
+            std::io::stdout(),
+            EnterAlternateScreen,
+            cursor::Hide,
+            EnableMouseCapture
+        )?;
         self.start()?;
         Ok(())
     }

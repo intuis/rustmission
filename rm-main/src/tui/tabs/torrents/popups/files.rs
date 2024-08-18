@@ -187,11 +187,11 @@ impl Component for FilesPopup {
                 }
             }
 
-            (A::Up, CurrentFocus::Files) => {
+            (A::Up | A::ScrollUpBy(_), CurrentFocus::Files) => {
                 self.tree_state.key_up();
                 self.ctx.send_action(Action::Render);
             }
-            (A::Down, CurrentFocus::Files) => {
+            (A::Down | A::ScrollDownBy(_), CurrentFocus::Files) => {
                 self.tree_state.key_down();
                 self.ctx.send_action(Action::Render);
             }
