@@ -3,7 +3,7 @@ use std::{io, time::Duration};
 use anyhow::Result;
 use crossterm::{
     cursor,
-    event::{EnableMouseCapture, Event, KeyEventKind},
+    event::{DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind},
     terminal::{EnterAlternateScreen, LeaveAlternateScreen},
 };
 use futures::{FutureExt, StreamExt};
@@ -104,7 +104,7 @@ impl Tui {
                 std::io::stdout(),
                 LeaveAlternateScreen,
                 cursor::Show,
-                EnableMouseCapture
+                DisableMouseCapture
             )?;
             crossterm::terminal::disable_raw_mode()?;
         }
