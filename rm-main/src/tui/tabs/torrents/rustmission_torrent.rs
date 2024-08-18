@@ -2,7 +2,7 @@ use chrono::{Datelike, NaiveDateTime};
 use ratatui::{
     style::{Style, Stylize},
     text::{Line, Span},
-    widgets::Row,
+    widgets::{Cell, Row},
 };
 use rm_config::CONFIG;
 use rm_shared::{
@@ -35,9 +35,10 @@ impl RustmissionTorrent {
     pub fn to_row(&self, headers: &[Header]) -> ratatui::widgets::Row {
         headers
             .iter()
-            .map(|header| self.header_to_line(*header))
+            .map(|header| self.header_to_cell(*header))
             .collect::<Row>()
             .style(self.style)
+            .height(if self.error.is_some() { 2 } else { 1 })
     }
 
     pub fn to_row_with_higlighted_indices(
@@ -116,9 +117,9 @@ impl RustmissionTorrent {
 
         for header in headers {
             if *header == Header::Name {
-                cells.push(std::mem::take(&mut torrent_name_line))
+                cells.push(std::mem::take(&mut torrent_name_line).into())
             } else {
-                cells.push(self.header_to_line(*header).style(self.style))
+                cells.push(self.header_to_cell(*header).style(self.style))
             }
         }
 
@@ -129,42 +130,48 @@ impl RustmissionTorrent {
         format!("{}/{}", self.download_dir, self.torrent_name)
     }
 
-    fn header_to_line(&self, header: Header) -> Line {
+    fn header_to_cell(&self, header: Header) -> Cell {
         match header {
-            Header::Name => Line::from(self.torrent_name.as_str()),
-            Header::SizeWhenDone => Line::from(self.size_when_done.as_str()),
-            Header::Progress => Line::from(self.progress.as_str()),
-            Header::Eta => Line::from(self.eta_secs.as_str()),
-            Header::DownloadRate => Line::from(download_speed_format(&self.download_speed)),
-            Header::UploadRate => Line::from(upload_speed_format(&self.upload_speed)),
-            Header::DownloadDir => Line::from(self.download_dir.as_str()),
-            Header::Padding => Line::raw(""),
+            Header::Name => {
+                if let Some(error) = &self.error {
+                    Cell::from(format!("{}\n{error}", self.torrent_name))
+                } else {
+                    Cell::from(self.torrent_name.as_str())
+                }
+            }
+            Header::SizeWhenDone => Cell::from(self.size_when_done.as_str()),
+            Header::Progress => Cell::from(self.progress.as_str()),
+            Header::Eta => Cell::from(self.eta_secs.as_str()),
+            Header::DownloadRate => Cell::from(download_speed_format(&self.download_speed)),
+            Header::UploadRate => Cell::from(upload_speed_format(&self.upload_speed)),
+            Header::DownloadDir => Cell::from(self.download_dir.as_str()),
+            Header::Padding => Cell::from(""),
             Header::Id => match &self.id {
-                Id::Id(id) => Line::from(id.to_string()),
-                Id::Hash(hash) => Line::from(hash.as_str()),
+                Id::Id(id) => Cell::from(id.to_string()),
+                Id::Hash(hash) => Cell::from(hash.as_str()),
             },
-            Header::UploadRatio => Line::from(self.upload_ratio.as_str()),
-            Header::UploadedEver => Line::from(self.uploaded_ever.as_str()),
-            Header::ActivityDate => time_to_line(self.activity_date),
-            Header::AddedDate => time_to_line(self.added_date),
-            Header::PeersConnected => Line::from(self.peers_connected.to_string()),
+            Header::UploadRatio => Cell::from(self.upload_ratio.as_str()),
+            Header::UploadedEver => Cell::from(self.uploaded_ever.as_str()),
+            Header::ActivityDate => time_to_line(self.activity_date).into(),
+            Header::AddedDate => time_to_line(self.added_date).into(),
+            Header::PeersConnected => Cell::from(self.peers_connected.to_string()),
             Header::SmallStatus => {
                 if self.error.is_some() {
-                    return Line::from(CONFIG.icons.failure.as_str());
+                    return Cell::from(CONFIG.icons.failure.as_str());
                 }
 
                 match self.status() {
-                    TorrentStatus::Stopped => Line::from(CONFIG.icons.pause.as_str()),
-                    TorrentStatus::QueuedToVerify => Line::from(CONFIG.icons.loading.as_str()),
-                    TorrentStatus::Verifying => Line::from(CONFIG.icons.verifying.as_str()),
-                    TorrentStatus::QueuedToDownload => Line::from(CONFIG.icons.loading.as_str()),
-                    TorrentStatus::QueuedToSeed => Line::from(CONFIG.icons.loading.as_str()),
-                    TorrentStatus::Downloading => Line::from(CONFIG.icons.download.as_str()),
+                    TorrentStatus::Stopped => Cell::from(CONFIG.icons.pause.as_str()),
+                    TorrentStatus::QueuedToVerify => Cell::from(CONFIG.icons.loading.as_str()),
+                    TorrentStatus::Verifying => Cell::from(CONFIG.icons.verifying.as_str()),
+                    TorrentStatus::QueuedToDownload => Cell::from(CONFIG.icons.loading.as_str()),
+                    TorrentStatus::QueuedToSeed => Cell::from(CONFIG.icons.loading.as_str()),
+                    TorrentStatus::Downloading => Cell::from(CONFIG.icons.download.as_str()),
                     TorrentStatus::Seeding => {
                         if !self.upload_speed.is_empty() {
-                            Line::from(CONFIG.icons.upload.as_str())
+                            Cell::from(CONFIG.icons.upload.as_str())
                         } else {
-                            Line::from(CONFIG.icons.success.as_str())
+                            Cell::from(CONFIG.icons.success.as_str())
                         }
                     }
                 }
