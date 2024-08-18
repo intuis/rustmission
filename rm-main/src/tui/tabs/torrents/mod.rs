@@ -161,16 +161,33 @@ impl Component for TorrentsTab {
 
 impl TorrentsTab {
     fn render_table(&mut self, f: &mut Frame, rect: Rect) {
-        self.table_manager.torrents_displaying_no = rect.height;
+        let offset = self.table_manager.table.state.borrow().offset();
+        let mut torrents_displaying_no = 0;
+        let mut space_left = rect.height;
+        for torrent in self.table_manager.table.items.iter().skip(offset) {
+            if space_left <= 0 {
+                break;
+            }
+
+            if torrent.error.is_some() {
+                space_left = space_left.saturating_sub(2);
+            } else {
+                space_left -= 1;
+            }
+
+            torrents_displaying_no += 1;
+        }
+        self.table_manager.torrents_displaying_no = torrents_displaying_no;
 
         let highlight_table_style = Style::default()
             .on_black()
             .bold()
             .fg(CONFIG.general.accent_color);
 
+        let rows = self.table_manager.rows();
         let table_widget = {
-            let table = Table::new(self.table_manager.rows(), &self.table_manager.widths)
-                .highlight_style(highlight_table_style);
+            let table =
+                Table::new(rows, &self.table_manager.widths).highlight_style(highlight_table_style);
             if !CONFIG.general.headers_hide {
                 table.header(Row::new(self.table_manager.headers().iter().cloned()))
             } else {
