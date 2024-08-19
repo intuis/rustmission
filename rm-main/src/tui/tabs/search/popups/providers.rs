@@ -1,20 +1,17 @@
 use magnetease::ProviderCategory;
 use ratatui::{
-    layout::{Alignment, Constraint, Margin},
+    layout::{Constraint, Margin},
     prelude::Rect,
     style::{Style, Styled, Stylize},
     text::Line,
-    widgets::{
-        block::{Position, Title},
-        Block, BorderType, Clear, Row, Table,
-    },
+    widgets::{block::Title, Block, BorderType, Clear, Row, Table},
     Frame,
 };
 use rm_config::CONFIG;
 use rm_shared::action::Action;
 
 use crate::tui::{
-    components::{Component, ComponentAction},
+    components::{popup_close_button_highlight, Component, ComponentAction},
     main_window::centered_rect,
     tabs::search::{ConfiguredProvider, ProviderState},
 };
@@ -100,11 +97,7 @@ impl Component for ProvidersPopup {
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
             .title(Title::from(" Providers ".set_style(title_style)))
-            .title(
-                Title::from(" [ CLOSE ] ".set_style(title_style.bold()))
-                    .alignment(Alignment::Right)
-                    .position(Position::Bottom),
-            );
+            .title(popup_close_button_highlight());
 
         let widths = [
             Constraint::Length(10), // Provider name (and icon status prefix)

@@ -3,10 +3,7 @@ use std::sync::Arc;
 use ratatui::{
     prelude::*,
     style::Styled,
-    widgets::{
-        block::{Position, Title},
-        Block, BorderType, Clear, Paragraph,
-    },
+    widgets::{block::Title, Block, BorderType, Clear, Paragraph},
 };
 use rm_config::CONFIG;
 use transmission_rpc::types::SessionStats;
@@ -14,7 +11,7 @@ use transmission_rpc::types::SessionStats;
 use rm_shared::{action::Action, utils::bytes_to_human_format};
 
 use crate::tui::{
-    components::{Component, ComponentAction},
+    components::{popup_close_button_highlight, Component, ComponentAction},
     main_window::centered_rect,
 };
 
@@ -47,11 +44,7 @@ impl Component for StatisticsPopup {
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
             .title(Title::from(" Statistics ".set_style(title_style)))
-            .title(
-                Title::from(" [ CLOSE ] ".set_style(title_style.bold()))
-                    .alignment(Alignment::Right)
-                    .position(Position::Bottom),
-            );
+            .title(popup_close_button_highlight());
 
         let uploaded_bytes = self.stats.cumulative_stats.uploaded_bytes;
         let downloaded_bytes = self.stats.cumulative_stats.downloaded_bytes;

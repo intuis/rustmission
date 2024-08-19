@@ -165,7 +165,7 @@ impl TorrentsTab {
         let mut torrents_displaying_no = 0;
         let mut space_left = rect.height;
         for torrent in self.table_manager.table.items.iter().skip(offset) {
-            if space_left <= 0 {
+            if space_left == 0 {
                 break;
             }
 

@@ -1,8 +1,10 @@
 mod input_manager;
+mod misc;
 mod table;
 mod tabs;
 
 pub use input_manager::InputManager;
+pub use misc::{popup_close_button, popup_close_button_highlight};
 pub use table::GenericTable;
 pub use tabs::{CurrentTab, TabComponent};
 
