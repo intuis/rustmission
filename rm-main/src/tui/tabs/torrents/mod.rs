@@ -64,7 +64,7 @@ impl Component for TorrentsTab {
 
         self.task_manager.render(f, stats_rect);
 
-        self.popup_manager.render(f, f.size());
+        self.popup_manager.render(f, f.area());
     }
 
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
@@ -86,8 +86,8 @@ impl Component for TorrentsTab {
             A::ScrollDownPage => self.scroll_page_down(),
             A::ScrollUpBy(amount) => self.scroll_up_by(amount),
             A::ScrollDownBy(amount) => self.scroll_down_by(amount),
-            A::Home => self.scroll_to_home(),
-            A::End => self.scroll_to_end(),
+            A::Home => self.select_first(),
+            A::End => self.select_last(),
             A::ShowStats => self.show_statistics_popup(),
             A::ShowFiles => self.show_files_popup(),
             A::Pause => self.pause_current_torrent(),
@@ -110,7 +110,7 @@ impl Component for TorrentsTab {
                     self.task_manager.move_torrent(torrent);
                 }
             }
-            A::XdgOpen => self.open_current_torrent(),
+            A::XdgOpen => self.xdg_open_current_torrent(),
             other => {
                 self.task_manager.handle_actions(other);
             }
@@ -262,15 +262,15 @@ impl TorrentsTab {
         self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_to_home(&mut self) {
-        self.table_manager.table.scroll_to_home();
+    fn select_first(&mut self) {
+        self.table_manager.table.select_first();
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
         self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_to_end(&mut self) {
-        self.table_manager.table.scroll_to_end();
+    fn select_last(&mut self) {
+        self.table_manager.table.select_last();
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
         self.ctx.send_action(Action::Render);
@@ -296,7 +296,7 @@ impl TorrentsTab {
         }
     }
 
-    fn open_current_torrent(&mut self) {
+    fn xdg_open_current_torrent(&mut self) {
         if let Some(torrent) = self.table_manager.current_torrent() {
             let torrent_location = torrent.torrent_location();
             match open::that_detached(&torrent_location) {

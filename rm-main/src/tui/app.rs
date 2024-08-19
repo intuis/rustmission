@@ -146,7 +146,7 @@ impl App {
 
     fn render(&mut self, tui: &mut Tui) -> Result<()> {
         tui.terminal.draw(|f| {
-            self.main_window.render(f, f.size());
+            self.main_window.render(f, f.area());
         })?;
         Ok(())
     }
