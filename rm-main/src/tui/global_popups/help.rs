@@ -2,10 +2,7 @@ use std::collections::BTreeMap;
 
 use ratatui::{
     prelude::*,
-    widgets::{
-        block::{Position, Title},
-        Block, Borders, Clear, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
-    },
+    widgets::{Block, Borders, Clear, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
 };
 
 use rm_config::{
@@ -16,7 +13,7 @@ use rm_shared::action::Action;
 
 use crate::tui::{
     app,
-    components::{Component, ComponentAction},
+    components::{popup_close_button_highlight, Component, ComponentAction},
     main_window::centered_rect,
 };
 
@@ -169,11 +166,7 @@ impl Component for HelpPopup {
         let title_style = Style::new().fg(CONFIG.general.accent_color);
         let block = Block::bordered()
             .border_set(symbols::border::ROUNDED)
-            .title(
-                Title::from(" [ CLOSE ] ".fg(CONFIG.general.accent_color).bold())
-                    .alignment(Alignment::Right)
-                    .position(Position::Bottom),
-            )
+            .title(popup_close_button_highlight())
             .title(" Help ")
             .title_style(title_style);
 

@@ -17,7 +17,9 @@ use crate::{
     transmission::TorrentAction,
     tui::{
         app,
-        components::{Component, ComponentAction},
+        components::{
+            popup_close_button, popup_close_button_highlight, Component, ComponentAction,
+        },
         main_window::centered_rect,
     },
 };
@@ -265,10 +267,10 @@ impl Component for FilesPopup {
                 self.switched_after_fetched_data = true;
             }
 
-            let close_button_style = {
+            let close_button = {
                 match self.current_focus {
-                    CurrentFocus::CloseButton => highlight_style.bold(),
-                    CurrentFocus::Files => Style::default(),
+                    CurrentFocus::CloseButton => popup_close_button_highlight(),
+                    CurrentFocus::Files => popup_close_button(),
                 }
             };
 
@@ -314,11 +316,7 @@ impl Component for FilesPopup {
                     Title::from(format!(" {} ", download_dir).set_style(highlight_style))
                         .alignment(Alignment::Right),
                 )
-                .title(
-                    Title::from(" [ CLOSE ] ".set_style(close_button_style))
-                        .alignment(Alignment::Right)
-                        .position(Position::Bottom),
-                )
+                .title(close_button)
                 .title(
                     Title::from(keybinding_tip)
                         .alignment(Alignment::Left)
@@ -336,11 +334,7 @@ impl Component for FilesPopup {
             f.render_stateful_widget(tree_widget, block_rect, &mut self.tree_state);
         } else {
             let paragraph = Paragraph::new("Loading...");
-            let block = block.title(
-                Title::from(" [ CLOSE ] ".set_style(highlight_style.bold()))
-                    .alignment(Alignment::Right)
-                    .position(Position::Bottom),
-            );
+            let block = block.title(popup_close_button_highlight());
             f.render_widget(Clear, popup_rect);
             f.render_widget(paragraph, info_text_rect);
             f.render_widget(block, block_rect);
@@ -351,7 +345,6 @@ impl Component for FilesPopup {
 struct TransmissionFile {
     name: String,
     id: usize,
-    // TODO: Change to enum
     wanted: bool,
 }
 
