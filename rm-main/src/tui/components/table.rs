@@ -100,19 +100,11 @@ impl<T: Clone> GenericTable<T> {
         }
     }
 
-    pub fn scroll_to_home(&mut self) {
-        let mut state = self.state.borrow_mut();
-        if !self.items.is_empty() {
-            state.select(Some(0));
-        }
+    pub fn select_first(&mut self) {
+        self.state.borrow_mut().select_first();
     }
 
-    pub fn scroll_to_end(&mut self) {
-        if self.items.is_empty() {
-            return;
-        }
-
-        let mut state = self.state.borrow_mut();
-        state.select(Some(self.items.len() - 1));
+    pub fn select_last(&mut self) {
+        self.state.borrow_mut().select_last();
     }
 }

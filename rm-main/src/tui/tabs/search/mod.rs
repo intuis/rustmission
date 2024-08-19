@@ -200,12 +200,12 @@ impl SearchTab {
     }
 
     fn scroll_to_end(&mut self) {
-        self.table.scroll_to_end();
+        self.table.select_last();
         self.ctx.send_action(Action::Render);
     }
 
     fn scroll_to_home(&mut self) {
-        self.table.scroll_to_home();
+        self.table.select_first();
         self.ctx.send_action(Action::Render);
     }
 
