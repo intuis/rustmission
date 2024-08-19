@@ -86,8 +86,8 @@ impl Component for TorrentsTab {
             A::ScrollDownPage => self.scroll_page_down(),
             A::ScrollUpBy(amount) => self.scroll_up_by(amount),
             A::ScrollDownBy(amount) => self.scroll_down_by(amount),
-            A::Home => self.scroll_to_home(),
-            A::End => self.scroll_to_end(),
+            A::Home => self.select_first(),
+            A::End => self.select_last(),
             A::ShowStats => self.show_statistics_popup(),
             A::ShowFiles => self.show_files_popup(),
             A::Pause => self.pause_current_torrent(),
@@ -262,14 +262,14 @@ impl TorrentsTab {
         self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_to_home(&mut self) {
+    fn select_first(&mut self) {
         self.table_manager.table.select_first();
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
         self.ctx.send_action(Action::Render);
     }
 
-    fn scroll_to_end(&mut self) {
+    fn select_last(&mut self) {
         self.table_manager.table.select_last();
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
