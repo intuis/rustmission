@@ -6,13 +6,13 @@ use ratatui::{
 use rm_config::CONFIG;
 
 pub fn popup_close_button_highlight() -> Title<'static> {
-    Title::from("[ CLOSE ]".fg(CONFIG.general.accent_color).bold())
+    Title::from(" [ CLOSE ] ".fg(CONFIG.general.accent_color).bold())
         .alignment(Alignment::Right)
         .position(Position::Bottom)
 }
 
 pub fn popup_close_button() -> Title<'static> {
-    Title::from("[ CLOSE ]")
+    Title::from(" [CLOSE] ")
         .alignment(Alignment::Right)
         .position(Position::Bottom)
 }
