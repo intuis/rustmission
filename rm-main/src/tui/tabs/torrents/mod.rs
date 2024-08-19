@@ -64,7 +64,7 @@ impl Component for TorrentsTab {
 
         self.task_manager.render(f, stats_rect);
 
-        self.popup_manager.render(f, f.size());
+        self.popup_manager.render(f, f.area());
     }
 
     fn handle_actions(&mut self, action: Action) -> ComponentAction {

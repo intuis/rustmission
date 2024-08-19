@@ -62,6 +62,10 @@ impl Component for InputManager {
         f.render_widget(paragraph, rect);
 
         let cursor_offset = self.input.visual_cursor() + prefix_len;
-        f.set_cursor(rect.x + u16::try_from(cursor_offset).unwrap(), rect.y);
+        let cursor_position = Position {
+            x: rect.x + u16::try_from(cursor_offset).unwrap(),
+            y: rect.y,
+        };
+        f.set_cursor_position(cursor_position);
     }
 }

@@ -386,10 +386,11 @@ impl Component for SearchTab {
         f.render_widget(paragraph, search_rect);
 
         let cursor_offset = self.input.visual_cursor() + prefix_len;
-        f.set_cursor(
-            search_rect.x + u16::try_from(cursor_offset).unwrap(),
-            search_rect.y,
-        );
+        let cursor_position = Position {
+            x: search_rect.x + u16::try_from(cursor_offset).unwrap(),
+            y: search_rect.y,
+        };
+        f.set_cursor_position(cursor_position);
 
         let header = Row::new(["S", "Title", "Size"]);
 
@@ -421,7 +422,7 @@ impl Component for SearchTab {
         f.render_stateful_widget(table, rest, &mut self.table.state.borrow_mut());
 
         self.bottom_bar.render(f, bottom_line);
-        self.popup_manager.render(f, f.size());
+        self.popup_manager.render(f, f.area());
     }
 }
 

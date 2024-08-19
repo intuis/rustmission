@@ -87,7 +87,7 @@ impl Component for MainWindow {
             CurrentTab::Search => self.search_tab.render(f, main_window),
         }
 
-        self.global_popup_manager.render(f, f.size());
+        self.global_popup_manager.render(f, f.area());
     }
 }
 
