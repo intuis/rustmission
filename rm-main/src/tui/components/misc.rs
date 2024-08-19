@@ -12,7 +12,7 @@ pub fn popup_close_button_highlight() -> Title<'static> {
 }
 
 pub fn popup_close_button() -> Title<'static> {
-    Title::from(" [CLOSE] ")
+    Title::from(" [CLOSE] ".bold())
         .alignment(Alignment::Right)
         .position(Position::Bottom)
 }
