@@ -41,6 +41,10 @@ impl InputManager {
             None
         }
     }
+
+    pub fn set_prompt(&mut self, new_prompt: impl Into<String>) {
+        self.prompt = new_prompt.into();
+    }
 }
 
 impl Component for InputManager {

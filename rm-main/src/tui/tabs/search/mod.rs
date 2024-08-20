@@ -133,7 +133,7 @@ impl SearchTab {
         let magnet_url = self.table.current_item().map(|magnet| magnet.url);
         if let Some(magnet_url) = magnet_url {
             self.ctx
-                .send_torrent_action(TorrentAction::Add(magnet_url, None));
+                .send_torrent_action(TorrentAction::Add(magnet_url, None, None));
         }
     }
 

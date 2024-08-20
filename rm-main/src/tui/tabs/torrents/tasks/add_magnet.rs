@@ -1,5 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
+use rm_config::CONFIG;
 
 use crate::{
     transmission::TorrentAction,
@@ -15,6 +16,7 @@ use rm_shared::{
 
 pub struct AddMagnetBar {
     input_magnet_mgr: InputManager,
+    input_category_mgr: InputManager,
     input_location_mgr: InputManager,
     stage: Stage,
     ctx: app::Ctx,
@@ -22,15 +24,21 @@ pub struct AddMagnetBar {
 
 enum Stage {
     AskMagnet,
+    AskCategory,
     AskLocation,
 }
+
+const MAGNET_PROMPT: &str = "Add magnet URI: ";
+const CATEGORY_PROMPT: &str = "Category (empty for default): ";
+const LOCATION_PROMPT: &str = "Directory: ";
 
 impl AddMagnetBar {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
-            input_magnet_mgr: InputManager::new("Add (Magnet URL / Torrent path): ".to_string()),
+            input_magnet_mgr: InputManager::new(MAGNET_PROMPT.to_string()),
+            input_category_mgr: InputManager::new(CATEGORY_PROMPT.to_string()),
             input_location_mgr: InputManager::new_with_value(
-                "Directory: ".to_string(),
+                LOCATION_PROMPT.to_string(),
                 ctx.session_info.download_dir.clone(),
             ),
             stage: Stage::AskMagnet,
@@ -41,13 +49,14 @@ impl AddMagnetBar {
     fn handle_input(&mut self, input: KeyEvent) -> ComponentAction {
         match self.stage {
             Stage::AskMagnet => self.handle_magnet_input(input),
+            Stage::AskCategory => self.handle_category_input(input),
             Stage::AskLocation => self.handle_location_input(input),
         }
     }
 
     fn handle_magnet_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
-            self.stage = Stage::AskLocation;
+            self.stage = Stage::AskCategory;
             self.ctx.send_action(Action::Render);
             return ComponentAction::Nothing;
         }
@@ -63,11 +72,53 @@ impl AddMagnetBar {
         ComponentAction::Nothing
     }
 
+    fn handle_category_input(&mut self, input: KeyEvent) -> ComponentAction {
+        if input.code == KeyCode::Enter {
+            if self.input_category_mgr.text().is_empty() {
+                self.stage = Stage::AskLocation;
+                self.ctx.send_action(Action::Render);
+                return ComponentAction::Nothing;
+            } else if let Some(category) = CONFIG.categories.get(&self.input_category_mgr.text()) {
+                self.input_location_mgr = InputManager::new_with_value(
+                    LOCATION_PROMPT.to_string(),
+                    category.default_dir.to_string(),
+                );
+                self.stage = Stage::AskLocation;
+                self.ctx.send_action(Action::Render);
+                return ComponentAction::Nothing;
+            } else {
+                self.input_category_mgr.set_prompt(format!(
+                    "Category ({} not found): ",
+                    self.input_category_mgr.text()
+                ));
+                self.ctx.send_action(Action::Render);
+                return ComponentAction::Nothing;
+            };
+        }
+
+        if input.code == KeyCode::Esc {
+            return ComponentAction::Quit;
+        }
+
+        if self.input_category_mgr.handle_key(input).is_some() {
+            self.ctx.send_action(Action::Render);
+        }
+
+        ComponentAction::Nothing
+    }
+
     fn handle_location_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
+            let category = if self.input_category_mgr.text().is_empty() {
+                None
+            } else {
+                Some(self.input_category_mgr.text())
+            };
+
             let torrent_action = TorrentAction::Add(
                 self.input_magnet_mgr.text(),
                 Some(self.input_location_mgr.text()),
+                category,
             );
             self.ctx.send_torrent_action(torrent_action);
 
@@ -98,6 +149,7 @@ impl Component for AddMagnetBar {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         match self.stage {
             Stage::AskMagnet => self.input_magnet_mgr.render(f, rect),
+            Stage::AskCategory => self.input_category_mgr.render(f, rect),
             Stage::AskLocation => self.input_location_mgr.render(f, rect),
         }
     }
