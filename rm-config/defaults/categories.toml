@@ -1,0 +1,6 @@
+# Example category:
+# [[category]]
+# name = "Classical Music"             # required
+# prefix = "[M]"                       # optional, default: ""
+# default_dir = "/mnt/Music/Classical" # optional, default: transmission's default
+# color = "Green"                      # optional, default: "White"

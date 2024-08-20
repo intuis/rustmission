@@ -28,6 +28,7 @@ pub struct RustmissionTorrent {
     pub activity_date: NaiveDateTime,
     pub added_date: NaiveDateTime,
     pub peers_connected: i64,
+    pub categories: Vec<String>,
     pub error: Option<String>,
 }
 
@@ -176,6 +177,16 @@ impl RustmissionTorrent {
                     }
                 }
             }
+            Header::Category => match self.categories.get(0) {
+                Some(category) => {
+                    if let Some(config_category) = CONFIG.categories.get(category) {
+                        Cell::from(category.as_str()).fg(config_category.color)
+                    } else {
+                        Cell::from(category.as_str())
+                    }
+                }
+                None => Cell::default(),
+            },
         }
     }
 
@@ -271,6 +282,8 @@ impl From<Torrent> for RustmissionTorrent {
             }
         };
 
+        let categories = t.labels.unwrap();
+
         Self {
             torrent_name,
             size_when_done,
@@ -287,6 +300,7 @@ impl From<Torrent> for RustmissionTorrent {
             activity_date,
             added_date,
             peers_connected,
+            categories,
             error,
         }
     }
