@@ -187,6 +187,16 @@ impl RustmissionTorrent {
                 }
                 None => Cell::default(),
             },
+            Header::CategoryIcon => match self.categories.get(0) {
+                Some(category) => {
+                    if let Some(config_category) = CONFIG.categories.get(category) {
+                        Cell::from(config_category.icon.as_str()).fg(config_category.color)
+                    } else {
+                        Cell::default()
+                    }
+                }
+                None => Cell::default(),
+            },
         }
     }
 

@@ -19,6 +19,7 @@ pub enum Header {
     PeersConnected,
     SmallStatus,
     Category,
+    CategoryIcon,
 }
 
 impl Header {
@@ -40,6 +41,7 @@ impl Header {
             Self::PeersConnected => Constraint::Length(6),
             Self::SmallStatus => Constraint::Length(1),
             Self::Category => Constraint::Max(15),
+            Self::CategoryIcon => Constraint::Length(5),
         }
     }
 
@@ -61,6 +63,7 @@ impl Header {
             Self::PeersConnected => "Peers",
             Self::SmallStatus => "",
             Self::Category => "Category",
+            Self::CategoryIcon => "",
         }
     }
 }

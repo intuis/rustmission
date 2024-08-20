@@ -14,7 +14,7 @@ pub struct CategoriesConfig {
 #[derive(Deserialize)]
 pub struct Category {
     pub name: String,
-    pub prefix: String,
+    pub icon: String,
     pub color: Color,
     pub default_dir: String,
 }
