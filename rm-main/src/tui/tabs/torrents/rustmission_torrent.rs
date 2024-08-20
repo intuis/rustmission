@@ -177,7 +177,7 @@ impl RustmissionTorrent {
                     }
                 }
             }
-            Header::Category => match self.categories.get(0) {
+            Header::Category => match self.categories.first() {
                 Some(category) => {
                     if let Some(config_category) = CONFIG.categories.get(category) {
                         Cell::from(category.as_str()).fg(config_category.color)
@@ -187,7 +187,7 @@ impl RustmissionTorrent {
                 }
                 None => Cell::default(),
             },
-            Header::CategoryIcon => match self.categories.get(0) {
+            Header::CategoryIcon => match self.categories.first() {
                 Some(category) => {
                     if let Some(config_category) = CONFIG.categories.get(category) {
                         Cell::from(config_category.icon.as_str()).fg(config_category.color)

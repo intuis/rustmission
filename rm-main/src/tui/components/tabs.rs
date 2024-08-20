@@ -68,7 +68,7 @@ impl Component for TabComponent {
             let tabs = if CONFIG.general.beginner_mode {
                 ["1. Torrents", "2. Search"]
             } else {
-                ["1. Torrents", "2. Search"]
+                ["Torrents", "Search"]
             };
 
             tabs.concat().chars().count() + divider.len() + self.tabs_list.len()
