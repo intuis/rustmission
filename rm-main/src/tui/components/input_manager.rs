@@ -11,6 +11,7 @@ use crate::tui::components::Component;
 pub struct InputManager {
     input: Input,
     prompt: String,
+    autocompletions: Vec<String>,
 }
 
 impl InputManager {
@@ -18,6 +19,7 @@ impl InputManager {
         Self {
             prompt,
             input: Input::default(),
+            autocompletions: vec![],
         }
     }
 
@@ -25,7 +27,13 @@ impl InputManager {
         Self {
             prompt,
             input: Input::default().with_value(value),
+            autocompletions: vec![],
         }
+    }
+
+    pub fn autocompletions(mut self, autocompletions: Vec<String>) -> Self {
+        self.autocompletions = autocompletions;
+        self
     }
 
     pub fn text(&self) -> String {
@@ -51,21 +59,38 @@ impl Component for InputManager {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         f.render_widget(Clear, rect);
 
+        let input = self.input.to_string();
+        let mut autocompletion = None;
+        for possible_autocompletion in &self.autocompletions {
+            if possible_autocompletion.starts_with(&input) {
+                autocompletion = Some(possible_autocompletion);
+            }
+        }
+
         let spans = vec![
             Span::styled(
                 self.prompt.as_str(),
                 Style::default().fg(CONFIG.general.accent_color),
             ),
-            Span::raw(self.text()),
+            Span::styled(self.text(), Style::default().fg(Color::White)),
         ];
-
-        let input = self.input.to_string();
-        let prefix_len = self.prompt.len() + self.text().len() - input.len();
 
         let paragraph = Paragraph::new(Line::from(spans));
         f.render_widget(paragraph, rect);
 
-        let cursor_offset = self.input.visual_cursor() + prefix_len;
+        let prefix_len =
+            u16::try_from(self.prompt.len() + self.text().len() - input.len()).unwrap();
+        if let Some(completion) = autocompletion {
+            let already_typed = u16::try_from(input.chars().count()).unwrap();
+            let span = Span::from(&completion[already_typed as usize..]).dark_gray();
+            let completion_rect = rect.inner(Margin {
+                horizontal: prefix_len + already_typed,
+                vertical: 0,
+            });
+            f.render_widget(span, completion_rect);
+        }
+
+        let cursor_offset = u16::try_from(self.input.visual_cursor()).unwrap() + prefix_len;
         let cursor_position = Position {
             x: rect.x + u16::try_from(cursor_offset).unwrap(),
             y: rect.y,

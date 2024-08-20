@@ -23,9 +23,9 @@ pub struct AddMagnetBar {
 }
 
 enum Stage {
-    AskMagnet,
-    AskCategory,
-    AskLocation,
+    Magnet,
+    Category,
+    Location,
 }
 
 const MAGNET_PROMPT: &str = "Add magnet URI: ";
@@ -36,27 +36,28 @@ impl AddMagnetBar {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
             input_magnet_mgr: InputManager::new(MAGNET_PROMPT.to_string()),
-            input_category_mgr: InputManager::new(CATEGORY_PROMPT.to_string()),
+            input_category_mgr: InputManager::new(CATEGORY_PROMPT.to_string())
+                .autocompletions(CONFIG.categories.keys().cloned().collect()),
             input_location_mgr: InputManager::new_with_value(
                 LOCATION_PROMPT.to_string(),
                 ctx.session_info.download_dir.clone(),
             ),
-            stage: Stage::AskMagnet,
+            stage: Stage::Magnet,
             ctx,
         }
     }
 
     fn handle_input(&mut self, input: KeyEvent) -> ComponentAction {
         match self.stage {
-            Stage::AskMagnet => self.handle_magnet_input(input),
-            Stage::AskCategory => self.handle_category_input(input),
-            Stage::AskLocation => self.handle_location_input(input),
+            Stage::Magnet => self.handle_magnet_input(input),
+            Stage::Category => self.handle_category_input(input),
+            Stage::Location => self.handle_location_input(input),
         }
     }
 
     fn handle_magnet_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
-            self.stage = Stage::AskCategory;
+            self.stage = Stage::Category;
             self.ctx.send_action(Action::Render);
             return ComponentAction::Nothing;
         }
@@ -75,7 +76,7 @@ impl AddMagnetBar {
     fn handle_category_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
             if self.input_category_mgr.text().is_empty() {
-                self.stage = Stage::AskLocation;
+                self.stage = Stage::Location;
                 self.ctx.send_action(Action::Render);
                 return ComponentAction::Nothing;
             } else if let Some(category) = CONFIG.categories.get(&self.input_category_mgr.text()) {
@@ -83,7 +84,7 @@ impl AddMagnetBar {
                     LOCATION_PROMPT.to_string(),
                     category.default_dir.to_string(),
                 );
-                self.stage = Stage::AskLocation;
+                self.stage = Stage::Location;
                 self.ctx.send_action(Action::Render);
                 return ComponentAction::Nothing;
             } else {
@@ -148,9 +149,9 @@ impl Component for AddMagnetBar {
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         match self.stage {
-            Stage::AskMagnet => self.input_magnet_mgr.render(f, rect),
-            Stage::AskCategory => self.input_category_mgr.render(f, rect),
-            Stage::AskLocation => self.input_location_mgr.render(f, rect),
+            Stage::Magnet => self.input_magnet_mgr.render(f, rect),
+            Stage::Category => self.input_category_mgr.render(f, rect),
+            Stage::Location => self.input_location_mgr.render(f, rect),
         }
     }
 }
