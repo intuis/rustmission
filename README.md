@@ -1,4 +1,4 @@
-<img align="left" width="100" height="100" src="https://github.com/micielski/rustmission/assets/73398428/91bb8875-2ce9-41d0-9e91-5705c521a825">
+<img align="left" width="100" height="100" src="https://github.com/user-attachments/assets/f3175886-2ccb-4521-a52b-3b9e63687fbb">
 
 **Rustmission**
 
@@ -8,7 +8,7 @@ It boasts a rich feature set that surpasses many other clients, offering a seaml
 
 # 
 <div align="center">
-    <img src="https://github.com/micielski/rustmission/assets/73398428/68422239-aa35-45e6-a521-d8e259f7702e" />
+    <img src="https://github.com/user-attachments/assets/265c7f7d-85c0-4440-98f8-18c1cbba1a32"/>
     <p>
         <small>⚠️ Torrents you see are just samples fabricated by AI. Piracy is not something we tolerate here at Intuis.</small>
     </p>
