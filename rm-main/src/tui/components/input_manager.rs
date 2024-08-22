@@ -36,7 +36,7 @@ impl InputManager {
         self
     }
 
-    fn get_autocompletion(&self) -> Option<&str> {
+    pub fn get_autocompletion(&self) -> Option<&str> {
         let mut autocompletion = None;
         for possible_autocompletion in &self.autocompletions {
             if possible_autocompletion.starts_with(&self.input.to_string()) {
@@ -44,6 +44,17 @@ impl InputManager {
             }
         }
         autocompletion.map(|x| x.as_str())
+    }
+
+    pub fn apply_autocompletion(&mut self) {
+        let completion = self.get_autocompletion().map(|str| str.to_string());
+        if let Some(completion) = completion {
+            self.set_text(completion);
+        }
+    }
+
+    pub fn visual_cursor(&self) -> usize {
+        self.input.visual_cursor()
     }
 
     pub fn text(&self) -> String {
