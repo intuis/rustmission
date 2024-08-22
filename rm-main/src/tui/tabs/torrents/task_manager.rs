@@ -93,15 +93,15 @@ impl Component for TaskManager {
 
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
-            UpdateAction::TaskClear => self.cancel_task(),
-            UpdateAction::TaskSet(task) => self.pending_task(task),
-            UpdateAction::TaskSetSuccess(task) => self.success_task(task),
-            UpdateAction::TaskSuccess => {
+            UpdateAction::StatusTaskClear => self.cancel_task(),
+            UpdateAction::StatusTaskSet(task) => self.pending_task(task),
+            UpdateAction::StatusTaskSetSuccess(task) => self.success_task(task),
+            UpdateAction::StatusTaskSuccess => {
                 if let CurrentTask::Status(status_bar) = &mut self.current_task {
                     status_bar.set_success();
                 }
             }
-            UpdateAction::TaskFailure => {
+            UpdateAction::StatusTaskFailure => {
                 if let CurrentTask::Status(status_bar) = &mut self.current_task {
                     status_bar.set_failure();
                 }

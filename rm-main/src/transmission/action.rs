@@ -70,7 +70,7 @@ pub async fn action_handler(
                 };
                 match client.torrent_add(args).await {
                     Ok(_) => {
-                        action_tx.send(UpdateAction::TaskSuccess).unwrap();
+                        action_tx.send(UpdateAction::StatusTaskSuccess).unwrap();
                     }
                     Err(err) => {
                         let msg = format!("Failed to add torrent with URL/Path: \"{url}\"");
@@ -78,7 +78,7 @@ pub async fn action_handler(
                         action_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
-                        action_tx.send(UpdateAction::TaskFailure).unwrap();
+                        action_tx.send(UpdateAction::StatusTaskFailure).unwrap();
                     }
                 }
             }
@@ -108,27 +108,27 @@ pub async fn action_handler(
             }
             TorrentAction::DelWithFiles(ids) => {
                 match client.torrent_remove(ids.clone(), true).await {
-                    Ok(_) => action_tx.send(UpdateAction::TaskSuccess).unwrap(),
+                    Ok(_) => action_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = format!("Failed to remove torrents with these IDs: {:?}", ids);
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         action_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
-                        action_tx.send(UpdateAction::TaskFailure).unwrap();
+                        action_tx.send(UpdateAction::StatusTaskFailure).unwrap();
                     }
                 }
             }
             TorrentAction::DelWithoutFiles(ids) => {
                 match client.torrent_remove(ids.clone(), false).await {
-                    Ok(_) => action_tx.send(UpdateAction::TaskSuccess).unwrap(),
+                    Ok(_) => action_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = format!("Failed to remove torrents with these IDs: {:?}", ids);
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         action_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
-                        action_tx.send(UpdateAction::TaskFailure).unwrap();
+                        action_tx.send(UpdateAction::StatusTaskFailure).unwrap();
                     }
                 }
             }

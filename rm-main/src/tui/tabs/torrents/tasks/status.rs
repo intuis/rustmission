@@ -68,7 +68,7 @@ impl Component for StatusBar {
 
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
-            UpdateAction::TaskSuccess => {
+            UpdateAction::StatusTaskSuccess => {
                 self.set_success();
                 self.ctx.send_action(Action::Render);
             }
@@ -89,13 +89,13 @@ impl Component for StatusBar {
             CurrentTaskState::Success(start) => {
                 let expiration_duration = time::Duration::from_secs(5);
                 if start.elapsed() >= expiration_duration {
-                    self.ctx.send_update_action(UpdateAction::TaskClear);
+                    self.ctx.send_update_action(UpdateAction::StatusTaskClear);
                 }
             }
             CurrentTaskState::Failure(start) => {
                 let expiration_duration = time::Duration::from_secs(5);
                 if start.elapsed() >= expiration_duration {
-                    self.ctx.send_update_action(UpdateAction::TaskClear);
+                    self.ctx.send_update_action(UpdateAction::StatusTaskClear);
                 }
             }
         }

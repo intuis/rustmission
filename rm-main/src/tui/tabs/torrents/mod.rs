@@ -300,12 +300,11 @@ impl TorrentsTab {
         if let Some(torrent) = self.table_manager.current_torrent() {
             let torrent_location = torrent.torrent_location();
             match open::that_detached(&torrent_location) {
-                Ok(()) => {
-                    self.ctx
-                        .send_update_action(UpdateAction::TaskSetSuccess(StatusTask::new_open(
-                            torrent_location,
-                        )))
-                }
+                Ok(()) => self
+                    .ctx
+                    .send_update_action(UpdateAction::StatusTaskSetSuccess(StatusTask::new_open(
+                        torrent_location,
+                    ))),
                 Err(err) => {
                     let desc = format!(
                         "Encountered an error while trying to open \"{}\"",

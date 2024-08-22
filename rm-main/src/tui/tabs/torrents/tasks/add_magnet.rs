@@ -124,7 +124,8 @@ impl AddMagnetBar {
             self.ctx.send_torrent_action(torrent_action);
 
             let task = StatusTask::new_add(self.input_magnet_mgr.text());
-            self.ctx.send_update_action(UpdateAction::TaskSet(task));
+            self.ctx
+                .send_update_action(UpdateAction::StatusTaskSet(task));
 
             ComponentAction::Quit
         } else if input.code == KeyCode::Esc {

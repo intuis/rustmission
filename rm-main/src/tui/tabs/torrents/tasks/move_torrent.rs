@@ -40,7 +40,8 @@ impl MoveBar {
             self.ctx.send_torrent_action(torrent_action);
 
             let task = StatusTask::new_move(new_location);
-            self.ctx.send_update_action(UpdateAction::TaskSet(task));
+            self.ctx
+                .send_update_action(UpdateAction::StatusTaskSet(task));
 
             ComponentAction::Quit
         } else if input.code == KeyCode::Esc {

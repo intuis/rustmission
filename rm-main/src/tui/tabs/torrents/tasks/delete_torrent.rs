@@ -59,7 +59,8 @@ impl DeleteBar {
         }
 
         let task = StatusTask::new_del(self.torrents_to_delete[0].name.clone());
-        self.ctx.send_update_action(UpdateAction::TaskSet(task));
+        self.ctx
+            .send_update_action(UpdateAction::StatusTaskSet(task));
     }
 }
 
