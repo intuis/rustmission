@@ -110,7 +110,7 @@ impl Component for InputManager {
 
         let cursor_offset = u16::try_from(self.input.visual_cursor()).unwrap() + prefix_len;
         let cursor_position = Position {
-            x: rect.x + u16::try_from(cursor_offset).unwrap(),
+            x: rect.x + cursor_offset,
             y: rect.y,
         };
         f.set_cursor_position(cursor_position);

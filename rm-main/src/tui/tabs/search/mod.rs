@@ -15,7 +15,6 @@ use ratatui::{
 };
 use reqwest::Client;
 use rm_config::CONFIG;
-use text::ToText;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::{backend::crossterm::to_input_request, Input};
 

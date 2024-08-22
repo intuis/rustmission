@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::prelude::*;
 use rm_config::CONFIG;
@@ -120,16 +118,14 @@ impl AddMagnetBar {
             return ComponentAction::Nothing;
         }
 
-        if self.input_category_mgr.visual_cursor() == self.input_category_mgr.text().len() {
-            if input.modifiers.contains(KeyModifiers::CONTROL) && input.code == KeyCode::Char('f') {
-                self.input_category_mgr.apply_autocompletion();
-                self.ctx.send_action(Action::Render);
-                return ComponentAction::Nothing;
-            } else if input.code == KeyCode::Right {
-                self.input_category_mgr.apply_autocompletion();
-                self.ctx.send_action(Action::Render);
-                return ComponentAction::Nothing;
-            }
+        if (self.input_category_mgr.visual_cursor() == self.input_category_mgr.text().len())
+            && ((input.modifiers.contains(KeyModifiers::CONTROL)
+                && input.code == KeyCode::Char('f'))
+                || input.code == KeyCode::Right)
+        {
+            self.input_category_mgr.apply_autocompletion();
+            self.ctx.send_action(Action::Render);
+            return ComponentAction::Nothing;
         }
 
         if input.code == KeyCode::Esc {
