@@ -15,15 +15,13 @@ use ratatui::{
 };
 use reqwest::Client;
 use rm_config::CONFIG;
+use text::ToText;
 use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::{backend::crossterm::to_input_request, Input};
 
-use crate::{
-    transmission::TorrentAction,
-    tui::{
-        app,
-        components::{Component, ComponentAction, GenericTable},
-    },
+use crate::tui::{
+    app,
+    components::{Component, ComponentAction, GenericTable},
 };
 use rm_shared::{
     action::{Action, UpdateAction},
@@ -129,11 +127,10 @@ impl SearchTab {
         self.ctx.send_action(Action::Render);
     }
 
-    fn add_torrent(&mut self) {
+    fn add_magnet(&mut self) {
         let magnet_url = self.table.current_item().map(|magnet| magnet.url);
         if let Some(magnet_url) = magnet_url {
-            self.ctx
-                .send_torrent_action(TorrentAction::Add(magnet_url, None, None));
+            self.bottom_bar.add_magnet(magnet_url);
         }
     }
 
@@ -142,10 +139,12 @@ impl SearchTab {
 
         match input.code {
             KeyCode::Enter => {
-                self.search_query_rx.send(self.input.to_string()).unwrap();
-                self.focus = SearchTabFocus::List;
-                self.ctx
-                    .send_update_action(UpdateAction::SwitchToNormalMode);
+                if !self.input.to_string().is_empty() {
+                    self.search_query_rx.send(self.input.to_string()).unwrap();
+                    self.focus = SearchTabFocus::List;
+                    self.ctx
+                        .send_update_action(UpdateAction::SwitchToNormalMode);
+                }
             }
             KeyCode::Esc => {
                 self.focus = SearchTabFocus::List;
@@ -271,6 +270,9 @@ impl Component for SearchTab {
             A::Quit => self.ctx.send_action(Action::Quit),
             A::Search => self.start_search(),
             A::ChangeFocus => self.change_focus(),
+            A::Input(_) if self.bottom_bar.requires_input() => {
+                self.bottom_bar.handle_actions(action);
+            }
             A::Input(input) => self.handle_input(input),
             A::Down => self.next_torrent(),
             A::Up => self.previous_torrent(),
@@ -280,7 +282,7 @@ impl Component for SearchTab {
             A::ScrollUpPage => self.scroll_up_page(),
             A::Home => self.scroll_to_home(),
             A::End => self.scroll_to_end(),
-            A::Confirm => self.add_torrent(),
+            A::Confirm => self.add_magnet(),
             A::XdgOpen => self.xdg_open(),
             A::ShowProvidersInfo => self.show_providers_info(),
 

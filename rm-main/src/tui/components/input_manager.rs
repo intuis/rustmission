@@ -36,6 +36,16 @@ impl InputManager {
         self
     }
 
+    fn get_autocompletion(&self) -> Option<&str> {
+        let mut autocompletion = None;
+        for possible_autocompletion in &self.autocompletions {
+            if possible_autocompletion.starts_with(&self.input.to_string()) {
+                autocompletion = Some(possible_autocompletion);
+            }
+        }
+        autocompletion.map(|x| x.as_str())
+    }
+
     pub fn text(&self) -> String {
         self.input.to_string()
     }
@@ -53,6 +63,10 @@ impl InputManager {
     pub fn set_prompt(&mut self, new_prompt: impl Into<String>) {
         self.prompt = new_prompt.into();
     }
+
+    pub fn set_text(&mut self, new_text: impl Into<String>) {
+        self.input = self.input.clone().with_value(new_text.into());
+    }
 }
 
 impl Component for InputManager {
@@ -60,13 +74,6 @@ impl Component for InputManager {
         f.render_widget(Clear, rect);
 
         let input = self.input.to_string();
-        let mut autocompletion = None;
-        for possible_autocompletion in &self.autocompletions {
-            if possible_autocompletion.starts_with(&input) {
-                autocompletion = Some(possible_autocompletion);
-            }
-        }
-
         let spans = vec![
             Span::styled(
                 self.prompt.as_str(),
@@ -80,7 +87,7 @@ impl Component for InputManager {
 
         let prefix_len =
             u16::try_from(self.prompt.len() + self.text().len() - input.len()).unwrap();
-        if let Some(completion) = autocompletion {
+        if let Some(completion) = self.get_autocompletion() {
             let already_typed = u16::try_from(input.chars().count()).unwrap();
             let span = Span::from(&completion[already_typed as usize..]).dark_gray();
             let completion_rect = rect.inner(Margin {

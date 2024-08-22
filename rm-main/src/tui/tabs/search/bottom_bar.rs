@@ -9,25 +9,57 @@ use rm_config::CONFIG;
 use rm_shared::action::{Action, UpdateAction};
 use throbber_widgets_tui::ThrobberState;
 
-use crate::tui::{app, components::Component};
+use crate::tui::{
+    app,
+    components::{Component, ComponentAction},
+    tabs::torrents::tasks::add_magnet::AddMagnetBar,
+};
 
 use super::{ConfiguredProvider, ProviderState};
 
 pub struct BottomBar {
     pub search_state: SearchState,
+    pub task: Option<AddMagnetBar>,
+    ctx: app::Ctx,
 }
 
 impl BottomBar {
     pub fn new(ctx: app::Ctx, providers: &Vec<ConfiguredProvider>) -> Self {
         Self {
-            search_state: SearchState::new(ctx, providers),
+            search_state: SearchState::new(ctx.clone(), providers),
+            ctx,
+            task: None,
         }
+    }
+
+    pub fn add_magnet(&mut self, magnet: impl Into<String>) {
+        self.task = Some(AddMagnetBar::new(self.ctx.clone()).magnet(magnet));
+        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+    }
+
+    pub fn requires_input(&self) -> bool {
+        self.task.is_some()
     }
 }
 
 impl Component for BottomBar {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        self.search_state.render(f, rect);
+        if let Some(task) = &mut self.task {
+            task.render(f, rect);
+        } else {
+            self.search_state.render(f, rect);
+        }
+    }
+
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
+        if let Some(task) = &mut self.task {
+            if task.handle_actions(action).is_quit() {
+                self.task = None;
+                self.ctx
+                    .send_update_action(UpdateAction::SwitchToNormalMode);
+            };
+        }
+        ComponentAction::Nothing
     }
 
     fn tick(&mut self) {

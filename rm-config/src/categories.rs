@@ -8,6 +8,7 @@ use crate::utils::{self, ConfigFetchingError};
 
 #[derive(Deserialize)]
 pub struct CategoriesConfig {
+    #[serde(default)]
     categories: Vec<Category>,
 }
 

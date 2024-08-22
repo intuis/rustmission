@@ -47,6 +47,17 @@ impl AddMagnetBar {
         }
     }
 
+    pub fn magnet(mut self, magnet: impl Into<String>) -> Self {
+        self.input_magnet_mgr.set_text(magnet);
+        if CONFIG.categories.is_empty() {
+            self.stage = Stage::Location
+        } else {
+            self.stage = Stage::Category;
+        }
+
+        self
+    }
+
     fn handle_input(&mut self, input: KeyEvent) -> ComponentAction {
         match self.stage {
             Stage::Magnet => self.handle_magnet_input(input),
@@ -57,7 +68,11 @@ impl AddMagnetBar {
 
     fn handle_magnet_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
-            self.stage = Stage::Category;
+            if CONFIG.categories.is_empty() {
+                self.stage = Stage::Location;
+            } else {
+                self.stage = Stage::Category;
+            }
             self.ctx.send_action(Action::Render);
             return ComponentAction::Nothing;
         }
