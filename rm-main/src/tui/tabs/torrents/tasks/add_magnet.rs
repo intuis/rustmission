@@ -14,7 +14,7 @@ use rm_shared::{
     status_task::StatusTask,
 };
 
-pub struct AddMagnetBar {
+pub struct AddMagnet {
     input_magnet_mgr: InputManager,
     input_category_mgr: InputManager,
     input_location_mgr: InputManager,
@@ -32,7 +32,7 @@ const MAGNET_PROMPT: &str = "Add magnet URI: ";
 const CATEGORY_PROMPT: &str = "Category (empty for default): ";
 const LOCATION_PROMPT: &str = "Directory: ";
 
-impl AddMagnetBar {
+impl AddMagnet {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
             input_magnet_mgr: InputManager::new(MAGNET_PROMPT.to_string()),
@@ -170,7 +170,7 @@ impl AddMagnetBar {
     }
 }
 
-impl Component for AddMagnetBar {
+impl Component for AddMagnet {
     #[must_use]
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {

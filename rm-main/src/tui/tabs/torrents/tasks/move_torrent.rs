@@ -14,13 +14,13 @@ use crate::{
     },
 };
 
-pub struct MoveBar {
+pub struct Move {
     torrents_to_move: Vec<Id>,
     ctx: app::Ctx,
     input_mgr: InputManager,
 }
 
-impl MoveBar {
+impl Move {
     pub fn new(ctx: app::Ctx, torrents_to_move: Vec<Id>, existing_location: String) -> Self {
         let prompt = "New directory: ".to_string();
 
@@ -55,7 +55,7 @@ impl MoveBar {
     }
 }
 
-impl Component for MoveBar {
+impl Component for Move {
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
             Action::Input(input) => self.handle_input(input),

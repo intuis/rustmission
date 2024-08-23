@@ -8,7 +8,7 @@ use tokio::time::{self, Instant};
 
 use crate::tui::{app, components::Component};
 
-pub struct StatusBar {
+pub struct Status {
     task: StatusTask,
     pub task_status: CurrentTaskState,
     ctx: app::Ctx,
@@ -21,7 +21,7 @@ pub enum CurrentTaskState {
     Failure(Instant),
 }
 
-impl StatusBar {
+impl Status {
     pub const fn new(ctx: app::Ctx, task: StatusTask, task_status: CurrentTaskState) -> Self {
         Self {
             task,
@@ -39,7 +39,7 @@ impl StatusBar {
     }
 }
 
-impl Component for StatusBar {
+impl Component for Status {
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         match &mut self.task_status {
             CurrentTaskState::Loading(ref mut state) => {

@@ -6,30 +6,22 @@ use rm_shared::action::{Action, UpdateAction};
 use crate::tui::{
     app,
     components::{Component, ComponentAction, InputManager},
-    tabs::torrents::table_manager::Filter,
 };
 
-pub struct FilterBar {
+pub struct Filter {
     ctx: app::Ctx,
     input: InputManager,
 }
 
-impl FilterBar {
-    pub fn new(ctx: app::Ctx, current_filter: &Option<Filter>) -> Self {
-        let filter = {
-            if let Some(current_filter) = current_filter {
-                current_filter.pattern.clone()
-            } else {
-                "".to_string()
-            }
-        };
-
-        let input = InputManager::new_with_value("Search: ".to_string(), filter);
+impl Filter {
+    pub fn new(ctx: app::Ctx, current_pattern: &Option<String>) -> Self {
+        let pattern = current_pattern.as_ref().cloned().unwrap_or_default();
+        let input = InputManager::new_with_value("Search: ".to_string(), pattern);
         Self { ctx, input }
     }
 }
 
-impl Component for FilterBar {
+impl Component for Filter {
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
             Action::Input(input) => {

@@ -12,14 +12,14 @@ use throbber_widgets_tui::ThrobberState;
 use crate::tui::{
     app,
     components::{Component, ComponentAction},
-    tabs::torrents::tasks::add_magnet::AddMagnetBar,
+    tabs::torrents::tasks,
 };
 
 use super::{ConfiguredProvider, ProviderState};
 
 pub struct BottomBar {
     pub search_state: SearchState,
-    pub task: Option<AddMagnetBar>,
+    pub task: Option<tasks::AddMagnet>,
     ctx: app::Ctx,
 }
 
@@ -33,7 +33,7 @@ impl BottomBar {
     }
 
     pub fn add_magnet(&mut self, magnet: impl Into<String>) {
-        self.task = Some(AddMagnetBar::new(self.ctx.clone()).magnet(magnet));
+        self.task = Some(tasks::AddMagnet::new(self.ctx.clone()).magnet(magnet));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 

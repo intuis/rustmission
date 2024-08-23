@@ -93,18 +93,22 @@ impl Component for TorrentsTab {
             A::Pause => self.pause_current_torrent(),
             A::DeleteWithFiles => {
                 if let Some(torrent) = self.table_manager.current_torrent() {
-                    self.task_manager
-                        .delete_torrent(torrent, tasks::delete_torrent::Mode::WithFiles);
+                    self.task_manager.delete_torrent(torrent, true);
                 }
             }
             A::DeleteWithoutFiles => {
                 if let Some(torrent) = self.table_manager.current_torrent() {
-                    self.task_manager
-                        .delete_torrent(torrent, tasks::delete_torrent::Mode::WithoutFiles);
+                    self.task_manager.delete_torrent(torrent, false);
                 }
             }
             A::AddMagnet => self.task_manager.add_magnet(),
-            A::Search => self.task_manager.search(&self.table_manager.filter),
+            A::Search => self.task_manager.search(
+                &self
+                    .table_manager
+                    .filter
+                    .as_ref()
+                    .and_then(|f| Some(f.pattern.clone())),
+            ),
             A::MoveTorrent => {
                 if let Some(torrent) = self.table_manager.current_torrent() {
                     self.task_manager.move_torrent(torrent);
