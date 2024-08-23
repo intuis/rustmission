@@ -37,7 +37,7 @@ impl AddMagnet {
         Self {
             input_magnet_mgr: InputManager::new(MAGNET_PROMPT.to_string()),
             input_category_mgr: InputManager::new(CATEGORY_PROMPT.to_string())
-                .autocompletions(CONFIG.categories.keys().cloned().collect()),
+                .autocompletions(CONFIG.categories.map.keys().cloned().collect()),
             input_location_mgr: InputManager::new_with_value(
                 LOCATION_PROMPT.to_string(),
                 ctx.session_info.download_dir.clone(),
@@ -94,7 +94,9 @@ impl AddMagnet {
                 self.stage = Stage::Location;
                 self.ctx.send_action(Action::Render);
                 return ComponentAction::Nothing;
-            } else if let Some(category) = CONFIG.categories.get(&self.input_category_mgr.text()) {
+            } else if let Some(category) =
+                CONFIG.categories.map.get(&self.input_category_mgr.text())
+            {
                 self.input_location_mgr = InputManager::new_with_value(
                     LOCATION_PROMPT.to_string(),
                     category.default_dir.to_string(),

@@ -3,10 +3,10 @@ pub mod keymap;
 pub mod main_config;
 mod utils;
 
-use std::{collections::HashMap, path::PathBuf, sync::LazyLock};
+use std::{path::PathBuf, sync::LazyLock};
 
 use anyhow::Result;
-use categories::{CategoriesConfig, Category};
+use categories::CategoriesConfig;
 use keymap::KeymapConfig;
 use main_config::MainConfig;
 
@@ -24,7 +24,7 @@ pub struct Config {
     pub search_tab: main_config::SearchTab,
     pub icons: main_config::Icons,
     pub keybindings: KeymapConfig,
-    pub categories: HashMap<String, Category>,
+    pub categories: CategoriesConfig,
     pub directories: Directories,
 }
 
@@ -52,8 +52,8 @@ impl Config {
             torrents_tab: main_config.torrents_tab,
             search_tab: main_config.search_tab,
             icons: main_config.icons,
-            keybindings: keybindings.clone(),
-            categories: categories.to_hashmap(),
+            keybindings,
+            categories,
             directories,
         })
     }
