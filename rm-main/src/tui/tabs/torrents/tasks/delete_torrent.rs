@@ -5,41 +5,30 @@ use transmission_rpc::types::Id;
 use crate::transmission::TorrentAction;
 use crate::tui::app;
 use crate::tui::components::{Component, ComponentAction, InputManager};
+use crate::tui::tabs::torrents::rustmission_torrent::RustmissionTorrent;
 use rm_shared::action::{Action, UpdateAction};
 use rm_shared::status_task::StatusTask;
 
-#[derive(Clone)]
-pub struct TorrentInfo {
-    pub id: Id,
-    pub name: String,
-}
-
-pub struct DeleteBar {
-    torrents_to_delete: Vec<TorrentInfo>,
+pub struct Delete {
+    torrents_to_delete: Vec<RustmissionTorrent>,
     ctx: app::Ctx,
     input_mgr: InputManager,
-    mode: Mode,
+    delete_with_files: bool,
 }
 
-pub enum Mode {
-    WithFiles,
-    WithoutFiles,
-}
-
-impl DeleteBar {
-    pub fn new(ctx: app::Ctx, to_delete: Vec<TorrentInfo>, mode: Mode) -> Self {
-        let prompt = {
-            match mode {
-                Mode::WithFiles => "Really delete selected WITH files? (y/n) ".to_string(),
-                Mode::WithoutFiles => "Really delete selected without files? (y/n) ".to_string(),
-            }
+impl Delete {
+    pub fn new(ctx: app::Ctx, to_delete: Vec<RustmissionTorrent>, delete_with_files: bool) -> Self {
+        let prompt = if delete_with_files {
+            "Really delete selected WITH files? (y/n) ".to_string()
+        } else {
+            "Really delete selected without files? (y/n) ".to_string()
         };
 
         Self {
             torrents_to_delete: to_delete,
             input_mgr: InputManager::new(prompt),
             ctx,
-            mode,
+            delete_with_files,
         }
     }
 
@@ -49,21 +38,21 @@ impl DeleteBar {
             .iter()
             .map(|x| x.id.clone())
             .collect();
-        match self.mode {
-            Mode::WithFiles => self
-                .ctx
-                .send_torrent_action(TorrentAction::DelWithFiles(torrents_to_delete)),
-            Mode::WithoutFiles => self
-                .ctx
-                .send_torrent_action(TorrentAction::DelWithoutFiles(torrents_to_delete)),
+        if self.delete_with_files {
+            self.ctx
+                .send_torrent_action(TorrentAction::DelWithFiles(torrents_to_delete))
+        } else {
+            self.ctx
+                .send_torrent_action(TorrentAction::DelWithoutFiles(torrents_to_delete))
         }
 
-        let task = StatusTask::new_del(self.torrents_to_delete[0].name.clone());
-        self.ctx.send_update_action(UpdateAction::TaskSet(task));
+        let task = StatusTask::new_del(self.torrents_to_delete[0].torrent_name.clone());
+        self.ctx
+            .send_update_action(UpdateAction::StatusTaskSet(task));
     }
 }
 
-impl Component for DeleteBar {
+impl Component for Delete {
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match action {
             Action::Input(input) => {

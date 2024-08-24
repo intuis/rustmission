@@ -39,6 +39,7 @@ pub enum Action {
     DeleteWithFiles,
     AddMagnet,
     MoveTorrent,
+    ChangeCategory,
     // Search Tab
     ShowProvidersInfo,
 }
@@ -49,11 +50,6 @@ pub enum UpdateAction {
     SwitchToNormalMode,
     Error(Box<ErrorMessage>),
     // Torrents Tab
-    TaskClear,
-    TaskSuccess,
-    TaskFailure,
-    TaskSet(StatusTask),
-    TaskSetSuccess(StatusTask),
     SessionStats(Arc<SessionStats>),
     FreeSpace(Arc<FreeSpace>),
     UpdateTorrents(Vec<Torrent>),
@@ -65,6 +61,12 @@ pub enum UpdateAction {
     ProviderResult(MagneteaseResult),
     ProviderError(MagneteaseError),
     SearchFinished,
+    // Task Manager's Status Task
+    StatusTaskClear,
+    StatusTaskSuccess,
+    StatusTaskFailure,
+    StatusTaskSet(StatusTask),
+    StatusTaskSetSuccess(StatusTask),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

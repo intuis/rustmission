@@ -28,6 +28,7 @@ pub struct RustmissionTorrent {
     pub activity_date: NaiveDateTime,
     pub added_date: NaiveDateTime,
     pub peers_connected: i64,
+    pub categories: Vec<String>,
     pub error: Option<String>,
 }
 
@@ -48,6 +49,7 @@ impl RustmissionTorrent {
         headers: &Vec<Header>,
     ) -> ratatui::widgets::Row {
         let mut torrent_name_line = Line::default();
+        torrent_name_line.push_span(self.category_icon_span());
 
         let char_indices: Vec<usize> = self.torrent_name.char_indices().map(|(i, _)| i).collect();
         let mut last_end = 0;
@@ -130,11 +132,45 @@ impl RustmissionTorrent {
         format!("{}/{}", self.download_dir, self.torrent_name)
     }
 
+    fn category_icon_span(&self) -> Span {
+        if let Some(category) = self
+            .categories
+            .first()
+            .and_then(|category| CONFIG.categories.map.get(category))
+        {
+            Span::styled(
+                format!("{} ", category.icon),
+                Style::default().fg(category.color),
+            )
+        } else {
+            Span::default()
+        }
+    }
+
+    fn torrent_name_with_category_icon(&self) -> Line<'_> {
+        let mut line = Line::default();
+        if let Some(category) = self
+            .categories
+            .first()
+            .and_then(|category| CONFIG.categories.map.get(category))
+        {
+            line.push_span(Span::styled(
+                category.icon.as_str(),
+                Style::default().fg(category.color),
+            ));
+            line.push_span(Span::raw(" "));
+        }
+        line.push_span(self.torrent_name.as_str());
+        line
+    }
+
     fn header_to_cell(&self, header: Header) -> Cell {
         match header {
             Header::Name => {
                 if let Some(error) = &self.error {
                     Cell::from(format!("{}\n{error}", self.torrent_name))
+                } else if CONFIG.torrents_tab.category_icon_insert_into_name {
+                    Cell::from(self.torrent_name_with_category_icon())
                 } else {
                     Cell::from(self.torrent_name.as_str())
                 }
@@ -176,6 +212,26 @@ impl RustmissionTorrent {
                     }
                 }
             }
+            Header::Category => match self.categories.first() {
+                Some(category) => {
+                    if let Some(config_category) = CONFIG.categories.map.get(category) {
+                        Cell::from(category.as_str()).fg(config_category.color)
+                    } else {
+                        Cell::from(category.as_str())
+                    }
+                }
+                None => Cell::default(),
+            },
+            Header::CategoryIcon => match self.categories.first() {
+                Some(category) => {
+                    if let Some(config_category) = CONFIG.categories.map.get(category) {
+                        Cell::from(config_category.icon.as_str()).fg(config_category.color)
+                    } else {
+                        Cell::default()
+                    }
+                }
+                None => Cell::default(),
+            },
         }
     }
 
@@ -271,6 +327,8 @@ impl From<Torrent> for RustmissionTorrent {
             }
         };
 
+        let categories = t.labels.unwrap();
+
         Self {
             torrent_name,
             size_when_done,
@@ -287,6 +345,7 @@ impl From<Torrent> for RustmissionTorrent {
             activity_date,
             added_date,
             peers_connected,
+            categories,
             error,
         }
     }

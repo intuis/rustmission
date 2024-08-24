@@ -31,8 +31,13 @@ free_space_refresh = 10
 # Available fields:
 # Id, Name, SizeWhenDone, Progress, Eta, DownloadRate, UploadRate, DownloadDir,
 # Padding, UploadRatio, UploadedEver, AddedDate, ActivityDate, PeersConnected
-# SmallStatus
+# SmallStatus, Category, CategoryIcon
 headers = ["Name", "SizeWhenDone", "Progress", "Eta", "DownloadRate", "UploadRate"]
+
+# Whether to insert category icon into name as declared in categories.toml.
+# An alternative to inserting category's icon into torrent's name is adding a
+# CategoryIcon header into your headers.
+category_icon_insert_into_name = true
 
 [search_tab]
 # If you uncomment this, providers won't be automatically added in future

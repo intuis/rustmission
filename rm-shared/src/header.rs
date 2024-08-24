@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum Header {
+    Id,
     Name,
     SizeWhenDone,
     Progress,
@@ -13,11 +14,12 @@ pub enum Header {
     Padding,
     UploadRatio,
     UploadedEver,
-    Id,
     ActivityDate,
     AddedDate,
     PeersConnected,
     SmallStatus,
+    Category,
+    CategoryIcon,
 }
 
 impl Header {
@@ -38,6 +40,8 @@ impl Header {
             Self::AddedDate => Constraint::Length(12),
             Self::PeersConnected => Constraint::Length(6),
             Self::SmallStatus => Constraint::Length(1),
+            Self::Category => Constraint::Max(15),
+            Self::CategoryIcon => Constraint::Length(5),
         }
     }
 
@@ -58,6 +62,8 @@ impl Header {
             Self::AddedDate => "Added",
             Self::PeersConnected => "Peers",
             Self::SmallStatus => "",
+            Self::Category => "Category",
+            Self::CategoryIcon => "",
         }
     }
 }

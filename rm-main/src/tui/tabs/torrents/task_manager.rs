@@ -14,15 +14,7 @@ use crate::tui::{
 
 use super::{
     rustmission_torrent::RustmissionTorrent,
-    table_manager::Filter,
-    tasks::{
-        add_magnet::AddMagnetBar,
-        default::DefaultBar,
-        delete_torrent::{self, DeleteBar, TorrentInfo},
-        filter::FilterBar,
-        move_torrent::MoveBar,
-        status::{CurrentTaskState, StatusBar},
-    },
+    tasks::{self, CurrentTaskState},
 };
 
 pub struct TaskManager {
@@ -33,19 +25,20 @@ pub struct TaskManager {
 impl TaskManager {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
-            current_task: CurrentTask::Default(DefaultBar::new()),
+            current_task: CurrentTask::Default(tasks::Default::new()),
             ctx,
         }
     }
 }
 
 pub enum CurrentTask {
-    AddMagnetBar(AddMagnetBar),
-    DeleteBar(DeleteBar),
-    FilterBar(FilterBar),
-    MoveBar(MoveBar),
-    Default(DefaultBar),
-    Status(StatusBar),
+    AddMagnet(tasks::AddMagnet),
+    Delete(tasks::Delete),
+    Filter(tasks::Filter),
+    Move(tasks::Move),
+    ChangeCategory(tasks::ChangeCategory),
+    Default(tasks::Default),
+    Status(tasks::Status),
 }
 
 impl CurrentTask {
@@ -60,22 +53,22 @@ impl Component for TaskManager {
     #[must_use]
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         match &mut self.current_task {
-            CurrentTask::AddMagnetBar(magnet_bar) => {
+            CurrentTask::AddMagnet(magnet_bar) => {
                 if magnet_bar.handle_actions(action).is_quit() {
                     self.cancel_task()
                 }
             }
-            CurrentTask::DeleteBar(delete_bar) => {
+            CurrentTask::Delete(delete_bar) => {
                 if delete_bar.handle_actions(action).is_quit() {
                     self.cancel_task()
                 }
             }
-            CurrentTask::MoveBar(move_bar) => {
+            CurrentTask::Move(move_bar) => {
                 if move_bar.handle_actions(action).is_quit() {
                     self.cancel_task()
                 }
             }
-            CurrentTask::FilterBar(filter_bar) => {
+            CurrentTask::Filter(filter_bar) => {
                 if filter_bar.handle_actions(action).is_quit() {
                     self.cancel_task()
                 }
@@ -85,23 +78,27 @@ impl Component for TaskManager {
                     self.cancel_task()
                 }
             }
-
-            _ => (),
+            CurrentTask::ChangeCategory(category_bar) => {
+                if category_bar.handle_actions(action).is_quit() {
+                    self.cancel_task()
+                }
+            }
+            CurrentTask::Default(_) => (),
         };
         ComponentAction::Nothing
     }
 
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
-            UpdateAction::TaskClear => self.cancel_task(),
-            UpdateAction::TaskSet(task) => self.pending_task(task),
-            UpdateAction::TaskSetSuccess(task) => self.success_task(task),
-            UpdateAction::TaskSuccess => {
+            UpdateAction::StatusTaskClear => self.cancel_task(),
+            UpdateAction::StatusTaskSet(task) => self.pending_task(task),
+            UpdateAction::StatusTaskSetSuccess(task) => self.success_task(task),
+            UpdateAction::StatusTaskSuccess => {
                 if let CurrentTask::Status(status_bar) = &mut self.current_task {
                     status_bar.set_success();
                 }
             }
-            UpdateAction::TaskFailure => {
+            UpdateAction::StatusTaskFailure => {
                 if let CurrentTask::Status(status_bar) = &mut self.current_task {
                     status_bar.set_failure();
                 }
@@ -112,12 +109,13 @@ impl Component for TaskManager {
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
         match &mut self.current_task {
-            CurrentTask::AddMagnetBar(magnet_bar) => magnet_bar.render(f, rect),
-            CurrentTask::DeleteBar(delete_bar) => delete_bar.render(f, rect),
-            CurrentTask::MoveBar(move_bar) => move_bar.render(f, rect),
-            CurrentTask::FilterBar(filter_bar) => filter_bar.render(f, rect),
+            CurrentTask::AddMagnet(magnet_bar) => magnet_bar.render(f, rect),
+            CurrentTask::Delete(delete_bar) => delete_bar.render(f, rect),
+            CurrentTask::Move(move_bar) => move_bar.render(f, rect),
+            CurrentTask::Filter(filter_bar) => filter_bar.render(f, rect),
             CurrentTask::Default(default_bar) => default_bar.render(f, rect),
             CurrentTask::Status(status_bar) => status_bar.render(f, rect),
+            CurrentTask::ChangeCategory(category_bar) => category_bar.render(f, rect),
         }
     }
 
@@ -128,29 +126,27 @@ impl Component for TaskManager {
 
 impl TaskManager {
     pub fn add_magnet(&mut self) {
-        self.current_task = CurrentTask::AddMagnetBar(AddMagnetBar::new(self.ctx.clone()));
+        self.current_task = CurrentTask::AddMagnet(tasks::AddMagnet::new(self.ctx.clone()));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    pub fn search(&mut self, filter: &Option<Filter>) {
-        self.current_task = CurrentTask::FilterBar(FilterBar::new(self.ctx.clone(), filter));
+    pub fn search(&mut self, current_pattern: &Option<String>) {
+        self.current_task =
+            CurrentTask::Filter(tasks::Filter::new(self.ctx.clone(), current_pattern));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    pub fn delete_torrent(&mut self, torrent: &RustmissionTorrent, mode: delete_torrent::Mode) {
-        self.current_task = CurrentTask::DeleteBar(DeleteBar::new(
+    pub fn delete_torrent(&mut self, torrent: &RustmissionTorrent, delete_with_files: bool) {
+        self.current_task = CurrentTask::Delete(tasks::Delete::new(
             self.ctx.clone(),
-            vec![TorrentInfo {
-                id: torrent.id.clone(),
-                name: torrent.torrent_name.clone(),
-            }],
-            mode,
+            vec![torrent.clone()],
+            delete_with_files,
         ));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     pub fn move_torrent(&mut self, torrent: &RustmissionTorrent) {
-        self.current_task = CurrentTask::MoveBar(MoveBar::new(
+        self.current_task = CurrentTask::Move(tasks::Move::new(
             self.ctx.clone(),
             vec![torrent.id.clone()],
             torrent.download_dir.to_string(),
@@ -158,8 +154,16 @@ impl TaskManager {
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
+    pub fn change_category(&mut self, torrent: &RustmissionTorrent) {
+        self.current_task = CurrentTask::ChangeCategory(tasks::ChangeCategory::new(
+            self.ctx.clone(),
+            vec![torrent.id.clone()],
+        ));
+        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+    }
+
     fn success_task(&mut self, task: StatusTask) {
-        self.current_task = CurrentTask::Status(StatusBar::new(
+        self.current_task = CurrentTask::Status(tasks::Status::new(
             self.ctx.clone(),
             task,
             CurrentTaskState::Success(Instant::now()),
@@ -172,7 +176,7 @@ impl TaskManager {
         }
 
         let state = ThrobberState::default();
-        self.current_task = CurrentTask::Status(StatusBar::new(
+        self.current_task = CurrentTask::Status(tasks::Status::new(
             self.ctx.clone(),
             task,
             CurrentTaskState::Loading(state),
@@ -186,7 +190,7 @@ impl TaskManager {
             return;
         }
 
-        self.current_task = CurrentTask::Default(DefaultBar::new());
+        self.current_task = CurrentTask::Default(tasks::Default::new());
         self.ctx
             .send_update_action(UpdateAction::SwitchToNormalMode);
     }

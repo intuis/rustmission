@@ -1,3 +1,4 @@
+pub mod categories;
 pub mod keymap;
 pub mod main_config;
 mod utils;
@@ -5,6 +6,7 @@ mod utils;
 use std::{path::PathBuf, sync::LazyLock};
 
 use anyhow::Result;
+use categories::CategoriesConfig;
 use keymap::KeymapConfig;
 use main_config::MainConfig;
 
@@ -22,22 +24,26 @@ pub struct Config {
     pub search_tab: main_config::SearchTab,
     pub icons: main_config::Icons,
     pub keybindings: KeymapConfig,
+    pub categories: CategoriesConfig,
     pub directories: Directories,
 }
 
 pub struct Directories {
     pub main_path: &'static PathBuf,
     pub keymap_path: &'static PathBuf,
+    pub categories_path: &'static PathBuf,
 }
 
 impl Config {
     fn init() -> Result<Self> {
         let main_config = MainConfig::init()?;
         let keybindings = KeymapConfig::init()?;
+        let categories = CategoriesConfig::init()?;
 
         let directories = Directories {
             main_path: MainConfig::path(),
             keymap_path: KeymapConfig::path(),
+            categories_path: CategoriesConfig::path(),
         };
 
         Ok(Self {
@@ -46,7 +52,8 @@ impl Config {
             torrents_tab: main_config.torrents_tab,
             search_tab: main_config.search_tab,
             icons: main_config.icons,
-            keybindings: keybindings.clone(),
+            keybindings,
+            categories,
             directories,
         })
     }

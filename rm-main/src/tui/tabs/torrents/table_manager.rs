@@ -123,7 +123,17 @@ impl TableManager {
         let mut constraints = vec![];
 
         for header in headers {
-            constraints.push(header.default_constraint())
+            if *header == Header::Category {
+                constraints.push(Constraint::Length(u16::from(
+                    CONFIG.categories.max_name_len,
+                )))
+            } else if *header == Header::CategoryIcon {
+                constraints.push(Constraint::Length(u16::from(
+                    CONFIG.categories.max_icon_len,
+                )))
+            } else {
+                constraints.push(header.default_constraint())
+            }
         }
         constraints
     }

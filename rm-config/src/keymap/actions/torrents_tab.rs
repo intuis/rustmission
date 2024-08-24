@@ -12,6 +12,7 @@ pub enum TorrentsAction {
     DeleteWithoutFiles,
     ShowFiles,
     ShowStats,
+    ChangeCategory,
 }
 
 impl UserAction for TorrentsAction {
@@ -24,6 +25,7 @@ impl UserAction for TorrentsAction {
             TorrentsAction::DeleteWithoutFiles => "delete without files",
             TorrentsAction::ShowFiles => "show files",
             TorrentsAction::ShowStats => "show statistics",
+            TorrentsAction::ChangeCategory => "change category",
         }
     }
 }
@@ -38,6 +40,7 @@ impl From<TorrentsAction> for Action {
             TorrentsAction::DeleteWithoutFiles => Action::DeleteWithoutFiles,
             TorrentsAction::ShowFiles => Action::ShowFiles,
             TorrentsAction::ShowStats => Action::ShowStats,
+            TorrentsAction::ChangeCategory => Action::ChangeCategory,
         }
     }
 }
