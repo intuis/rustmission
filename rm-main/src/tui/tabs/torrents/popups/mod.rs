@@ -4,10 +4,12 @@ use crate::tui::{
 };
 
 use self::{files::FilesPopup, stats::StatisticsPopup};
+use details::DetailsPopup;
 use rm_shared::action::{Action, UpdateAction};
 
 use ratatui::prelude::*;
 
+pub mod details;
 pub mod files;
 pub mod stats;
 
@@ -19,6 +21,7 @@ pub struct PopupManager {
 pub enum CurrentPopup {
     Stats(StatisticsPopup),
     Files(FilesPopup),
+    Details(DetailsPopup),
 }
 
 impl PopupManager {
@@ -45,19 +48,15 @@ impl PopupManager {
 impl Component for PopupManager {
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         if let Some(current_popup) = &mut self.current_popup {
-            match current_popup {
-                CurrentPopup::Stats(popup) => {
-                    if popup.handle_actions(action).is_quit() {
-                        self.close_popup();
-                        self.ctx.send_action(Action::Render);
-                    }
-                }
-                CurrentPopup::Files(popup) => {
-                    if popup.handle_actions(action).is_quit() {
-                        self.close_popup();
-                        self.ctx.send_action(Action::Render);
-                    }
-                }
+            let should_close = match current_popup {
+                CurrentPopup::Stats(popup) => popup.handle_actions(action).is_quit(),
+                CurrentPopup::Files(popup) => popup.handle_actions(action).is_quit(),
+                CurrentPopup::Details(popup) => popup.handle_actions(action).is_quit(),
+            };
+
+            if should_close {
+                self.close_popup();
+                self.ctx.send_action(Action::Render);
             }
         }
         ComponentAction::Nothing
@@ -78,6 +77,7 @@ impl Component for PopupManager {
                 CurrentPopup::Files(popup) => {
                     popup.render(f, rect);
                 }
+                CurrentPopup::Details(popup) => popup.render(f, rect),
             }
         }
     }

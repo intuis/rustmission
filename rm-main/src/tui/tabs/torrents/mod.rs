@@ -9,6 +9,7 @@ use crate::transmission::TorrentAction;
 use crate::tui::app;
 use crate::tui::components::{Component, ComponentAction};
 
+use popups::details::DetailsPopup;
 use popups::stats::StatisticsPopup;
 use ratatui::prelude::*;
 use ratatui::widgets::{Row, Table};
@@ -90,6 +91,7 @@ impl Component for TorrentsTab {
             A::End => self.select_last(),
             A::ShowStats => self.show_statistics_popup(),
             A::ShowFiles => self.show_files_popup(),
+            A::Confirm => self.show_details_popup(),
             A::Pause => self.pause_current_torrent(),
             A::DeleteWithFiles => {
                 if let Some(torrent) = self.table_manager.current_torrent() {
@@ -215,6 +217,14 @@ impl TorrentsTab {
         if let Some(highlighted_torrent) = self.table_manager.current_torrent() {
             let popup = FilesPopup::new(self.ctx.clone(), highlighted_torrent.id.clone());
             self.popup_manager.show_popup(CurrentPopup::Files(popup));
+            self.ctx.send_action(Action::Render);
+        }
+    }
+
+    fn show_details_popup(&mut self) {
+        if let Some(highlighted_torrent) = self.table_manager.current_torrent() {
+            let popup = DetailsPopup::new(self.ctx.clone());
+            self.popup_manager.show_popup(CurrentPopup::Details(popup));
             self.ctx.send_action(Action::Render);
         }
     }
