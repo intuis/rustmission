@@ -39,6 +39,7 @@ pub enum Action {
     DeleteWithFiles,
     AddMagnet,
     MoveTorrent,
+    ChangeCategory,
     // Search Tab
     ShowProvidersInfo,
 }

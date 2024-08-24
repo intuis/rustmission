@@ -23,6 +23,8 @@ pub enum TorrentAction {
     Start(Vec<Id>),
     // Torrent ID, Directory to move to
     Move(Vec<Id>, String),
+    // Torrent ID, Category to set
+    ChangeCategory(Vec<Id>, String),
     // Delete Torrents with these given IDs (without files)
     DelWithoutFiles(Vec<Id>),
     // Delete Torrents with these given IDs (with files)
@@ -204,6 +206,28 @@ pub async fn action_handler(
                         let msg = format!("Failed to fetch torrents with these IDs: {:?}", ids);
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         sender.send(Err(Box::new(err_message))).unwrap();
+                    }
+                }
+            }
+            TorrentAction::ChangeCategory(ids, category) => {
+                let labels = if category.is_empty() {
+                    vec![]
+                } else {
+                    vec![category]
+                };
+                let args = TorrentSetArgs {
+                    labels: Some(labels),
+                    ..Default::default()
+                };
+                match client.torrent_set(args, Some(ids)).await {
+                    Ok(_) => action_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
+                    Err(err) => {
+                        let msg = "Failed to set category";
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                        action_tx
+                            .send(UpdateAction::Error(Box::new(err_message)))
+                            .unwrap();
+                        action_tx.send(UpdateAction::StatusTaskFailure).unwrap();
                     }
                 }
             }

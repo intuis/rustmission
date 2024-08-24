@@ -36,6 +36,7 @@ pub enum CurrentTask {
     Delete(tasks::Delete),
     Filter(tasks::Filter),
     Move(tasks::Move),
+    ChangeCategory(tasks::ChangeCategory),
     Default(tasks::Default),
     Status(tasks::Status),
 }
@@ -77,8 +78,12 @@ impl Component for TaskManager {
                     self.cancel_task()
                 }
             }
-
-            _ => (),
+            CurrentTask::ChangeCategory(category_bar) => {
+                if category_bar.handle_actions(action).is_quit() {
+                    self.cancel_task()
+                }
+            }
+            CurrentTask::Default(_) => (),
         };
         ComponentAction::Nothing
     }
@@ -110,6 +115,7 @@ impl Component for TaskManager {
             CurrentTask::Filter(filter_bar) => filter_bar.render(f, rect),
             CurrentTask::Default(default_bar) => default_bar.render(f, rect),
             CurrentTask::Status(status_bar) => status_bar.render(f, rect),
+            CurrentTask::ChangeCategory(category_bar) => category_bar.render(f, rect),
         }
     }
 
@@ -144,6 +150,14 @@ impl TaskManager {
             self.ctx.clone(),
             vec![torrent.id.clone()],
             torrent.download_dir.to_string(),
+        ));
+        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+    }
+
+    pub fn change_category(&mut self, torrent: &RustmissionTorrent) {
+        self.current_task = CurrentTask::ChangeCategory(tasks::ChangeCategory::new(
+            self.ctx.clone(),
+            vec![torrent.id.clone()],
         ));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }

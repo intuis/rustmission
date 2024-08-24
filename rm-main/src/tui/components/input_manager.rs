@@ -1,10 +1,10 @@
-use crossterm::event::{Event, KeyEvent};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     prelude::*,
     widgets::{Clear, Paragraph},
 };
 use rm_config::CONFIG;
-use tui_input::{backend::crossterm::to_input_request, Input, InputResponse};
+use tui_input::{backend::crossterm::to_input_request, Input, InputResponse, StateChanged};
 
 use crate::tui::components::Component;
 
@@ -62,6 +62,25 @@ impl InputManager {
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) -> InputResponse {
+        if key.code == KeyCode::Tab {
+            self.apply_autocompletion();
+            return Some(StateChanged {
+                value: true,
+                cursor: true,
+            });
+        }
+
+        if (self.visual_cursor() == self.text().len())
+            && ((key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('f'))
+                || key.code == KeyCode::Right)
+        {
+            self.apply_autocompletion();
+            return Some(StateChanged {
+                value: true,
+                cursor: true,
+            });
+        }
+
         let event = Event::Key(key);
 
         if let Some(req) = to_input_request(&event) {

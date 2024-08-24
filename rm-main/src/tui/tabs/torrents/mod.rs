@@ -114,6 +114,11 @@ impl Component for TorrentsTab {
                     self.task_manager.move_torrent(torrent);
                 }
             }
+            A::ChangeCategory => {
+                if let Some(torrent) = self.table_manager.current_torrent() {
+                    self.task_manager.change_category(torrent);
+                }
+            }
             A::XdgOpen => self.xdg_open_current_torrent(),
             other => {
                 self.task_manager.handle_actions(other);
