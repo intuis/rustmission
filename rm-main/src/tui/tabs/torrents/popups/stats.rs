@@ -2,17 +2,14 @@ use std::sync::Arc;
 
 use ratatui::{
     prelude::*,
-    style::Styled,
-    widgets::{block::Title, Block, BorderType, Clear, Paragraph},
+    widgets::{Clear, Paragraph},
 };
-use rm_config::CONFIG;
 use transmission_rpc::types::SessionStats;
 
 use rm_shared::{action::Action, utils::bytes_to_human_format};
 
-use crate::tui::{
-    components::{popup_close_button_highlight, Component, ComponentAction},
-    main_window::centered_rect,
+use crate::tui::components::{
+    popup_block_with_close_highlight, popup_rects, Component, ComponentAction,
 };
 
 pub struct StatisticsPopup {
@@ -36,15 +33,9 @@ impl Component for StatisticsPopup {
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let popup_rect = centered_rect(rect, 50, 50);
-        let block_rect = popup_rect.inner(Margin::new(1, 1));
-        let text_rect = block_rect.inner(Margin::new(3, 2));
+        let (popup_rect, block_rect, text_rect) = popup_rects(rect, 50, 50);
 
-        let title_style = Style::default().fg(CONFIG.general.accent_color);
-        let block = Block::bordered()
-            .border_type(BorderType::Rounded)
-            .title(Title::from(" Statistics ".set_style(title_style)))
-            .title(popup_close_button_highlight());
+        let block = popup_block_with_close_highlight(" Statistics ");
 
         let uploaded_bytes = self.stats.cumulative_stats.uploaded_bytes;
         let downloaded_bytes = self.stats.cumulative_stats.downloaded_bytes;

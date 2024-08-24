@@ -5,7 +5,7 @@ use ratatui::{
     style::Styled,
     widgets::{
         block::{Position, Title},
-        Block, BorderType, Clear, Paragraph,
+        Clear, Paragraph,
     },
 };
 use rm_config::CONFIG;
@@ -18,9 +18,9 @@ use crate::{
     tui::{
         app,
         components::{
-            popup_close_button, popup_close_button_highlight, Component, ComponentAction,
+            keybinding_style, popup_block, popup_close_button, popup_close_button_highlight,
+            popup_rects, Component, ComponentAction,
         },
-        main_window::centered_rect,
     },
 };
 use rm_shared::{
@@ -247,17 +247,12 @@ impl Component for FilesPopup {
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let popup_rect = centered_rect(rect, 75, 75);
-        let block_rect = popup_rect.inner(Margin::new(1, 1));
-
-        let info_text_rect = block_rect.inner(Margin::new(3, 2));
+        let (popup_rect, block_rect, text_rect) = popup_rects(rect, 75, 75);
 
         let highlight_style = Style::default().fg(CONFIG.general.accent_color);
         let bold_highlight_style = highlight_style.on_black().bold();
 
-        let block = Block::bordered()
-            .border_type(BorderType::Rounded)
-            .title(Title::from(" Files ".set_style(highlight_style)).alignment(Alignment::Left));
+        let block = popup_block(" Files ");
 
         if self.tree_state.selected().is_empty() {
             self.tree_state.select_first();
@@ -292,18 +287,12 @@ impl Component for FilesPopup {
 
                     if let Some(key) = CONFIG.keybindings.get_keys_for_action(Action::Select) {
                         keys.push(Span::raw(" "));
-                        keys.push(Span::styled(
-                            key,
-                            Style::new().fg(CONFIG.general.accent_color).underlined(),
-                        ));
+                        keys.push(Span::styled(key, keybinding_style()));
                         keys.push(Span::raw(" - toggle | "));
                     }
 
                     if let Some(key) = CONFIG.keybindings.get_keys_for_action(Action::XdgOpen) {
-                        keys.push(Span::styled(
-                            key,
-                            Style::new().fg(CONFIG.general.accent_color).underlined(),
-                        ));
+                        keys.push(Span::styled(key, keybinding_style()));
                         keys.push(Span::raw(" - xdg_open "));
                     }
 
@@ -338,7 +327,7 @@ impl Component for FilesPopup {
             let paragraph = Paragraph::new("Loading...");
             let block = block.title(popup_close_button_highlight());
             f.render_widget(Clear, popup_rect);
-            f.render_widget(paragraph, info_text_rect);
+            f.render_widget(paragraph, text_rect);
             f.render_widget(block, block_rect);
         }
     }

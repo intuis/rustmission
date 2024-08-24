@@ -223,7 +223,7 @@ impl TorrentsTab {
 
     fn show_details_popup(&mut self) {
         if let Some(highlighted_torrent) = self.table_manager.current_torrent() {
-            let popup = DetailsPopup::new(self.ctx.clone());
+            let popup = DetailsPopup::new(self.ctx.clone(), highlighted_torrent.clone());
             self.popup_manager.show_popup(CurrentPopup::Details(popup));
             self.ctx.send_action(Action::Render);
         }
