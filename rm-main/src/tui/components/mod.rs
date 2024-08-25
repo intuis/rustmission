@@ -4,7 +4,10 @@ mod table;
 mod tabs;
 
 pub use input_manager::InputManager;
-pub use misc::{popup_close_button, popup_close_button_highlight};
+pub use misc::{
+    keybinding_style, popup_block, popup_block_with_close_highlight, popup_close_button,
+    popup_close_button_highlight, popup_rects,
+};
 pub use table::GenericTable;
 pub use tabs::{CurrentTab, TabComponent};
 
@@ -31,9 +34,14 @@ pub trait Component {
         ComponentAction::Nothing
     }
 
-    fn handle_update_action(&mut self, _action: UpdateAction) {}
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        let _action = action;
+    }
 
-    fn render(&mut self, _f: &mut Frame, _rect: Rect) {}
+    fn render(&mut self, f: &mut Frame, rect: Rect) {
+        let _f = f;
+        let _rect = rect;
+    }
 
     fn tick(&mut self) {}
 }

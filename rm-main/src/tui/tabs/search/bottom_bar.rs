@@ -11,7 +11,7 @@ use throbber_widgets_tui::ThrobberState;
 
 use crate::tui::{
     app,
-    components::{Component, ComponentAction},
+    components::{keybinding_style, Component, ComponentAction},
     tabs::torrents::tasks,
 };
 
@@ -140,12 +140,7 @@ impl Component for SearchState {
                 .get_keys_for_action(Action::ShowProvidersInfo);
             if let Some(key) = providers_key {
                 line.push_span(Span::raw("Press "));
-                line.push_span(Span::styled(
-                    key,
-                    Style::default()
-                        .fg(CONFIG.general.accent_color)
-                        .underlined(),
-                ));
+                line.push_span(Span::styled(key, keybinding_style()));
                 line.push_span(Span::raw(" for details."))
             }
         };

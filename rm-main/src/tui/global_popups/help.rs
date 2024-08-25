@@ -13,8 +13,7 @@ use rm_shared::action::Action;
 
 use crate::tui::{
     app,
-    components::{popup_close_button_highlight, Component, ComponentAction},
-    main_window::centered_rect,
+    components::{popup_block_with_close_highlight, popup_rects, Component, ComponentAction},
 };
 
 macro_rules! add_line {
@@ -159,16 +158,9 @@ impl Component for HelpPopup {
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let centered_rect = centered_rect(rect, 75, 75);
-        let popup_rect = centered_rect.inner(Margin::new(1, 1));
-        let text_rect = popup_rect.inner(Margin::new(3, 2));
+        let (popup_rect, block_rect, text_rect) = popup_rects(rect, 75, 75);
 
-        let title_style = Style::new().fg(CONFIG.general.accent_color);
-        let block = Block::bordered()
-            .border_set(symbols::border::ROUNDED)
-            .title(popup_close_button_highlight())
-            .title(" Help ")
-            .title_style(title_style);
+        let block = popup_block_with_close_highlight(" Help ");
 
         let mut lines = vec![Line::from(vec![Span::styled(
             "Global Keybindings",
@@ -232,8 +224,8 @@ impl Component for HelpPopup {
             }
         };
 
-        f.render_widget(Clear, centered_rect);
-        f.render_widget(block, popup_rect);
+        f.render_widget(Clear, popup_rect);
+        f.render_widget(block, block_rect);
         f.render_widget(help_paragraph, text_rect);
 
         if let Some(scroll) = &mut self.scroll {

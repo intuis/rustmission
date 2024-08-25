@@ -1,14 +1,11 @@
 use ratatui::{
     prelude::*,
-    widgets::{Block, Clear, Paragraph, Wrap},
+    widgets::{Block, BorderType, Clear, Paragraph, Wrap},
 };
 
 use rm_shared::action::Action;
 
-use crate::tui::{
-    components::{Component, ComponentAction},
-    main_window::centered_rect,
-};
+use crate::tui::components::{popup_rects, Component, ComponentAction};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorPopup {
@@ -38,16 +35,15 @@ impl Component for ErrorPopup {
     }
 
     fn render(&mut self, f: &mut Frame, _rect: Rect) {
-        let centered_rect = centered_rect(f.area(), 50, 50);
-        let popup_rect = centered_rect.inner(Margin::new(1, 1));
-        let text_rect = popup_rect.inner(Margin::new(3, 2));
+        let (popup_rect, block_rect, text_rect) = popup_rects(f.area(), 50, 50);
+
         let button_rect = Layout::vertical([Constraint::Percentage(100), Constraint::Length(1)])
             .split(text_rect)[1];
 
         let button = Paragraph::new("[ OK ]").bold().right_aligned();
 
         let block = Block::bordered()
-            .border_set(symbols::border::ROUNDED)
+            .border_type(BorderType::Rounded)
             .title_style(Style::new().red())
             .title(format!(" {} ", self.title));
 
@@ -59,8 +55,8 @@ impl Component for ErrorPopup {
 
         let error_message = Paragraph::new(lines).wrap(Wrap { trim: false });
 
-        f.render_widget(Clear, centered_rect);
-        f.render_widget(block, popup_rect);
+        f.render_widget(Clear, popup_rect);
+        f.render_widget(block, block_rect);
         f.render_widget(error_message, text_rect);
         f.render_widget(button, button_rect);
     }

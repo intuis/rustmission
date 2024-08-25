@@ -1,6 +1,6 @@
 use magnetease::ProviderCategory;
 use ratatui::{
-    layout::{Constraint, Margin},
+    layout::Constraint,
     prelude::Rect,
     style::{Style, Styled, Stylize},
     text::Line,
@@ -11,8 +11,7 @@ use rm_config::CONFIG;
 use rm_shared::action::Action;
 
 use crate::tui::{
-    components::{popup_close_button_highlight, Component, ComponentAction},
-    main_window::centered_rect,
+    components::{popup_close_button_highlight, popup_rects, Component, ComponentAction},
     tabs::search::{ConfiguredProvider, ProviderState},
 };
 
@@ -89,9 +88,7 @@ impl Component for ProvidersPopup {
     }
 
     fn render(&mut self, f: &mut Frame, rect: Rect) {
-        let popup_rect = centered_rect(rect, 80, 50);
-        let block_rect = popup_rect.inner(Margin::new(1, 1));
-        let table_rect = block_rect.inner(Margin::new(1, 1));
+        let (popup_rect, block_rect, table_rect) = popup_rects(rect, 80, 50);
 
         let title_style = Style::default().fg(CONFIG.general.accent_color);
         let block = Block::bordered()
