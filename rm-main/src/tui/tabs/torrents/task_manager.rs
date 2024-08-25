@@ -39,6 +39,7 @@ pub enum CurrentTask {
     ChangeCategory(tasks::ChangeCategory),
     Default(tasks::Default),
     Status(tasks::Status),
+    Sort(tasks::Sort),
 }
 
 impl CurrentTask {
@@ -84,6 +85,7 @@ impl Component for TaskManager {
                 }
             }
             CurrentTask::Default(_) => (),
+            CurrentTask::Sort(_) => (),
         };
         ComponentAction::Nothing
     }
@@ -116,6 +118,7 @@ impl Component for TaskManager {
             CurrentTask::Default(default_bar) => default_bar.render(f, rect),
             CurrentTask::Status(status_bar) => status_bar.render(f, rect),
             CurrentTask::ChangeCategory(category_bar) => category_bar.render(f, rect),
+            CurrentTask::Sort(sort_bar) => sort_bar.render(f, rect),
         }
     }
 
@@ -160,6 +163,14 @@ impl TaskManager {
             vec![torrent.id.clone()],
         ));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+    }
+
+    pub fn default(&mut self) {
+        self.current_task = CurrentTask::Default(tasks::Default::new());
+    }
+
+    pub fn sort(&mut self) {
+        self.current_task = CurrentTask::Sort(tasks::Sort::new());
     }
 
     fn success_task(&mut self, task: StatusTask) {

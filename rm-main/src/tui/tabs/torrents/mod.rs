@@ -76,6 +76,31 @@ impl Component for TorrentsTab {
             return ComponentAction::Nothing;
         }
 
+        if self.table_manager.sorting_is_being_selected {
+            match action {
+                A::Close => {
+                    self.table_manager.leave_sorting();
+                    self.task_manager.default();
+                    self.ctx.send_action(Action::Render);
+                }
+                A::MoveToColumnLeft => {
+                    self.table_manager.move_to_column_left();
+                    self.ctx.send_action(Action::Render);
+                }
+                A::MoveToColumnRight => {
+                    self.table_manager.move_to_column_right();
+                    self.ctx.send_action(Action::Render);
+                }
+                A::Confirm => {
+                    self.table_manager.apply_sort();
+                    self.task_manager.default();
+                    self.ctx.send_action(Action::Render);
+                }
+                _ => (),
+            }
+            return ComponentAction::Nothing;
+        }
+
         if action.is_quit() {
             self.ctx.send_action(Action::HardQuit);
         }
@@ -122,12 +147,8 @@ impl Component for TorrentsTab {
                 }
             }
             A::XdgOpen => self.xdg_open_current_torrent(),
-            A::MoveToColumnRight => {
-                self.table_manager.move_to_column_right();
-                self.ctx.send_action(Action::Render);
-            }
-            A::MoveToColumnLeft => {
-                self.table_manager.move_to_column_left();
+            A::MoveToColumnLeft | A::MoveToColumnRight => {
+                self.table_manager.enter_sorting_selection();
                 self.ctx.send_action(Action::Render);
             }
             other => {
@@ -214,9 +235,11 @@ impl TorrentsTab {
             .collect::<Vec<_>>();
 
         if let Some(sort_header) = self.table_manager.sort_header {
-            headers[sort_header] = headers[sort_header]
-                .clone()
-                .style(Style::default().fg(CONFIG.general.accent_color));
+            if self.table_manager.sorting_is_being_selected {
+                headers[sort_header] = headers[sort_header]
+                    .clone()
+                    .style(Style::default().fg(CONFIG.general.accent_color));
+            }
         }
 
         let table_widget = {

@@ -38,8 +38,23 @@ impl TableManager {
         }
     }
 
-    pub fn move_to_column_left(&mut self) {
+    pub fn enter_sorting_selection(&mut self) {
         self.sorting_is_being_selected = true;
+        self.sort_header = Some(0);
+        self.sort();
+    }
+
+    pub fn leave_sorting(&mut self) {
+        self.sorting_is_being_selected = false;
+        self.sort_header = None;
+        // TODO: change to default sort
+    }
+
+    pub fn apply_sort(&mut self) {
+        self.sorting_is_being_selected = false;
+    }
+
+    pub fn move_to_column_left(&mut self) {
         if let Some(selected) = self.sort_header {
             self.sort_header = Some(selected.saturating_sub(1));
             self.sort();
@@ -50,16 +65,12 @@ impl TableManager {
     }
 
     pub fn move_to_column_right(&mut self) {
-        self.sorting_is_being_selected = true;
         if let Some(selected) = self.sort_header {
             let headers_count = self.headers().len();
             if selected < headers_count.saturating_sub(1) {
                 self.sort_header = Some(selected + 1);
                 self.sort();
             }
-        } else {
-            self.sort_header = Some(0);
-            self.sort();
         }
     }
 
