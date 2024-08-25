@@ -10,7 +10,7 @@ use crate::tui::{
     app,
     components::{keybinding_style, popup_close_button_highlight, Component, ComponentAction},
     main_window::centered_rect,
-    tabs::torrents::rustmission_torrent::RustmissionTorrent,
+    tabs::torrents::rustmission_torrent::{CategoryType, RustmissionTorrent},
 };
 
 pub struct DetailsPopup {
@@ -140,12 +140,12 @@ impl Component for DetailsPopup {
             lines.push(Line::from(format!("Error: {error}")).red());
         }
 
-        if let Some(category) = &self.torrent.categories.first() {
+        if let Some(category) = &self.torrent.category {
             let mut category_line = Line::from("Category: ");
-            let mut category_span = Span::raw(category.as_str());
+            let mut category_span = Span::raw(category.name());
 
-            if let Some(config_category) = CONFIG.categories.map.get(*category) {
-                category_span = category_span.set_style(Style::default().fg(config_category.color))
+            if let CategoryType::Config(category) = category {
+                category_span = category_span.set_style(Style::default().fg(category.color))
             }
 
             category_line.push_span(category_span);

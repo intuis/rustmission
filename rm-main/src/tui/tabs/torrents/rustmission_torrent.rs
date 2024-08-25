@@ -4,7 +4,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Cell, Row},
 };
-use rm_config::CONFIG;
+use rm_config::{categories::Category, CONFIG};
 use rm_shared::{
     header::Header,
     utils::{bytes_to_human_format, seconds_to_human_format},
@@ -28,8 +28,23 @@ pub struct RustmissionTorrent {
     pub activity_date: NaiveDateTime,
     pub added_date: NaiveDateTime,
     pub peers_connected: i64,
-    pub categories: Vec<String>,
+    pub category: Option<CategoryType>,
     pub error: Option<String>,
+}
+
+#[derive(Clone)]
+pub enum CategoryType {
+    Plain(String),
+    Config(Category),
+}
+
+impl CategoryType {
+    pub fn name(&self) -> &str {
+        match self {
+            CategoryType::Plain(name) => name,
+            CategoryType::Config(config) => &config.name,
+        }
+    }
 }
 
 impl RustmissionTorrent {
@@ -159,11 +174,7 @@ impl RustmissionTorrent {
     }
 
     fn category_icon_span(&self) -> Span {
-        if let Some(category) = self
-            .categories
-            .first()
-            .and_then(|category| CONFIG.categories.map.get(category))
-        {
+        if let Some(CategoryType::Config(category)) = &self.category {
             Span::styled(
                 format!("{} ", category.icon),
                 Style::default().fg(category.color),
@@ -175,17 +186,15 @@ impl RustmissionTorrent {
 
     fn torrent_name_with_category_icon(&self) -> Line<'_> {
         let mut line = Line::default();
-        if let Some(category) = self
-            .categories
-            .first()
-            .and_then(|category| CONFIG.categories.map.get(category))
-        {
+
+        if let Some(CategoryType::Config(category)) = &self.category {
             line.push_span(Span::styled(
                 category.icon.as_str(),
                 Style::default().fg(category.color),
             ));
             line.push_span(Span::raw(" "));
         }
+
         line.push_span(self.torrent_name.as_str());
         line
     }
@@ -238,26 +247,25 @@ impl RustmissionTorrent {
                     }
                 }
             }
-            Header::Category => match self.categories.first() {
-                Some(category) => {
-                    if let Some(config_category) = CONFIG.categories.map.get(category) {
-                        Cell::from(category.as_str()).fg(config_category.color)
-                    } else {
-                        Cell::from(category.as_str())
+            Header::Category => {
+                if let Some(category) = &self.category {
+                    match category {
+                        CategoryType::Plain(name) => Cell::from(name.as_str()),
+                        CategoryType::Config(category) => {
+                            Cell::from(category.name.as_str()).fg(category.color)
+                        }
                     }
+                } else {
+                    Cell::default()
                 }
-                None => Cell::default(),
-            },
-            Header::CategoryIcon => match self.categories.first() {
-                Some(category) => {
-                    if let Some(config_category) = CONFIG.categories.map.get(category) {
-                        Cell::from(config_category.icon.as_str()).fg(config_category.color)
-                    } else {
-                        Cell::default()
-                    }
+            }
+            Header::CategoryIcon => {
+                if let Some(CategoryType::Config(category)) = &self.category {
+                    Cell::from(category.icon.as_str()).fg(category.color)
+                } else {
+                    Cell::default()
                 }
-                None => Cell::default(),
-            },
+            }
         }
     }
 
@@ -343,7 +351,14 @@ impl From<Torrent> for RustmissionTorrent {
             }
         };
 
-        let categories = t.labels.unwrap();
+        let category = if let Some(category) = t.labels.unwrap().first() {
+            match CONFIG.categories.map.get(category) {
+                Some(category) => Some(CategoryType::Config(category.clone())),
+                None => Some(CategoryType::Plain(category.to_string())),
+            }
+        } else {
+            None
+        };
 
         Self {
             torrent_name,
@@ -361,7 +376,7 @@ impl From<Torrent> for RustmissionTorrent {
             activity_date,
             added_date,
             peers_connected,
-            categories,
+            category,
             error,
         }
     }

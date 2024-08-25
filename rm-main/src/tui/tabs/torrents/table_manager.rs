@@ -119,7 +119,21 @@ impl TableManager {
                     .items
                     .sort_unstable_by(|x, y| x.peers_connected.cmp(&y.peers_connected)),
                 Header::SmallStatus => (),
-                Header::Category => (),
+                Header::Category => self.table.items.sort_unstable_by(|x, y| {
+                    x.category
+                        .as_ref()
+                        .and_then(|cat| {
+                            Some(
+                                cat.name().cmp(
+                                    y.category
+                                        .as_ref()
+                                        .and_then(|cat| Some(cat.name()))
+                                        .unwrap_or_default(),
+                                ),
+                            )
+                        })
+                        .unwrap_or(Ordering::Less)
+                }),
                 Header::CategoryIcon => (),
             }
         }
