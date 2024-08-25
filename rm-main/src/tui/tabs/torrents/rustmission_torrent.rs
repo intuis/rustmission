@@ -207,7 +207,7 @@ impl RustmissionTorrent {
                         Line::from(self.torrent_name.as_str()),
                         Line::from(Span::styled(
                             format!("\n{error}"),
-                            Style::default().red().dim(),
+                            Style::default().red().dim().italic(),
                         )),
                     ])
                 } else if CONFIG.torrents_tab.category_icon_insert_into_name {
@@ -281,7 +281,7 @@ impl RustmissionTorrent {
 
     pub fn update_status(&mut self, new_status: TorrentStatus) {
         if self.error.is_some() {
-            self.style = Style::default().red().italic();
+            self.style = Style::default().red();
         } else if new_status == TorrentStatus::Stopped {
             self.style = Style::default().dark_gray().italic();
         } else {
@@ -348,7 +348,7 @@ impl From<Torrent> for RustmissionTorrent {
 
         let style = {
             if error.is_some() {
-                Style::default().red().italic()
+                Style::default().red()
             } else {
                 match status {
                     TorrentStatus::Stopped => Style::default().dark_gray().italic(),
