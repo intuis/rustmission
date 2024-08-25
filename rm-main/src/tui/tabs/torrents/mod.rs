@@ -241,9 +241,9 @@ impl TorrentsTab {
         let sorted_header_name;
         if let Some(sort_header) = self.table_manager.sort_header {
             let icon = if self.table_manager.sort_reverse {
-                "󰒽"
+                &CONFIG.icons.sort_descending
             } else {
-                "󰒼"
+                &CONFIG.icons.sort_ascending
             };
 
             sorted_header_name = format!("{icon} {}", text_headers[sort_header]);

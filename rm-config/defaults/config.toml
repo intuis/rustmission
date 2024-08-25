@@ -68,4 +68,5 @@ category_icon_insert_into_name = true
 # provider_disabled = "⛔"          # "󰪎"
 # provider_category_general = "[G]" # ""
 # provider_category_anime = "[A]"   # "󰎁"
-
+# sort_ascending = "↓"              # "󰒼"
+# sort_descending = "↑"             # "󰒽""
