@@ -91,6 +91,10 @@ impl Component for TorrentsTab {
                     self.table_manager.move_to_column_right();
                     self.ctx.send_action(Action::Render);
                 }
+                A::Down | A::Up => {
+                    self.table_manager.reverse_sort();
+                    self.ctx.send_action(Action::Render);
+                }
                 A::Confirm => {
                     self.table_manager.apply_sort();
                     self.task_manager.default();
@@ -149,6 +153,7 @@ impl Component for TorrentsTab {
             A::XdgOpen => self.xdg_open_current_torrent(),
             A::MoveToColumnLeft | A::MoveToColumnRight => {
                 self.table_manager.enter_sorting_selection();
+                self.task_manager.sort();
                 self.ctx.send_action(Action::Render);
             }
             other => {
@@ -226,11 +231,28 @@ impl TorrentsTab {
 
         let rows = self.table_manager.rows();
 
-        let mut headers = self
+        let mut text_headers = self
             .table_manager
             .headers()
             .iter()
             .map(|h| h.header_name())
+            .collect::<Vec<_>>();
+
+        let sorted_header_name;
+        if let Some(sort_header) = self.table_manager.sort_header {
+            let icon = if self.table_manager.sort_reverse {
+                "󰒽"
+            } else {
+                "󰒼"
+            };
+
+            sorted_header_name = format!("{icon} {}", text_headers[sort_header]);
+            text_headers[sort_header] = sorted_header_name.as_str();
+        }
+
+        let mut headers = text_headers
+            .iter()
+            .cloned()
             .map(Cell::from)
             .collect::<Vec<_>>();
 

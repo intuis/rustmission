@@ -14,6 +14,7 @@ pub struct TableManager {
     pub filter: Option<Filter>,
     pub torrents_displaying_no: u16,
     pub sort_header: Option<usize>,
+    pub sort_reverse: bool,
     pub sorting_is_being_selected: bool,
 }
 
@@ -34,13 +35,21 @@ impl TableManager {
             filter: None,
             torrents_displaying_no: 0,
             sort_header: None,
+            sort_reverse: false,
             sorting_is_being_selected: false,
         }
     }
 
     pub fn enter_sorting_selection(&mut self) {
         self.sorting_is_being_selected = true;
-        self.sort_header = Some(0);
+        if self.sort_header.is_none() {
+            self.sort_header = Some(0);
+            self.sort();
+        }
+    }
+
+    pub fn reverse_sort(&mut self) {
+        self.sort_reverse = !self.sort_reverse;
         self.sort();
     }
 
@@ -79,58 +88,56 @@ impl TableManager {
             let sort_by = CONFIG.torrents_tab.headers[selected_header];
             match sort_by {
                 Header::Id => todo!(),
-                Header::Name => self
-                    .table
-                    .items
-                    .sort_unstable_by(|x, y| x.torrent_name.cmp(&y.torrent_name)),
+                Header::Name => self.table.items.sort_by(|x, y| {
+                    x.torrent_name
+                        .to_lowercase()
+                        .cmp(&y.torrent_name.to_lowercase())
+                }),
                 Header::SizeWhenDone => self
                     .table
                     .items
-                    .sort_unstable_by(|x, y| x.size_when_done.cmp(&y.size_when_done)),
+                    .sort_by(|x, y| x.size_when_done.cmp(&y.size_when_done)),
                 Header::Progress => self.table.items.sort_unstable_by(|x, y| {
                     x.progress
                         .partial_cmp(&y.progress)
                         .unwrap_or(Ordering::Equal)
                 }),
-                Header::Eta => self
-                    .table
-                    .items
-                    .sort_unstable_by(|x, y| x.eta_secs.cmp(&y.eta_secs)),
+                Header::Eta => self.table.items.sort_by(|x, y| x.eta_secs.cmp(&y.eta_secs)),
                 Header::DownloadRate => self
                     .table
                     .items
-                    .sort_unstable_by(|x, y| x.download_speed.cmp(&y.download_speed)),
+                    .sort_by(|x, y| x.download_speed.cmp(&y.download_speed)),
                 Header::UploadRate => self
                     .table
                     .items
-                    .sort_unstable_by(|x, y| x.upload_speed.cmp(&y.upload_speed)),
+                    .sort_by(|x, y| x.upload_speed.cmp(&y.upload_speed)),
                 Header::DownloadDir => self
                     .table
                     .items
-                    .sort_unstable_by(|x, y| x.download_dir.cmp(&y.download_dir)),
+                    .sort_by(|x, y| x.download_dir.cmp(&y.download_dir)),
                 Header::Padding => (),
                 Header::UploadRatio => self
                     .table
                     .items
-                    .sort_unstable_by(|x, y| x.upload_ratio.cmp(&y.upload_ratio)),
+                    .sort_by(|x, y| x.upload_ratio.cmp(&y.upload_ratio)),
                 Header::UploadedEver => self
                     .table
                     .items
-                    .sort_unstable_by(|x, y| x.uploaded_ever.cmp(&y.uploaded_ever)),
+                    .sort_by(|x, y| x.uploaded_ever.cmp(&y.uploaded_ever)),
                 Header::ActivityDate => self
                     .table
                     .items
-                    .sort_unstable_by(|x, y| x.activity_date.cmp(&y.activity_date)),
+                    .sort_by(|x, y| x.activity_date.cmp(&y.activity_date)),
                 Header::AddedDate => self
                     .table
                     .items
-                    .sort_unstable_by(|x, y| x.added_date.cmp(&y.added_date)),
+                    .sort_by(|x, y| x.added_date.cmp(&y.added_date)),
                 Header::PeersConnected => self
                     .table
                     .items
-                    .sort_unstable_by(|x, y| x.peers_connected.cmp(&y.peers_connected)),
+                    .sort_by(|x, y| x.peers_connected.cmp(&y.peers_connected)),
                 Header::SmallStatus => (),
-                Header::Category => self.table.items.sort_unstable_by(|x, y| {
+                Header::Category => self.table.items.sort_by(|x, y| {
                     x.category
                         .as_ref()
                         .and_then(|cat| {
@@ -146,6 +153,9 @@ impl TableManager {
                         .unwrap_or(Ordering::Less)
                 }),
                 Header::CategoryIcon => (),
+            }
+            if self.sort_reverse {
+                self.table.items.reverse();
             }
         }
     }
