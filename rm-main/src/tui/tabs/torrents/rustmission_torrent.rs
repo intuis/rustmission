@@ -203,7 +203,13 @@ impl RustmissionTorrent {
         match header {
             Header::Name => {
                 if let Some(error) = &self.error {
-                    Cell::from(format!("{}\n{error}", self.torrent_name))
+                    Cell::from(vec![
+                        Line::from(self.torrent_name.as_str()),
+                        Line::from(Span::styled(
+                            format!("\n{error}"),
+                            Style::default().red().dim(),
+                        )),
+                    ])
                 } else if CONFIG.torrents_tab.category_icon_insert_into_name {
                     Cell::from(self.torrent_name_with_category_icon())
                 } else {
