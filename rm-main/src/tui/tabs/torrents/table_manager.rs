@@ -1,8 +1,8 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{prelude::*, widgets::Row};
 use rm_config::CONFIG;
-use rm_shared::{action::Action, header::Header};
-use std::collections::HashMap;
+use rm_shared::header::Header;
+use std::{cmp::Ordering, collections::HashMap};
 
 use crate::tui::components::GenericTable;
 
@@ -53,7 +53,7 @@ impl TableManager {
         self.sorting_is_being_selected = true;
         if let Some(selected) = self.sort_header {
             let headers_count = self.headers().len();
-            if selected < headers_count {
+            if selected < headers_count.saturating_sub(1) {
                 self.sort_header = Some(selected + 1);
                 self.sort();
             }
@@ -76,10 +76,11 @@ impl TableManager {
                     .table
                     .items
                     .sort_unstable_by(|x, y| x.size_when_done.cmp(&y.size_when_done)),
-                Header::Progress => self
-                    .table
-                    .items
-                    .sort_unstable_by(|x, y| x.progress.cmp(&y.progress)),
+                Header::Progress => self.table.items.sort_unstable_by(|x, y| {
+                    x.progress
+                        .partial_cmp(&y.progress)
+                        .unwrap_or(Ordering::Equal)
+                }),
                 Header::Eta => self
                     .table
                     .items
@@ -249,7 +250,7 @@ impl TableManager {
         }
 
         for row in rows {
-            if !row.download_speed.is_empty() {
+            if !row.download_speed().is_empty() {
                 map.entry(&Header::DownloadRate)
                     .and_modify(|c| *c = Header::DownloadRate.default_constraint());
             }
@@ -257,12 +258,12 @@ impl TableManager {
                 map.entry(&Header::UploadRate)
                     .and_modify(|c| *c = Header::UploadRate.default_constraint());
             }
-            if !row.progress.is_empty() {
+            if !row.progress().is_empty() {
                 map.entry(&Header::Progress)
                     .and_modify(|c| *c = Header::Progress.default_constraint());
             }
 
-            if !row.eta_secs.is_empty() {
+            if !row.eta_secs().is_empty() {
                 map.entry(&Header::Eta)
                     .and_modify(|c| *c = Header::Eta.default_constraint());
             }
