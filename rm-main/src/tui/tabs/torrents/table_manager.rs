@@ -56,7 +56,7 @@ impl TableManager {
     pub fn leave_sorting(&mut self) {
         self.sorting_is_being_selected = false;
         self.sort_header = None;
-        // TODO: change to default sort
+        self.sort();
     }
 
     pub fn apply_sort(&mut self) {
@@ -84,79 +84,83 @@ impl TableManager {
     }
 
     pub fn sort(&mut self) {
-        if let Some(selected_header) = self.sort_header {
-            let sort_by = CONFIG.torrents_tab.headers[selected_header];
-            match sort_by {
-                Header::Id => todo!(),
-                Header::Name => self.table.items.sort_by(|x, y| {
-                    x.torrent_name
-                        .to_lowercase()
-                        .cmp(&y.torrent_name.to_lowercase())
-                }),
-                Header::SizeWhenDone => self
-                    .table
-                    .items
-                    .sort_by(|x, y| x.size_when_done.cmp(&y.size_when_done)),
-                Header::Progress => self.table.items.sort_unstable_by(|x, y| {
-                    x.progress
-                        .partial_cmp(&y.progress)
-                        .unwrap_or(Ordering::Equal)
-                }),
-                Header::Eta => self.table.items.sort_by(|x, y| x.eta_secs.cmp(&y.eta_secs)),
-                Header::DownloadRate => self
-                    .table
-                    .items
-                    .sort_by(|x, y| x.download_speed.cmp(&y.download_speed)),
-                Header::UploadRate => self
-                    .table
-                    .items
-                    .sort_by(|x, y| x.upload_speed.cmp(&y.upload_speed)),
-                Header::DownloadDir => self
-                    .table
-                    .items
-                    .sort_by(|x, y| x.download_dir.cmp(&y.download_dir)),
-                Header::Padding => (),
-                Header::UploadRatio => self
-                    .table
-                    .items
-                    .sort_by(|x, y| x.upload_ratio.cmp(&y.upload_ratio)),
-                Header::UploadedEver => self
-                    .table
-                    .items
-                    .sort_by(|x, y| x.uploaded_ever.cmp(&y.uploaded_ever)),
-                Header::ActivityDate => self
-                    .table
-                    .items
-                    .sort_by(|x, y| x.activity_date.cmp(&y.activity_date)),
-                Header::AddedDate => self
-                    .table
-                    .items
-                    .sort_by(|x, y| x.added_date.cmp(&y.added_date)),
-                Header::PeersConnected => self
-                    .table
-                    .items
-                    .sort_by(|x, y| x.peers_connected.cmp(&y.peers_connected)),
-                Header::SmallStatus => (),
-                Header::Category => self.table.items.sort_by(|x, y| {
-                    x.category
-                        .as_ref()
-                        .and_then(|cat| {
-                            Some(
-                                cat.name().cmp(
-                                    y.category
-                                        .as_ref()
-                                        .and_then(|cat| Some(cat.name()))
-                                        .unwrap_or_default(),
-                                ),
-                            )
-                        })
-                        .unwrap_or(Ordering::Less)
-                }),
-                Header::CategoryIcon => (),
-            }
-            if self.sort_reverse {
-                self.table.items.reverse();
-            }
+        let sort_by = self
+            .sort_header
+            .and_then(|idx| Some(CONFIG.torrents_tab.headers[idx]))
+            .unwrap_or(CONFIG.torrents_tab.default_sort);
+
+        match sort_by {
+            Header::Id => todo!(),
+            Header::Name => self.table.items.sort_by(|x, y| {
+                x.torrent_name
+                    .to_lowercase()
+                    .cmp(&y.torrent_name.to_lowercase())
+            }),
+            Header::SizeWhenDone => self
+                .table
+                .items
+                .sort_by(|x, y| x.size_when_done.cmp(&y.size_when_done)),
+            Header::Progress => self.table.items.sort_unstable_by(|x, y| {
+                x.progress
+                    .partial_cmp(&y.progress)
+                    .unwrap_or(Ordering::Equal)
+            }),
+            Header::Eta => self.table.items.sort_by(|x, y| x.eta_secs.cmp(&y.eta_secs)),
+            Header::DownloadRate => self
+                .table
+                .items
+                .sort_by(|x, y| x.download_speed.cmp(&y.download_speed)),
+            Header::UploadRate => self
+                .table
+                .items
+                .sort_by(|x, y| x.upload_speed.cmp(&y.upload_speed)),
+            Header::DownloadDir => self
+                .table
+                .items
+                .sort_by(|x, y| x.download_dir.cmp(&y.download_dir)),
+            Header::Padding => (),
+            Header::UploadRatio => self
+                .table
+                .items
+                .sort_by(|x, y| x.upload_ratio.cmp(&y.upload_ratio)),
+            Header::UploadedEver => self
+                .table
+                .items
+                .sort_by(|x, y| x.uploaded_ever.cmp(&y.uploaded_ever)),
+            Header::ActivityDate => self
+                .table
+                .items
+                .sort_by(|x, y| x.activity_date.cmp(&y.activity_date)),
+            Header::AddedDate => self
+                .table
+                .items
+                .sort_by(|x, y| x.added_date.cmp(&y.added_date)),
+            Header::PeersConnected => self
+                .table
+                .items
+                .sort_by(|x, y| x.peers_connected.cmp(&y.peers_connected)),
+            Header::SmallStatus => (),
+            Header::Category => self.table.items.sort_by(|x, y| {
+                x.category
+                    .as_ref()
+                    .and_then(|cat| {
+                        Some(
+                            cat.name().cmp(
+                                y.category
+                                    .as_ref()
+                                    .and_then(|cat| Some(cat.name()))
+                                    .unwrap_or_default(),
+                            ),
+                        )
+                    })
+                    .unwrap_or(Ordering::Less)
+            }),
+            Header::CategoryIcon => (),
+        }
+        if self.sort_reverse {
+            self.table.items.reverse();
+        } else if self.sort_header.is_none() && CONFIG.torrents_tab.default_sort_reverse {
+            self.table.items.reverse();
         }
     }
 
