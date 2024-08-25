@@ -1,7 +1,7 @@
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{prelude::*, widgets::Row};
 use rm_config::CONFIG;
-use rm_shared::header::Header;
+use rm_shared::{action::Action, header::Header};
 use std::collections::HashMap;
 
 use crate::tui::components::GenericTable;
@@ -13,7 +13,8 @@ pub struct TableManager {
     pub widths: Vec<Constraint>,
     pub filter: Option<Filter>,
     pub torrents_displaying_no: u16,
-    headers: Vec<&'static str>,
+    pub sort_header: Option<usize>,
+    pub sorting_is_being_selected: bool,
 }
 
 pub struct Filter {
@@ -26,17 +27,100 @@ impl TableManager {
     pub fn new() -> Self {
         let table = GenericTable::new(vec![]);
         let widths = Self::default_widths(&CONFIG.torrents_tab.headers);
-        let mut headers = vec![];
-        for header in &CONFIG.torrents_tab.headers {
-            headers.push(header.header_name());
-        }
 
         Self {
             table,
             widths,
             filter: None,
             torrents_displaying_no: 0,
-            headers,
+            sort_header: None,
+            sorting_is_being_selected: false,
+        }
+    }
+
+    pub fn move_to_column_left(&mut self) {
+        self.sorting_is_being_selected = true;
+        if let Some(selected) = self.sort_header {
+            self.sort_header = Some(selected.saturating_sub(1));
+            self.sort();
+        } else {
+            self.sort_header = Some(0);
+            self.sort();
+        }
+    }
+
+    pub fn move_to_column_right(&mut self) {
+        self.sorting_is_being_selected = true;
+        if let Some(selected) = self.sort_header {
+            let headers_count = self.headers().len();
+            if selected < headers_count {
+                self.sort_header = Some(selected + 1);
+                self.sort();
+            }
+        } else {
+            self.sort_header = Some(0);
+            self.sort();
+        }
+    }
+
+    pub fn sort(&mut self) {
+        if let Some(selected_header) = self.sort_header {
+            let sort_by = CONFIG.torrents_tab.headers[selected_header];
+            match sort_by {
+                Header::Id => todo!(),
+                Header::Name => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.torrent_name.cmp(&y.torrent_name)),
+                Header::SizeWhenDone => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.size_when_done.cmp(&y.size_when_done)),
+                Header::Progress => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.progress.cmp(&y.progress)),
+                Header::Eta => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.eta_secs.cmp(&y.eta_secs)),
+                Header::DownloadRate => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.download_speed.cmp(&y.download_speed)),
+                Header::UploadRate => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.upload_speed.cmp(&y.upload_speed)),
+                Header::DownloadDir => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.download_dir.cmp(&y.download_dir)),
+                Header::Padding => (),
+                Header::UploadRatio => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.upload_ratio.cmp(&y.upload_ratio)),
+                Header::UploadedEver => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.uploaded_ever.cmp(&y.uploaded_ever)),
+                Header::ActivityDate => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.activity_date.cmp(&y.activity_date)),
+                Header::AddedDate => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.added_date.cmp(&y.added_date)),
+                Header::PeersConnected => self
+                    .table
+                    .items
+                    .sort_unstable_by(|x, y| x.peers_connected.cmp(&y.peers_connected)),
+                Header::SmallStatus => (),
+                Header::Category => (),
+                Header::CategoryIcon => (),
+            }
         }
     }
 
@@ -73,8 +157,8 @@ impl TableManager {
         }
     }
 
-    pub const fn headers(&self) -> &Vec<&'static str> {
-        &self.headers
+    pub fn headers(&self) -> &Vec<Header> {
+        &CONFIG.torrents_tab.headers
     }
 
     pub fn current_torrent(&mut self) -> Option<&mut RustmissionTorrent> {
@@ -97,6 +181,7 @@ impl TableManager {
         self.table.set_items(rows);
         self.widths = self.header_widths(&self.table.items);
         self.update_rows_number();
+        self.sort();
     }
 
     pub fn set_filter(&mut self, filter: String) {
