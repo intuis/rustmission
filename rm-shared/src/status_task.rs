@@ -60,7 +60,7 @@ impl StatusTask {
             TaskType::Open => format!("Opened {truncated}"),
             TaskType::ChangeCategory => {
                 if truncated.is_empty() {
-                    format!("Categories cleared!")
+                    "Categories cleared!".to_string()
                 } else {
                     format!("Category set to {truncated}!")
                 }

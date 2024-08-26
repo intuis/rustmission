@@ -94,7 +94,7 @@ impl TableManager {
     pub fn sort(&mut self) {
         let sort_by = self
             .sort_header
-            .and_then(|idx| Some(CONFIG.torrents_tab.headers[idx]))
+            .map(|idx| CONFIG.torrents_tab.headers[idx])
             .unwrap_or(CONFIG.torrents_tab.default_sort);
 
         match sort_by {
@@ -151,23 +151,21 @@ impl TableManager {
             Header::Category => self.table.items.sort_by(|x, y| {
                 x.category
                     .as_ref()
-                    .and_then(|cat| {
-                        Some(
-                            cat.name().cmp(
-                                y.category
-                                    .as_ref()
-                                    .and_then(|cat| Some(cat.name()))
-                                    .unwrap_or_default(),
-                            ),
+                    .map(|cat| {
+                        cat.name().cmp(
+                            y.category
+                                .as_ref()
+                                .map(|cat| cat.name())
+                                .unwrap_or_default(),
                         )
                     })
                     .unwrap_or(Ordering::Less)
             }),
             Header::CategoryIcon => (),
         }
-        if self.sort_reverse {
-            self.table.items.reverse();
-        } else if self.sort_header.is_none() && CONFIG.torrents_tab.default_sort_reverse {
+        if self.sort_reverse
+            || (self.sort_header.is_none() && CONFIG.torrents_tab.default_sort_reverse)
+        {
             self.table.items.reverse();
         }
     }

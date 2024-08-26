@@ -138,7 +138,7 @@ impl Component for TorrentsTab {
                     .table_manager
                     .filter
                     .as_ref()
-                    .and_then(|f| Some(f.pattern.clone())),
+                    .map(|f| f.pattern.clone()),
             ),
             A::MoveTorrent => {
                 if let Some(torrent) = self.table_manager.current_torrent() {
