@@ -224,12 +224,16 @@ impl Component for HelpPopup {
             &mut to_pad,
             &mut max_line_len,
         );
+
         debug_assert!(to_pad > 0);
+        debug_assert!(max_line_len > 0);
+
         let to_pad_additionally = (text_rect
             .width
             .saturating_sub(max_line_len.try_into().unwrap())
             / 2)
         .saturating_sub(6);
+
         to_pad += usize::from(to_pad_additionally);
 
         let pad_keys = |keys: &mut Vec<(String, &'static str)>| {
@@ -241,6 +245,7 @@ impl Component for HelpPopup {
                 }
             }
         };
+
         pad_keys(&mut global_keys);
         pad_keys(&mut torrents_keys);
         pad_keys(&mut search_keys);

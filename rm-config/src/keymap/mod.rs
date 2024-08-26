@@ -1,14 +1,10 @@
 pub mod actions;
 
 use std::{
-    collections::{BTreeMap, HashMap},
-    io::ErrorKind,
-    marker::PhantomData,
-    path::PathBuf,
-    sync::OnceLock,
+    collections::HashMap, io::ErrorKind, marker::PhantomData, path::PathBuf, sync::OnceLock,
 };
 
-use actions::{search_tab::SearchAction, UserAction};
+use actions::search_tab::SearchAction;
 use anyhow::{Context, Result};
 use crossterm::event::{KeyCode, KeyModifiers as CrosstermKeyModifiers};
 use serde::{
@@ -355,66 +351,6 @@ impl KeymapConfig {
             self.search_keymap
                 .insert(hash_value, keybinding.action.into());
         }
-    }
-
-    fn populate_help_repr(&mut self) {
-        fn get_keybindings<T: Into<Action> + UserAction + Ord>(
-            keybindings: &[Keybinding<T>],
-            max_len: &mut usize,
-        ) -> Vec<(String, &'static str)> {
-            let mut keys: BTreeMap<&T, Vec<String>> = BTreeMap::new();
-
-            for keybinding in keybindings {
-                if !keybinding.show_in_help {
-                    continue;
-                }
-
-                let keycode = keybinding.keycode_string();
-                if keycode.len() > *max_len {
-                    *max_len = keycode.chars().count();
-                }
-
-                keys.entry(&keybinding.action)
-                    .or_insert_with(Vec::new)
-                    .push(keybinding.keycode_string());
-            }
-
-            for keycodes in keys.values() {
-                let mut keycodes_total_len = 0;
-                let delimiter_len = if keycodes.len() >= 2 {
-                    (keycodes.len() - 1) * 3
-                } else {
-                    0
-                };
-
-                for keycode in keycodes {
-                    keycodes_total_len += keycode.chars().count();
-                }
-
-                if keycodes_total_len + delimiter_len > *max_len {
-                    *max_len = keycodes_total_len + delimiter_len;
-                }
-            }
-
-            let mut res = vec![];
-            for (action, keycodes) in keys {
-                let keycode_string = keycodes.join(" / ");
-                let desc = action.desc();
-                res.push((keycode_string, desc));
-            }
-
-            res
-        }
-
-        let mut max_len = 0;
-        // let global_keys_deduped = self
-        // .general
-        // .keybindings
-        // .clone()
-        // .dedup_by(|a, b| a.action.is_mergable_with(b.action));
-        let mut global_keys = get_keybindings(&self.general.keybindings, &mut max_len);
-        let mut torrents_tab = get_keybindings(&self.torrents_tab.keybindings, &mut max_len);
-        let mut search_tab = get_keybindings(&self.search_tab.keybindings, &mut max_len);
     }
 
     pub fn path() -> &'static PathBuf {
