@@ -12,7 +12,7 @@ use crate::tui::components::{Component, ComponentAction};
 use popups::details::DetailsPopup;
 use popups::stats::StatisticsPopup;
 use ratatui::prelude::*;
-use ratatui::widgets::{Row, Table};
+use ratatui::widgets::{Cell, Row, Table};
 use rm_config::CONFIG;
 use rm_shared::status_task::StatusTask;
 use rustmission_torrent::RustmissionTorrent;
@@ -76,6 +76,35 @@ impl Component for TorrentsTab {
             return ComponentAction::Nothing;
         }
 
+        if self.table_manager.sorting_is_being_selected {
+            match action {
+                A::Close => {
+                    self.table_manager.leave_sorting();
+                    self.task_manager.default();
+                    self.ctx.send_action(Action::Render);
+                }
+                A::MoveToColumnLeft => {
+                    self.table_manager.move_to_column_left();
+                    self.ctx.send_action(Action::Render);
+                }
+                A::MoveToColumnRight => {
+                    self.table_manager.move_to_column_right();
+                    self.ctx.send_action(Action::Render);
+                }
+                A::Down | A::Up => {
+                    self.table_manager.reverse_sort();
+                    self.ctx.send_action(Action::Render);
+                }
+                A::Confirm => {
+                    self.table_manager.apply_sort();
+                    self.task_manager.default();
+                    self.ctx.send_action(Action::Render);
+                }
+                _ => (),
+            }
+            return ComponentAction::Nothing;
+        }
+
         if action.is_quit() {
             self.ctx.send_action(Action::HardQuit);
         }
@@ -122,6 +151,11 @@ impl Component for TorrentsTab {
                 }
             }
             A::XdgOpen => self.xdg_open_current_torrent(),
+            A::MoveToColumnLeft | A::MoveToColumnRight => {
+                self.table_manager.enter_sorting_selection();
+                self.task_manager.sort();
+                self.ctx.send_action(Action::Render);
+            }
             other => {
                 self.task_manager.handle_actions(other);
             }
@@ -196,11 +230,45 @@ impl TorrentsTab {
             .fg(CONFIG.general.accent_color);
 
         let rows = self.table_manager.rows();
+
+        let mut text_headers = self
+            .table_manager
+            .headers()
+            .iter()
+            .map(|h| h.header_name())
+            .collect::<Vec<_>>();
+
+        let sorted_header_name;
+        if let Some(sort_header) = self.table_manager.sort_header {
+            let icon = if self.table_manager.sort_reverse {
+                &CONFIG.icons.sort_descending
+            } else {
+                &CONFIG.icons.sort_ascending
+            };
+
+            sorted_header_name = format!("{icon} {}", text_headers[sort_header]);
+            text_headers[sort_header] = sorted_header_name.as_str();
+        }
+
+        let mut headers = text_headers
+            .iter()
+            .cloned()
+            .map(Cell::from)
+            .collect::<Vec<_>>();
+
+        if let Some(sort_header) = self.table_manager.sort_header {
+            if self.table_manager.sorting_is_being_selected {
+                headers[sort_header] = headers[sort_header]
+                    .clone()
+                    .style(Style::default().fg(CONFIG.general.accent_color));
+            }
+        }
+
         let table_widget = {
             let table =
                 Table::new(rows, &self.table_manager.widths).highlight_style(highlight_table_style);
             if !CONFIG.general.headers_hide {
-                table.header(Row::new(self.table_manager.headers().iter().cloned()))
+                table.header(Row::new(headers))
             } else {
                 table
             }

@@ -2,7 +2,7 @@ use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use ratatui::{prelude::*, widgets::Row};
 use rm_config::CONFIG;
 use rm_shared::header::Header;
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 
 use crate::tui::components::GenericTable;
 
@@ -13,7 +13,9 @@ pub struct TableManager {
     pub widths: Vec<Constraint>,
     pub filter: Option<Filter>,
     pub torrents_displaying_no: u16,
-    headers: Vec<&'static str>,
+    pub sort_header: Option<usize>,
+    pub sort_reverse: bool,
+    pub sorting_is_being_selected: bool,
 }
 
 pub struct Filter {
@@ -26,17 +28,147 @@ impl TableManager {
     pub fn new() -> Self {
         let table = GenericTable::new(vec![]);
         let widths = Self::default_widths(&CONFIG.torrents_tab.headers);
-        let mut headers = vec![];
-        for header in &CONFIG.torrents_tab.headers {
-            headers.push(header.header_name());
-        }
 
         Self {
             table,
             widths,
             filter: None,
             torrents_displaying_no: 0,
-            headers,
+            sort_header: None,
+            sort_reverse: false,
+            sorting_is_being_selected: false,
+        }
+    }
+
+    pub fn enter_sorting_selection(&mut self) {
+        self.sorting_is_being_selected = true;
+        if self.sort_header.is_none() {
+            self.sort_header = Some(0);
+            self.sort();
+        }
+    }
+
+    pub fn reverse_sort(&mut self) {
+        self.sort_reverse = !self.sort_reverse;
+        self.sort();
+    }
+
+    pub fn leave_sorting(&mut self) {
+        self.sorting_is_being_selected = false;
+        self.sort_header = None;
+        self.sort();
+    }
+
+    pub fn apply_sort(&mut self) {
+        self.sorting_is_being_selected = false;
+    }
+
+    pub fn move_to_column_left(&mut self) {
+        if let Some(selected) = self.sort_header {
+            if selected == 0 {
+                self.sort_header = Some(self.headers().len() - 1);
+                self.sort();
+            } else {
+                self.sort_header = Some(selected - 1);
+                self.sort();
+            }
+        } else {
+            self.sort_header = Some(0);
+            self.sort();
+        }
+    }
+
+    pub fn move_to_column_right(&mut self) {
+        if let Some(selected) = self.sort_header {
+            let headers_count = self.headers().len();
+            if selected < headers_count.saturating_sub(1) {
+                self.sort_header = Some(selected + 1);
+                self.sort();
+            } else {
+                self.sort_header = Some(0);
+                self.sort();
+            }
+        }
+    }
+
+    pub fn sort(&mut self) {
+        let sort_by = self
+            .sort_header
+            .and_then(|idx| Some(CONFIG.torrents_tab.headers[idx]))
+            .unwrap_or(CONFIG.torrents_tab.default_sort);
+
+        match sort_by {
+            Header::Id => todo!(),
+            Header::Name => self.table.items.sort_by(|x, y| {
+                x.torrent_name
+                    .to_lowercase()
+                    .cmp(&y.torrent_name.to_lowercase())
+            }),
+            Header::SizeWhenDone => self
+                .table
+                .items
+                .sort_by(|x, y| x.size_when_done.cmp(&y.size_when_done)),
+            Header::Progress => self.table.items.sort_unstable_by(|x, y| {
+                x.progress
+                    .partial_cmp(&y.progress)
+                    .unwrap_or(Ordering::Equal)
+            }),
+            Header::Eta => self.table.items.sort_by(|x, y| x.eta_secs.cmp(&y.eta_secs)),
+            Header::DownloadRate => self
+                .table
+                .items
+                .sort_by(|x, y| x.download_speed.cmp(&y.download_speed)),
+            Header::UploadRate => self
+                .table
+                .items
+                .sort_by(|x, y| x.upload_speed.cmp(&y.upload_speed)),
+            Header::DownloadDir => self
+                .table
+                .items
+                .sort_by(|x, y| x.download_dir.cmp(&y.download_dir)),
+            Header::Padding => (),
+            Header::UploadRatio => self
+                .table
+                .items
+                .sort_by(|x, y| x.upload_ratio.cmp(&y.upload_ratio)),
+            Header::UploadedEver => self
+                .table
+                .items
+                .sort_by(|x, y| x.uploaded_ever.cmp(&y.uploaded_ever)),
+            Header::ActivityDate => self
+                .table
+                .items
+                .sort_by(|x, y| x.activity_date.cmp(&y.activity_date)),
+            Header::AddedDate => self
+                .table
+                .items
+                .sort_by(|x, y| x.added_date.cmp(&y.added_date)),
+            Header::PeersConnected => self
+                .table
+                .items
+                .sort_by(|x, y| x.peers_connected.cmp(&y.peers_connected)),
+            Header::SmallStatus => (),
+            Header::Category => self.table.items.sort_by(|x, y| {
+                x.category
+                    .as_ref()
+                    .and_then(|cat| {
+                        Some(
+                            cat.name().cmp(
+                                y.category
+                                    .as_ref()
+                                    .and_then(|cat| Some(cat.name()))
+                                    .unwrap_or_default(),
+                            ),
+                        )
+                    })
+                    .unwrap_or(Ordering::Less)
+            }),
+            Header::CategoryIcon => (),
+        }
+        if self.sort_reverse {
+            self.table.items.reverse();
+        } else if self.sort_header.is_none() && CONFIG.torrents_tab.default_sort_reverse {
+            self.table.items.reverse();
         }
     }
 
@@ -73,8 +205,8 @@ impl TableManager {
         }
     }
 
-    pub const fn headers(&self) -> &Vec<&'static str> {
-        &self.headers
+    pub fn headers(&self) -> &Vec<Header> {
+        &CONFIG.torrents_tab.headers
     }
 
     pub fn current_torrent(&mut self) -> Option<&mut RustmissionTorrent> {
@@ -97,6 +229,7 @@ impl TableManager {
         self.table.set_items(rows);
         self.widths = self.header_widths(&self.table.items);
         self.update_rows_number();
+        self.sort();
     }
 
     pub fn set_filter(&mut self, filter: String) {
@@ -164,7 +297,7 @@ impl TableManager {
         }
 
         for row in rows {
-            if !row.download_speed.is_empty() {
+            if !row.download_speed().is_empty() {
                 map.entry(&Header::DownloadRate)
                     .and_modify(|c| *c = Header::DownloadRate.default_constraint());
             }
@@ -172,12 +305,12 @@ impl TableManager {
                 map.entry(&Header::UploadRate)
                     .and_modify(|c| *c = Header::UploadRate.default_constraint());
             }
-            if !row.progress.is_empty() {
+            if !row.progress().is_empty() {
                 map.entry(&Header::Progress)
                     .and_modify(|c| *c = Header::Progress.default_constraint());
             }
 
-            if !row.eta_secs.is_empty() {
+            if !row.eta_secs().is_empty() {
                 map.entry(&Header::Eta)
                     .and_modify(|c| *c = Header::Eta.default_constraint());
             }

@@ -46,6 +46,10 @@ pub struct Icons {
     pub provider_category_general: String,
     #[serde(default = "default_provider_category_anime")]
     pub provider_category_anime: String,
+    #[serde(default = "default_sort_ascending")]
+    pub sort_ascending: String,
+    #[serde(default = "default_sort_descending")]
+    pub sort_descending: String,
 }
 
 impl Default for Icons {
@@ -73,6 +77,8 @@ impl Default for Icons {
             provider_disabled: default_provider_disabled(),
             provider_category_general: default_provider_category_general(),
             provider_category_anime: default_provider_category_anime(),
+            sort_ascending: default_sort_ascending(),
+            sort_descending: default_sort_descending(),
         }
     }
 }
@@ -162,4 +168,12 @@ fn default_provider_category_general() -> String {
 
 fn default_provider_category_anime() -> String {
     "󰎁".into()
+}
+
+fn default_sort_ascending() -> String {
+    "󰒼".into()
+}
+
+fn default_sort_descending() -> String {
+    "󰒽".into()
 }

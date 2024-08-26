@@ -4,7 +4,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Cell, Row},
 };
-use rm_config::CONFIG;
+use rm_config::{categories::Category, CONFIG};
 use rm_shared::{
     header::Header,
     utils::{bytes_to_human_format, seconds_to_human_format},
@@ -14,10 +14,10 @@ use transmission_rpc::types::{ErrorType, Id, Torrent, TorrentStatus};
 #[derive(Clone)]
 pub struct RustmissionTorrent {
     pub torrent_name: String,
-    pub size_when_done: String,
-    pub progress: String,
-    pub eta_secs: String,
-    pub download_speed: String,
+    pub size_when_done: i64,
+    pub progress: f32,
+    pub eta_secs: i64,
+    pub download_speed: i64,
     pub upload_speed: String,
     pub uploaded_ever: String,
     pub upload_ratio: String,
@@ -28,8 +28,23 @@ pub struct RustmissionTorrent {
     pub activity_date: NaiveDateTime,
     pub added_date: NaiveDateTime,
     pub peers_connected: i64,
-    pub categories: Vec<String>,
+    pub category: Option<CategoryType>,
     pub error: Option<String>,
+}
+
+#[derive(Clone)]
+pub enum CategoryType {
+    Plain(String),
+    Config(Category),
+}
+
+impl CategoryType {
+    pub fn name(&self) -> &str {
+        match self {
+            CategoryType::Plain(name) => name,
+            CategoryType::Config(config) => &config.name,
+        }
+    }
 }
 
 impl RustmissionTorrent {
@@ -40,6 +55,32 @@ impl RustmissionTorrent {
             .collect::<Row>()
             .style(self.style)
             .height(if self.error.is_some() { 2 } else { 1 })
+    }
+
+    pub fn progress(&self) -> String {
+        match self.progress {
+            done if done == 1f32 => String::default(),
+            percent => format!("{:.2}%", percent * 100f32),
+        }
+    }
+
+    pub fn eta_secs(&self) -> String {
+        match self.eta_secs {
+            -2 => "∞".to_string(),
+            -1 => String::default(),
+            eta_secs => seconds_to_human_format(eta_secs),
+        }
+    }
+
+    pub fn download_speed(&self) -> String {
+        match self.download_speed {
+            0 => String::default(),
+            down => bytes_to_human_format(down),
+        }
+    }
+
+    pub fn size_when_done(&self) -> String {
+        bytes_to_human_format(self.size_when_done)
     }
 
     pub fn to_row_with_higlighted_indices(
@@ -133,11 +174,7 @@ impl RustmissionTorrent {
     }
 
     fn category_icon_span(&self) -> Span {
-        if let Some(category) = self
-            .categories
-            .first()
-            .and_then(|category| CONFIG.categories.map.get(category))
-        {
+        if let Some(CategoryType::Config(category)) = &self.category {
             Span::styled(
                 format!("{} ", category.icon),
                 Style::default().fg(category.color),
@@ -149,17 +186,15 @@ impl RustmissionTorrent {
 
     fn torrent_name_with_category_icon(&self) -> Line<'_> {
         let mut line = Line::default();
-        if let Some(category) = self
-            .categories
-            .first()
-            .and_then(|category| CONFIG.categories.map.get(category))
-        {
+
+        if let Some(CategoryType::Config(category)) = &self.category {
             line.push_span(Span::styled(
                 category.icon.as_str(),
                 Style::default().fg(category.color),
             ));
             line.push_span(Span::raw(" "));
         }
+
         line.push_span(self.torrent_name.as_str());
         line
     }
@@ -168,17 +203,23 @@ impl RustmissionTorrent {
         match header {
             Header::Name => {
                 if let Some(error) = &self.error {
-                    Cell::from(format!("{}\n{error}", self.torrent_name))
+                    Cell::from(vec![
+                        Line::from(self.torrent_name.as_str()),
+                        Line::from(Span::styled(
+                            format!("\n{error}"),
+                            Style::default().red().dim().italic(),
+                        )),
+                    ])
                 } else if CONFIG.torrents_tab.category_icon_insert_into_name {
                     Cell::from(self.torrent_name_with_category_icon())
                 } else {
                     Cell::from(self.torrent_name.as_str())
                 }
             }
-            Header::SizeWhenDone => Cell::from(self.size_when_done.as_str()),
-            Header::Progress => Cell::from(self.progress.as_str()),
-            Header::Eta => Cell::from(self.eta_secs.as_str()),
-            Header::DownloadRate => Cell::from(download_speed_format(&self.download_speed)),
+            Header::SizeWhenDone => Cell::from(self.size_when_done()),
+            Header::Progress => Cell::from(self.progress()),
+            Header::Eta => Cell::from(self.eta_secs()),
+            Header::DownloadRate => Cell::from(download_speed_format(&self.download_speed())),
             Header::UploadRate => Cell::from(upload_speed_format(&self.upload_speed)),
             Header::DownloadDir => Cell::from(self.download_dir.as_str()),
             Header::Padding => Cell::from(""),
@@ -212,26 +253,25 @@ impl RustmissionTorrent {
                     }
                 }
             }
-            Header::Category => match self.categories.first() {
-                Some(category) => {
-                    if let Some(config_category) = CONFIG.categories.map.get(category) {
-                        Cell::from(category.as_str()).fg(config_category.color)
-                    } else {
-                        Cell::from(category.as_str())
+            Header::Category => {
+                if let Some(category) = &self.category {
+                    match category {
+                        CategoryType::Plain(name) => Cell::from(name.as_str()),
+                        CategoryType::Config(category) => {
+                            Cell::from(category.name.as_str()).fg(category.color)
+                        }
                     }
+                } else {
+                    Cell::default()
                 }
-                None => Cell::default(),
-            },
-            Header::CategoryIcon => match self.categories.first() {
-                Some(category) => {
-                    if let Some(config_category) = CONFIG.categories.map.get(category) {
-                        Cell::from(config_category.icon.as_str()).fg(config_category.color)
-                    } else {
-                        Cell::default()
-                    }
+            }
+            Header::CategoryIcon => {
+                if let Some(CategoryType::Config(category)) = &self.category {
+                    Cell::from(category.icon.as_str()).fg(category.color)
+                } else {
+                    Cell::default()
                 }
-                None => Cell::default(),
-            },
+            }
         }
     }
 
@@ -241,7 +281,7 @@ impl RustmissionTorrent {
 
     pub fn update_status(&mut self, new_status: TorrentStatus) {
         if self.error.is_some() {
-            self.style = Style::default().red().italic();
+            self.style = Style::default().red();
         } else if new_status == TorrentStatus::Stopped {
             self.style = Style::default().dark_gray().italic();
         } else {
@@ -258,23 +298,13 @@ impl From<Torrent> for RustmissionTorrent {
 
         let torrent_name = t.name.clone().expect("name requested");
 
-        let size_when_done = bytes_to_human_format(t.size_when_done.expect("field requested"));
+        let size_when_done = t.size_when_done.expect("field requested");
 
-        let progress = match t.percent_done.expect("field requested") {
-            done if done == 1f32 => String::default(),
-            percent => format!("{:.2}%", percent * 100f32),
-        };
+        let progress = t.percent_done.expect("field requested");
 
-        let eta_secs = match t.eta.expect("field requested") {
-            -2 => "∞".to_string(),
-            -1 => String::default(),
-            eta_secs => seconds_to_human_format(eta_secs),
-        };
+        let eta_secs = t.eta.expect("field requested");
 
-        let download_speed = match t.rate_download.expect("field requested") {
-            0 => String::default(),
-            down => bytes_to_human_format(down),
-        };
+        let download_speed = t.rate_download.expect("field requested");
 
         let upload_speed = match t.rate_upload.expect("field requested") {
             0 => String::default(),
@@ -318,7 +348,7 @@ impl From<Torrent> for RustmissionTorrent {
 
         let style = {
             if error.is_some() {
-                Style::default().red().italic()
+                Style::default().red()
             } else {
                 match status {
                     TorrentStatus::Stopped => Style::default().dark_gray().italic(),
@@ -327,7 +357,14 @@ impl From<Torrent> for RustmissionTorrent {
             }
         };
 
-        let categories = t.labels.unwrap();
+        let category = if let Some(category) = t.labels.unwrap().first() {
+            match CONFIG.categories.map.get(category) {
+                Some(category) => Some(CategoryType::Config(category.clone())),
+                None => Some(CategoryType::Plain(category.to_string())),
+            }
+        } else {
+            None
+        };
 
         Self {
             torrent_name,
@@ -345,7 +382,7 @@ impl From<Torrent> for RustmissionTorrent {
             activity_date,
             added_date,
             peers_connected,
-            categories,
+            category,
             error,
         }
     }

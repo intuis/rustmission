@@ -31,6 +31,8 @@ pub enum Action {
     ChangeTab(u8),
     XdgOpen,
     Input(KeyEvent),
+    MoveToColumnLeft,
+    MoveToColumnRight,
     // Torrents Tab
     ShowStats,
     ShowFiles,

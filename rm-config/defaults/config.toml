@@ -34,6 +34,11 @@ free_space_refresh = 10
 # SmallStatus, Category, CategoryIcon
 headers = ["Name", "SizeWhenDone", "Progress", "Eta", "DownloadRate", "UploadRate"]
 
+# Default header to sort by:
+default_sort = "AddedDate"
+# Reverse the default sort?
+default_sort_reverse = true
+
 # Whether to insert category icon into name as declared in categories.toml.
 # An alternative to inserting category's icon into torrent's name is adding a
 # CategoryIcon header into your headers.
@@ -68,4 +73,5 @@ category_icon_insert_into_name = true
 # provider_disabled = "⛔"          # "󰪎"
 # provider_category_general = "[G]" # ""
 # provider_category_anime = "[A]"   # "󰎁"
-
+# sort_ascending = "↓"              # "󰒼"
+# sort_descending = "↑"             # "󰒽""

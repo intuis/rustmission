@@ -13,7 +13,7 @@ impl Default {
 }
 
 impl Component for Default {
-    fn render(&mut self, f: &mut ratatui::Frame<'_>, rect: Rect) {
+    fn render(&mut self, f: &mut Frame<'_>, rect: Rect) {
         let mut line = Line::default();
         let mut line_is_empty = true;
 
@@ -27,6 +27,8 @@ impl Component for Default {
             if let Some(keys) = CONFIG.keybindings.get_keys_for_action(Action::Confirm) {
                 if !line_is_empty {
                     line.push_span(Span::raw(" | "));
+                } else {
+                    line.push_span(Span::raw(format!("{} ", CONFIG.icons.help)));
                 }
                 line.push_span(Span::styled(keys, keybinding_style()));
                 line.push_span(Span::raw(" - details"));

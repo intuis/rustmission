@@ -23,6 +23,8 @@ pub enum GeneralAction {
     GoToBeginning,
     GoToEnd,
     XdgOpen,
+    MoveToColumnLeft,
+    MoveToColumnRight,
 }
 
 impl UserAction for GeneralAction {
@@ -46,6 +48,8 @@ impl UserAction for GeneralAction {
             GeneralAction::GoToBeginning => "scroll to the beginning",
             GeneralAction::GoToEnd => "scroll to the end",
             GeneralAction::XdgOpen => "open with xdg-open",
+            GeneralAction::MoveToColumnRight => "move to right column",
+            GeneralAction::MoveToColumnLeft => "move to left column",
         }
     }
 }
@@ -71,6 +75,8 @@ impl From<GeneralAction> for Action {
             GeneralAction::GoToBeginning => Action::Home,
             GeneralAction::GoToEnd => Action::End,
             GeneralAction::XdgOpen => Action::XdgOpen,
+            GeneralAction::MoveToColumnLeft => Action::MoveToColumnLeft,
+            GeneralAction::MoveToColumnRight => Action::MoveToColumnRight,
         }
     }
 }
