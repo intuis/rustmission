@@ -65,8 +65,13 @@ impl TableManager {
 
     pub fn move_to_column_left(&mut self) {
         if let Some(selected) = self.sort_header {
-            self.sort_header = Some(selected.saturating_sub(1));
-            self.sort();
+            if selected == 0 {
+                self.sort_header = Some(self.headers().len() - 1);
+                self.sort();
+            } else {
+                self.sort_header = Some(selected - 1);
+                self.sort();
+            }
         } else {
             self.sort_header = Some(0);
             self.sort();
@@ -78,6 +83,9 @@ impl TableManager {
             let headers_count = self.headers().len();
             if selected < headers_count.saturating_sub(1) {
                 self.sort_header = Some(selected + 1);
+                self.sort();
+            } else {
+                self.sort_header = Some(0);
                 self.sort();
             }
         }
