@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, str::FromStr};
 
 use ratatui::{
     prelude::*,
@@ -90,9 +90,43 @@ impl HelpPopup {
             }
         }
 
-        let mut res = vec![];
+        let mut new_keys = vec![];
+
         for (action, keycodes) in keys {
-            let keycode_string = keycodes.join(" / ");
+            new_keys.push((action, keycodes));
+        }
+
+        let mut res = vec![];
+        let mut skip_next_loop = false;
+        for (idx, (action, keycodes)) in new_keys.iter().enumerate() {
+            if skip_next_loop {
+                skip_next_loop = false;
+                continue;
+            }
+
+            if idx < new_keys.len().saturating_sub(1) {
+                if action.is_mergable_with(new_keys[idx + 1].0) {
+                    skip_next_loop = true;
+                    let keys = format!(
+                        "{} / {}",
+                        keycodes.join(", "),
+                        new_keys[idx + 1].1.join(", ")
+                    );
+
+                    if keys.chars().count() > *max_len {
+                        *max_len = keys.chars().count();
+                    }
+
+                    let desc = action.merged_desc(new_keys[idx + 1].0).unwrap();
+                    res.push((keys, desc));
+                    continue;
+                }
+            }
+
+            let keycode_string = keycodes.join(", ");
+            if keycode_string.chars().count() > *max_len {
+                *max_len = keycode_string.chars().count();
+            }
             let desc = action.desc();
             res.push((keycode_string, desc));
         }
