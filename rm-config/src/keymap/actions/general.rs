@@ -58,8 +58,8 @@ impl UserAction for GeneralAction {
     fn desc(&self) -> &'static str {
         match self {
             GeneralAction::ShowHelp => "toggle help",
-            GeneralAction::Quit => "quit Rustmission / a popup",
-            GeneralAction::Close => "close a popup / task",
+            GeneralAction::Quit => "quit Rustmission, a popup",
+            GeneralAction::Close => "close a popup, a task",
             GeneralAction::SwitchToTorrents => "switch to torrents tab",
             GeneralAction::SwitchToSearch => "switch to search tab",
             GeneralAction::Left => "switch to tab left",
@@ -72,8 +72,8 @@ impl UserAction for GeneralAction {
             GeneralAction::Select => "select",
             GeneralAction::ScrollPageDown => "scroll page down",
             GeneralAction::ScrollPageUp => "scroll page up",
-            GeneralAction::GoToBeginning => "scroll to the beginning",
-            GeneralAction::GoToEnd => "scroll to the end",
+            GeneralAction::GoToBeginning => "scroll to beginning",
+            GeneralAction::GoToEnd => "scroll to end",
             GeneralAction::XdgOpen => "open with xdg-open",
             GeneralAction::MoveToColumnRight => "move to right column",
             GeneralAction::MoveToColumnLeft => "move to left column",
