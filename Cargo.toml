@@ -42,7 +42,7 @@ futures = "0.3"
 # TUI
 crossterm = { version = "0.28", features = ["event-stream", "serde"] }
 ratatui = { version = "0.28", features = ["serde"] }
-tui-input = "0.10"
+tui-input = "0.10.1"
 tui-tree-widget = "0.22"
 throbber-widgets-tui = "0.7"
 
