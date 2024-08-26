@@ -27,12 +27,39 @@ pub enum GeneralAction {
     MoveToColumnRight,
 }
 
+pub enum GeneralActionMergable {
+    MoveUpDown,
+    MoveLeftRight,
+    ScrollPageUpDown,
+    MoveColumnLeftRight,
+    SwitchToTorrentsSearch,
+}
+
 impl UserAction for GeneralAction {
+    fn is_mergable_with(&self, other: &GeneralAction) -> bool {
+        let other = *other;
+        match self {
+            GeneralAction::SwitchToTorrents => other == Self::SwitchToSearch,
+            GeneralAction::SwitchToSearch => other == Self::SwitchToTorrents,
+            GeneralAction::Left => other == Self::Right,
+            GeneralAction::Right => other == Self::Left,
+            GeneralAction::Down => other == Self::Up,
+            GeneralAction::Up => other == Self::Down,
+            GeneralAction::ScrollPageDown => other == Self::ScrollPageUp,
+            GeneralAction::ScrollPageUp => other == Self::ScrollPageDown,
+            GeneralAction::GoToBeginning => other == Self::GoToEnd,
+            GeneralAction::GoToEnd => other == Self::GoToBeginning,
+            GeneralAction::MoveToColumnLeft => other == Self::MoveToColumnRight,
+            GeneralAction::MoveToColumnRight => other == Self::MoveToColumnLeft,
+            _ => false,
+        }
+    }
+
     fn desc(&self) -> &'static str {
         match self {
             GeneralAction::ShowHelp => "toggle help",
-            GeneralAction::Quit => "quit Rustmission / a popup",
-            GeneralAction::Close => "close a popup / task",
+            GeneralAction::Quit => "quit Rustmission, a popup",
+            GeneralAction::Close => "close a popup, a task",
             GeneralAction::SwitchToTorrents => "switch to torrents tab",
             GeneralAction::SwitchToSearch => "switch to search tab",
             GeneralAction::Left => "switch to tab left",
@@ -45,11 +72,38 @@ impl UserAction for GeneralAction {
             GeneralAction::Select => "select",
             GeneralAction::ScrollPageDown => "scroll page down",
             GeneralAction::ScrollPageUp => "scroll page up",
-            GeneralAction::GoToBeginning => "scroll to the beginning",
-            GeneralAction::GoToEnd => "scroll to the end",
+            GeneralAction::GoToBeginning => "scroll to beginning",
+            GeneralAction::GoToEnd => "scroll to end",
             GeneralAction::XdgOpen => "open with xdg-open",
             GeneralAction::MoveToColumnRight => "move to right column",
             GeneralAction::MoveToColumnLeft => "move to left column",
+        }
+    }
+
+    fn merged_desc(&self, other: &GeneralAction) -> Option<&'static str> {
+        match (&self, other) {
+            (Self::Left, Self::Right) => Some("switch to tab left / right"),
+            (Self::Right, Self::Left) => Some("switch to tab right / left"),
+            (Self::Down, Self::Up) => Some("move down / up"),
+            (Self::Up, Self::Down) => Some("move up / down"),
+            (Self::SwitchToTorrents, Self::SwitchToSearch) => {
+                Some("switch to torrents / search tab")
+            }
+            (Self::SwitchToSearch, Self::SwitchToTorrents) => {
+                Some("switch to search / torrents tab")
+            }
+            (Self::MoveToColumnLeft, Self::MoveToColumnRight) => {
+                Some("move to column left / right")
+            }
+            (Self::MoveToColumnRight, Self::MoveToColumnLeft) => {
+                Some("move to column right / left")
+            }
+            (Self::ScrollPageDown, Self::ScrollPageUp) => Some("scroll page down / up"),
+            (Self::ScrollPageUp, Self::ScrollPageDown) => Some("scroll page up / down"),
+            (Self::GoToBeginning, Self::GoToEnd) => Some("go to beginning / end"),
+            (Self::GoToEnd, Self::GoToBeginning) => Some("go to end / beginning"),
+
+            _ => None,
         }
     }
 }

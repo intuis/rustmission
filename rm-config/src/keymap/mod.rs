@@ -36,6 +36,8 @@ pub struct KeymapConfig {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct KeybindsHolder<T: Into<Action>> {
     pub keybindings: Vec<Keybinding<T>>,
+    #[serde(skip)]
+    pub help_repr: Vec<(String, &'static str)>,
 }
 
 #[derive(Serialize, Clone)]
@@ -314,6 +316,7 @@ impl KeymapConfig {
                 keys.push(keybinding.keycode_string());
             }
         }
+
         for keybinding in &self.torrents_tab.keybindings {
             if action == keybinding.action.into() {
                 keys.push(keybinding.keycode_string());

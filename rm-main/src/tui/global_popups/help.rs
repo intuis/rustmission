@@ -26,6 +26,8 @@ macro_rules! add_line {
     };
 }
 
+const KEYS_DELIMITER: &str = ", ";
+
 pub struct HelpPopup {
     ctx: app::Ctx,
     scroll: Option<Scroll>,
@@ -52,12 +54,12 @@ impl HelpPopup {
         Self { ctx, scroll: None }
     }
 
-    fn write_keybindings<T: Into<Action> + UserAction + Ord>(
+    fn get_keybindings<T: Into<Action> + UserAction + Ord>(
         keybindings: &[Keybinding<T>],
-        lines: &mut Vec<Line>,
-    ) {
-        let mut keys = BTreeMap::new();
-        let mut max_len = 0;
+        max_keycode_len: &mut usize,
+        max_line_len: &mut usize,
+    ) -> Vec<(String, &'static str)> {
+        let mut keys: BTreeMap<&T, Vec<String>> = BTreeMap::new();
 
         for keybinding in keybindings {
             if !keybinding.show_in_help {
@@ -65,8 +67,8 @@ impl HelpPopup {
             }
 
             let keycode = keybinding.keycode_string();
-            if keycode.len() > max_len {
-                max_len = keycode.chars().count();
+            if keycode.len() > *max_keycode_len {
+                *max_keycode_len = keycode.chars().count();
             }
 
             keys.entry(&keybinding.action)
@@ -86,21 +88,66 @@ impl HelpPopup {
                 keycodes_total_len += keycode.chars().count();
             }
 
-            if keycodes_total_len + delimiter_len > max_len {
-                max_len = keycodes_total_len + delimiter_len;
+            if keycodes_total_len + delimiter_len > *max_keycode_len {
+                *max_keycode_len = keycodes_total_len + delimiter_len;
             }
         }
+
+        let mut new_keys = vec![];
 
         for (action, keycodes) in keys {
-            let mut keycode_string = keycodes.join(" / ");
-            let mut how_much_to_pad = max_len - keycode_string.chars().count();
-            while how_much_to_pad > 0 {
-                keycode_string.insert(0, ' ');
-                how_much_to_pad -= 1;
+            new_keys.push((action, keycodes));
+        }
+
+        let mut res = vec![];
+        let mut skip_next_loop = false;
+        for (idx, (action, keycodes)) in new_keys.iter().enumerate() {
+            if skip_next_loop {
+                skip_next_loop = false;
+                continue;
             }
 
-            add_line!(lines, keycode_string, action.desc());
+            if let Some(next_key) = new_keys.get(idx + 1) {
+                if action.is_mergable_with(next_key.0) {
+                    skip_next_loop = true;
+                    let keys = format!(
+                        "{} / {}",
+                        keycodes.join(KEYS_DELIMITER),
+                        next_key.1.join(KEYS_DELIMITER)
+                    );
+
+                    if keys.chars().count() > *max_keycode_len {
+                        *max_keycode_len = keys.chars().count();
+                    }
+
+                    let desc = action
+                        .merged_desc(next_key.0)
+                        .expect("keys checked for mergability before");
+
+                    let line_len = keys.chars().count() + desc.chars().count() + 3;
+                    if line_len > *max_line_len {
+                        *max_line_len = line_len;
+                    }
+
+                    res.push((keys, desc));
+
+                    continue;
+                }
+            }
+
+            let keycode_string = keycodes.join(KEYS_DELIMITER);
+            if keycode_string.chars().count() > *max_keycode_len {
+                *max_keycode_len = keycode_string.chars().count();
+            }
+            let desc = action.desc();
+            let line_len = keycode_string.chars().count() + desc.chars().count() + 3;
+            if line_len > *max_line_len {
+                *max_line_len = line_len;
+            }
+            res.push((keycode_string, desc));
         }
+
+        res
     }
 
     fn scroll_down(&mut self) -> ComponentAction {
@@ -162,13 +209,67 @@ impl Component for HelpPopup {
 
         let block = popup_block_with_close_highlight(" Help ");
 
-        let mut lines = vec![Line::from(vec![Span::styled(
-            "Global Keybindings",
-            Style::default().bold().underlined(),
-        )])
-        .centered()];
+        let mut to_pad = 0;
+        let mut max_line_len = 0;
+        let mut global_keys = Self::get_keybindings(
+            &CONFIG.keybindings.general.keybindings,
+            &mut to_pad,
+            &mut max_line_len,
+        );
+        let mut torrents_keys = Self::get_keybindings(
+            &CONFIG.keybindings.torrents_tab.keybindings,
+            &mut to_pad,
+            &mut max_line_len,
+        );
+        let mut search_keys = Self::get_keybindings(
+            &CONFIG.keybindings.search_tab.keybindings,
+            &mut to_pad,
+            &mut max_line_len,
+        );
 
-        Self::write_keybindings(&CONFIG.keybindings.general.keybindings, &mut lines);
+        debug_assert!(to_pad > 0);
+        debug_assert!(max_line_len > 0);
+
+        let to_pad_additionally = (text_rect
+            .width
+            .saturating_sub(max_line_len.try_into().unwrap())
+            / 2)
+        .saturating_sub(6);
+
+        to_pad += usize::from(to_pad_additionally);
+
+        let pad_keys = |keys: &mut Vec<(String, &'static str)>| {
+            for key in keys {
+                let mut how_much_to_pad = to_pad.saturating_sub(key.0.chars().count());
+                while how_much_to_pad > 0 {
+                    key.0.insert(0, ' ');
+                    how_much_to_pad -= 1;
+                }
+            }
+        };
+
+        pad_keys(&mut global_keys);
+        pad_keys(&mut torrents_keys);
+        pad_keys(&mut search_keys);
+
+        let mut lines = vec![];
+
+        let insert_keys = |lines: &mut Vec<Line>, keys: Vec<(String, &'static str)>| {
+            for (keycode, desc) in keys {
+                add_line!(lines, keycode, desc);
+            }
+            lines.push(Line::default());
+        };
+
+        lines.push(
+            Line::from(vec![Span::styled(
+                "Global Keybindings",
+                Style::default().bold().underlined(),
+            )])
+            .centered(),
+        );
+
+        insert_keys(&mut lines, global_keys);
 
         lines.push(
             Line::from(vec![Span::styled(
@@ -178,7 +279,7 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        Self::write_keybindings(&CONFIG.keybindings.torrents_tab.keybindings, &mut lines);
+        insert_keys(&mut lines, torrents_keys);
 
         lines.push(
             Line::from(vec![Span::styled(
@@ -188,7 +289,7 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        Self::write_keybindings(&CONFIG.keybindings.search_tab.keybindings, &mut lines);
+        insert_keys(&mut lines, search_keys);
 
         let help_text = Text::from(lines);
 
