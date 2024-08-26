@@ -120,7 +120,9 @@ impl HelpPopup {
                         *max_keycode_len = keys.chars().count();
                     }
 
-                    let desc = action.merged_desc(next_key.0).unwrap();
+                    let desc = action
+                        .merged_desc(next_key.0)
+                        .expect("keys checked for mergability before");
 
                     let line_len = keys.chars().count() + desc.chars().count() + 3;
                     if line_len > *max_line_len {
