@@ -167,6 +167,9 @@ impl Component for TorrentsTab {
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
             UpdateAction::SessionStats(stats) => {
+                if let Some(CurrentPopup::Stats(popup)) = &mut self.popup_manager.current_popup {
+                    popup.update_stats(&stats)
+                }
                 self.bottom_stats.set_stats(stats);
             }
             UpdateAction::FreeSpace(free_space) => {
