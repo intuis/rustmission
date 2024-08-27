@@ -1,14 +1,9 @@
-use std::collections::BTreeMap;
-
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Clear, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
 };
 
-use rm_config::{
-    keymap::{actions::UserAction, Keybinding},
-    CONFIG,
-};
+use rm_config::CONFIG;
 use rm_shared::action::Action;
 
 use crate::tui::{
@@ -26,11 +21,14 @@ macro_rules! add_line {
     };
 }
 
-const KEYS_DELIMITER: &str = ", ";
-
 pub struct HelpPopup {
     ctx: app::Ctx,
     scroll: Option<Scroll>,
+    global_keys: Vec<(String, &'static str)>,
+    torrent_keys: Vec<(String, &'static str)>,
+    search_keys: Vec<(String, &'static str)>,
+    max_key_len: usize,
+    max_line_len: usize,
 }
 
 struct Scroll {
@@ -51,103 +49,42 @@ impl Scroll {
 
 impl HelpPopup {
     pub fn new(ctx: app::Ctx) -> Self {
-        Self { ctx, scroll: None }
-    }
+        let mut max_key_len = 0;
+        let mut max_line_len = 0;
+        let global_keys = CONFIG.keybindings.general.get_help_repr();
+        let torrent_keys = CONFIG.keybindings.torrents_tab.get_help_repr();
+        let search_keys = CONFIG.keybindings.search_tab.get_help_repr();
 
-    fn get_keybindings<T: Into<Action> + UserAction + Ord>(
-        keybindings: &[Keybinding<T>],
-        max_keycode_len: &mut usize,
-        max_line_len: &mut usize,
-    ) -> Vec<(String, &'static str)> {
-        let mut keys: BTreeMap<&T, Vec<String>> = BTreeMap::new();
+        let mut calc_max_lens = |keys: &[(String, &'static str)]| {
+            for (keycode, desc) in keys {
+                let key_len = keycode.chars().count();
+                let desc_len = desc.chars().count();
+                let line_len = key_len + desc_len + 3;
+                if key_len > max_key_len {
+                    max_key_len = key_len;
+                }
 
-        for keybinding in keybindings {
-            if !keybinding.show_in_help {
-                continue;
-            }
-
-            let keycode = keybinding.keycode_string();
-            if keycode.len() > *max_keycode_len {
-                *max_keycode_len = keycode.chars().count();
-            }
-
-            keys.entry(&keybinding.action)
-                .or_insert_with(Vec::new)
-                .push(keybinding.keycode_string());
-        }
-
-        for keycodes in keys.values() {
-            let mut keycodes_total_len = 0;
-            let delimiter_len = if keycodes.len() >= 2 {
-                (keycodes.len() - 1) * 3
-            } else {
-                0
-            };
-
-            for keycode in keycodes {
-                keycodes_total_len += keycode.chars().count();
-            }
-
-            if keycodes_total_len + delimiter_len > *max_keycode_len {
-                *max_keycode_len = keycodes_total_len + delimiter_len;
-            }
-        }
-
-        let mut new_keys = vec![];
-
-        for (action, keycodes) in keys {
-            new_keys.push((action, keycodes));
-        }
-
-        let mut res = vec![];
-        let mut skip_next_loop = false;
-        for (idx, (action, keycodes)) in new_keys.iter().enumerate() {
-            if skip_next_loop {
-                skip_next_loop = false;
-                continue;
-            }
-
-            if let Some(next_key) = new_keys.get(idx + 1) {
-                if action.is_mergable_with(next_key.0) {
-                    skip_next_loop = true;
-                    let keys = format!(
-                        "{} / {}",
-                        keycodes.join(KEYS_DELIMITER),
-                        next_key.1.join(KEYS_DELIMITER)
-                    );
-
-                    if keys.chars().count() > *max_keycode_len {
-                        *max_keycode_len = keys.chars().count();
-                    }
-
-                    let desc = action
-                        .merged_desc(next_key.0)
-                        .expect("keys checked for mergability before");
-
-                    let line_len = keys.chars().count() + desc.chars().count() + 3;
-                    if line_len > *max_line_len {
-                        *max_line_len = line_len;
-                    }
-
-                    res.push((keys, desc));
-
-                    continue;
+                if line_len > max_line_len {
+                    max_line_len = line_len;
                 }
             }
+        };
 
-            let keycode_string = keycodes.join(KEYS_DELIMITER);
-            if keycode_string.chars().count() > *max_keycode_len {
-                *max_keycode_len = keycode_string.chars().count();
-            }
-            let desc = action.desc();
-            let line_len = keycode_string.chars().count() + desc.chars().count() + 3;
-            if line_len > *max_line_len {
-                *max_line_len = line_len;
-            }
-            res.push((keycode_string, desc));
+        calc_max_lens(&global_keys);
+        calc_max_lens(&torrent_keys);
+        calc_max_lens(&search_keys);
+
+        debug_assert!(max_key_len > 0);
+        debug_assert!(max_line_len > 0);
+        Self {
+            ctx,
+            scroll: None,
+            global_keys,
+            torrent_keys,
+            search_keys,
+            max_key_len,
+            max_line_len,
         }
-
-        res
     }
 
     fn scroll_down(&mut self) -> ComponentAction {
@@ -209,62 +146,38 @@ impl Component for HelpPopup {
 
         let block = popup_block_with_close_highlight(" Help ");
 
-        let mut max_key_len = 0;
-        let mut max_line_len = 0;
-        let mut global_keys = CONFIG.keybindings.general.get_help_repr();
-        let mut torrent_keys = CONFIG.keybindings.torrents_tab.get_help_repr();
-        let mut search_keys = CONFIG.keybindings.search_tab.get_help_repr();
-
-        let mut calc_max_lens = |keys: &[(String, &'static str)]| {
-            for (keycode, desc) in keys {
-                let key_len = keycode.chars().count();
-                let desc_len = desc.chars().count();
-                let line_len = key_len + desc_len + 3;
-                if key_len > max_key_len {
-                    max_key_len = key_len;
-                }
-
-                if line_len > max_line_len {
-                    max_line_len = line_len;
-                }
-            }
-        };
-
-        calc_max_lens(&global_keys);
-        calc_max_lens(&torrent_keys);
-        calc_max_lens(&search_keys);
-
-        debug_assert!(max_key_len > 0);
-        debug_assert!(max_line_len > 0);
-
         let to_pad_additionally = (text_rect
             .width
-            .saturating_sub(max_line_len.try_into().unwrap())
+            .saturating_sub(self.max_line_len.try_into().unwrap())
             / 2)
         .saturating_sub(6);
 
-        max_key_len += usize::from(to_pad_additionally);
+        let pad_amount = usize::from(to_pad_additionally) + self.max_key_len;
 
-        let pad_keys = |keys: &mut Vec<(String, &'static str)>| {
+        let padded_keys = |keys: &Vec<(String, &'static str)>| -> Vec<(String, &'static str)> {
+            let mut new_keys = vec![];
             for key in keys {
-                let mut how_much_to_pad = max_key_len.saturating_sub(key.0.chars().count());
+                let mut keycode = key.0.clone();
+                let mut how_much_to_pad = pad_amount.saturating_sub(key.0.chars().count());
                 while how_much_to_pad > 0 {
-                    key.0.insert(0, ' ');
+                    keycode.insert(0, ' ');
                     how_much_to_pad -= 1;
                 }
+                new_keys.push((keycode, key.1));
             }
+            new_keys
         };
 
-        pad_keys(&mut global_keys);
-        pad_keys(&mut torrent_keys);
-        pad_keys(&mut search_keys);
+        let global_keys = padded_keys(&mut self.global_keys);
+        let torrent_keys = padded_keys(&mut self.torrent_keys);
+        let search_keys = padded_keys(&mut self.search_keys);
 
         let mut lines = vec![];
 
         let insert_keys = |lines: &mut Vec<Line>, keys: Vec<(String, &'static str)>| {
             lines.push(Line::default());
             for (keycode, desc) in keys {
-                add_line!(lines, keycode, desc);
+                add_line!(lines, keycode, *desc);
             }
             lines.push(Line::default());
         };
