@@ -209,25 +209,32 @@ impl Component for HelpPopup {
 
         let block = popup_block_with_close_highlight(" Help ");
 
-        let mut to_pad = 0;
+        let mut max_key_len = 0;
         let mut max_line_len = 0;
-        let mut global_keys = Self::get_keybindings(
-            &CONFIG.keybindings.general.keybindings,
-            &mut to_pad,
-            &mut max_line_len,
-        );
-        let mut torrents_keys = Self::get_keybindings(
-            &CONFIG.keybindings.torrents_tab.keybindings,
-            &mut to_pad,
-            &mut max_line_len,
-        );
-        let mut search_keys = Self::get_keybindings(
-            &CONFIG.keybindings.search_tab.keybindings,
-            &mut to_pad,
-            &mut max_line_len,
-        );
+        let mut global_keys = CONFIG.keybindings.general.get_help_repr();
+        let mut torrent_keys = CONFIG.keybindings.torrents_tab.get_help_repr();
+        let mut search_keys = CONFIG.keybindings.search_tab.get_help_repr();
 
-        debug_assert!(to_pad > 0);
+        let mut calc_max_lens = |keys: &[(String, &'static str)]| {
+            for (keycode, desc) in keys {
+                let key_len = keycode.chars().count();
+                let desc_len = desc.chars().count();
+                let line_len = key_len + desc_len + 3;
+                if key_len > max_key_len {
+                    max_key_len = key_len;
+                }
+
+                if line_len > max_line_len {
+                    max_line_len = line_len;
+                }
+            }
+        };
+
+        calc_max_lens(&global_keys);
+        calc_max_lens(&torrent_keys);
+        calc_max_lens(&search_keys);
+
+        debug_assert!(max_key_len > 0);
         debug_assert!(max_line_len > 0);
 
         let to_pad_additionally = (text_rect
@@ -236,11 +243,11 @@ impl Component for HelpPopup {
             / 2)
         .saturating_sub(6);
 
-        to_pad += usize::from(to_pad_additionally);
+        max_key_len += usize::from(to_pad_additionally);
 
         let pad_keys = |keys: &mut Vec<(String, &'static str)>| {
             for key in keys {
-                let mut how_much_to_pad = to_pad.saturating_sub(key.0.chars().count());
+                let mut how_much_to_pad = max_key_len.saturating_sub(key.0.chars().count());
                 while how_much_to_pad > 0 {
                     key.0.insert(0, ' ');
                     how_much_to_pad -= 1;
@@ -249,12 +256,13 @@ impl Component for HelpPopup {
         };
 
         pad_keys(&mut global_keys);
-        pad_keys(&mut torrents_keys);
+        pad_keys(&mut torrent_keys);
         pad_keys(&mut search_keys);
 
         let mut lines = vec![];
 
         let insert_keys = |lines: &mut Vec<Line>, keys: Vec<(String, &'static str)>| {
+            lines.push(Line::default());
             for (keycode, desc) in keys {
                 add_line!(lines, keycode, desc);
             }
@@ -279,7 +287,7 @@ impl Component for HelpPopup {
             .centered(),
         );
 
-        insert_keys(&mut lines, torrents_keys);
+        insert_keys(&mut lines, torrent_keys);
 
         lines.push(
             Line::from(vec![Span::styled(
