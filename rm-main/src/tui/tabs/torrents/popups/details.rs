@@ -3,7 +3,7 @@ use ratatui::{
     widgets::{block::Title, Block, BorderType, Clear, Paragraph, Wrap},
 };
 use rm_config::CONFIG;
-use rm_shared::action::Action;
+use rm_shared::{action::Action, utils::bytes_to_human_format};
 use style::Styled;
 
 use crate::tui::{
@@ -76,7 +76,10 @@ impl Component for DetailsPopup {
 
         let ratio = Line::from(format!("Ratio: {}", self.torrent.upload_ratio));
 
-        let size_line = Line::from(format!("Size: {}", self.torrent.size_when_done));
+        let size_line = Line::from(format!(
+            "Size: {}",
+            bytes_to_human_format(self.torrent.size_when_done)
+        ));
 
         let activity_line = Line::from(format!("Last activity: {}", self.torrent.activity_date));
 

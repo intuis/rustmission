@@ -31,7 +31,7 @@ impl Component for Default {
                     line.push_span(Span::raw(format!("{} ", CONFIG.icons.help)));
                 }
                 line.push_span(Span::styled(keys, keybinding_style()));
-                line.push_span(Span::raw(" - details"));
+                line.push_span(Span::raw(" - view torrent"));
             }
         }
         f.render_widget(line, rect);
