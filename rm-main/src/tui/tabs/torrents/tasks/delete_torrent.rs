@@ -17,18 +17,14 @@ pub struct Delete {
 }
 
 impl Delete {
-    pub fn new(ctx: app::Ctx, to_delete: Vec<RustmissionTorrent>, delete_with_files: bool) -> Self {
-        let prompt = if delete_with_files {
-            "Really delete selected WITH files? (y/n) ".to_string()
-        } else {
-            "Really delete selected without files? (y/n) ".to_string()
-        };
+    pub fn new(ctx: app::Ctx, to_delete: Vec<RustmissionTorrent>) -> Self {
+        let prompt = String::from("Delete selected with files? (Y/n) ");
 
         Self {
             torrents_to_delete: to_delete,
             input_mgr: InputManager::new(prompt),
             ctx,
-            delete_with_files,
+            delete_with_files: false,
         }
     }
 
@@ -60,10 +56,12 @@ impl Component for Delete {
                     return ComponentAction::Quit;
                 } else if input.code == KeyCode::Enter {
                     let text = self.input_mgr.text().to_lowercase();
-                    if text == "y" || text == "yes" {
+                    if text == "y" || text == "yes" || text.is_empty() {
+                        self.delete_with_files = true;
                         self.delete();
                         return ComponentAction::Quit;
                     } else if text == "n" || text == "no" {
+                        self.delete();
                         return ComponentAction::Quit;
                     }
                 }

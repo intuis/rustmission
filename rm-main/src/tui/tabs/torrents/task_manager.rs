@@ -139,12 +139,9 @@ impl TaskManager {
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    pub fn delete_torrent(&mut self, torrent: &RustmissionTorrent, delete_with_files: bool) {
-        self.current_task = CurrentTask::Delete(tasks::Delete::new(
-            self.ctx.clone(),
-            vec![torrent.clone()],
-            delete_with_files,
-        ));
+    pub fn delete_torrent(&mut self, torrent: &RustmissionTorrent) {
+        self.current_task =
+            CurrentTask::Delete(tasks::Delete::new(self.ctx.clone(), vec![torrent.clone()]));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
