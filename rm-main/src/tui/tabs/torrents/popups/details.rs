@@ -29,12 +29,12 @@ impl Component for DetailsPopup {
         match action {
             _ if action.is_soft_quit() => ComponentAction::Quit,
             Action::Confirm => ComponentAction::Quit,
-            Action::ShowFiles => {
-                self.ctx.send_action(Action::ShowFiles);
+            Action::Delete => {
+                self.ctx.send_action(Action::Delete);
                 ComponentAction::Quit
             }
-            Action::DeleteWithoutFiles => {
-                self.ctx.send_action(Action::DeleteWithoutFiles);
+            Action::ShowFiles => {
+                self.ctx.send_action(Action::ShowFiles);
                 ComponentAction::Quit
             }
             Action::ChangeCategory => {
@@ -43,10 +43,6 @@ impl Component for DetailsPopup {
             }
             Action::MoveTorrent => {
                 self.ctx.send_action(Action::MoveTorrent);
-                ComponentAction::Quit
-            }
-            Action::DeleteWithFiles => {
-                self.ctx.send_action(Action::DeleteWithFiles);
                 ComponentAction::Quit
             }
             _ => ComponentAction::Nothing,
@@ -105,22 +101,12 @@ impl Component for DetailsPopup {
             keybinding_style(),
         ));
 
-        let mut delete_without_files_line = Line::default();
-        delete_without_files_line.push_span(Span::raw("Delete without files: "));
-        delete_without_files_line.push_span(Span::styled(
+        let mut delete_line = Line::default();
+        delete_line.push_span(Span::raw("Delete: "));
+        delete_line.push_span(Span::styled(
             CONFIG
                 .keybindings
-                .get_keys_for_action(Action::DeleteWithoutFiles)
-                .unwrap_or_default(),
-            keybinding_style(),
-        ));
-
-        let mut delete_with_files_line = Line::default();
-        delete_with_files_line.push_span(Span::raw("Delete with files: "));
-        delete_with_files_line.push_span(Span::styled(
-            CONFIG
-                .keybindings
-                .get_keys_for_action(Action::DeleteWithFiles)
+                .get_keys_for_action(Action::Delete)
                 .unwrap_or_default(),
             keybinding_style(),
         ));
@@ -166,11 +152,10 @@ impl Component for DetailsPopup {
         lines.push(added_line);
         lines.push(activity_line);
         lines.push(padding_line);
+        lines.push(delete_line);
         lines.push(show_files_line);
         lines.push(move_location_line);
         lines.push(change_category_line);
-        lines.push(delete_with_files_line);
-        lines.push(delete_without_files_line);
 
         let paragraph = Paragraph::new(lines).wrap(Wrap { trim: false });
 

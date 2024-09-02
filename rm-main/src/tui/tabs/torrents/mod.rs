@@ -122,14 +122,9 @@ impl Component for TorrentsTab {
             A::ShowFiles => self.show_files_popup(),
             A::Confirm => self.show_details_popup(),
             A::Pause => self.pause_current_torrent(),
-            A::DeleteWithFiles => {
+            A::Delete => {
                 if let Some(torrent) = self.table_manager.current_torrent() {
-                    self.task_manager.delete_torrent(torrent, true);
-                }
-            }
-            A::DeleteWithoutFiles => {
-                if let Some(torrent) = self.table_manager.current_torrent() {
-                    self.task_manager.delete_torrent(torrent, false);
+                    self.task_manager.delete_torrent(torrent);
                 }
             }
             A::AddMagnet => self.task_manager.add_magnet(),
