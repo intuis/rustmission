@@ -100,7 +100,7 @@ impl RustmissionTorrent {
             let mut end = char_indices[end];
             torrent_name_line.push_span(Span::styled(
                 &self.torrent_name[last_end..start],
-                self.style(),
+                self.style,
             ));
 
             while !self.torrent_name.is_char_boundary(start) {
@@ -155,7 +155,7 @@ impl RustmissionTorrent {
             flush_line(first, second);
         }
 
-        torrent_name_line.push_span(Span::styled(&self.torrent_name[last_end..], self.style()));
+        torrent_name_line.push_span(Span::styled(&self.torrent_name[last_end..], self.style));
 
         let mut cells = vec![];
 
@@ -167,7 +167,11 @@ impl RustmissionTorrent {
             }
         }
 
-        Row::new(cells)
+        if self.is_selected {
+            Row::new(cells).reversed()
+        } else {
+            Row::new(cells)
+        }
     }
 
     fn style(&self) -> Style {
