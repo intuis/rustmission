@@ -105,8 +105,22 @@ impl Component for TorrentsTab {
             return ComponentAction::Nothing;
         }
 
+        if !self.table_manager.selected_torrents_ids.is_empty() {
+            if action.is_soft_quit() {
+                self.table_manager
+                    .table
+                    .items
+                    .iter_mut()
+                    .for_each(|t| t.is_selected = false);
+                self.table_manager.selected_torrents_ids.drain(..);
+                self.ctx.send_action(Action::Render);
+                return ComponentAction::Nothing;
+            }
+        }
+
         if action.is_quit() {
             self.ctx.send_action(Action::HardQuit);
+            return ComponentAction::Nothing;
         }
 
         match action {
