@@ -121,6 +121,10 @@ impl Component for TorrentsTab {
             A::ShowStats => self.show_statistics_popup(),
             A::ShowFiles => self.show_files_popup(),
             A::Confirm => self.show_details_popup(),
+            A::Select => {
+                self.table_manager.select_current_torrent();
+                self.ctx.send_action(Action::Render);
+            }
             A::Pause => self.pause_current_torrent(),
             A::Delete => {
                 if let Some(torrent) = self.table_manager.current_torrent() {

@@ -3,6 +3,7 @@ use ratatui::{prelude::*, widgets::Row};
 use rm_config::CONFIG;
 use rm_shared::header::Header;
 use std::{cmp::Ordering, collections::HashMap};
+use transmission_rpc::types::Id;
 
 use crate::tui::components::GenericTable;
 
@@ -16,6 +17,7 @@ pub struct TableManager {
     pub sort_header: Option<usize>,
     pub sort_reverse: bool,
     pub sorting_is_being_selected: bool,
+    pub selected_torrents_ids: Vec<i64>,
 }
 
 pub struct Filter {
@@ -37,6 +39,7 @@ impl TableManager {
             sort_header: None,
             sort_reverse: false,
             sorting_is_being_selected: false,
+            selected_torrents_ids: vec![],
         }
     }
 
@@ -178,6 +181,29 @@ impl TableManager {
         }
     }
 
+    pub fn select_current_torrent(&mut self) {
+        let mut is_selected = true;
+        if let Some(t) = self.current_torrent() {
+            if let Id::Id(id) = t.id {
+                match self.selected_torrents_ids.iter().position(|&x| x == id) {
+                    Some(idx) => {
+                        self.selected_torrents_ids.remove(idx);
+                        is_selected = false;
+                    }
+                    None => {
+                        self.selected_torrents_ids.push(id);
+                    }
+                }
+            } else {
+                unreachable!();
+            }
+        }
+
+        if let Some(t) = self.current_torrent() {
+            t.is_selected = is_selected;
+        }
+    }
+
     pub fn rows(&self) -> Vec<Row<'_>> {
         if let Some(filter) = &self.filter {
             let highlight_style = Style::default().fg(CONFIG.general.accent_color);
@@ -223,7 +249,17 @@ impl TableManager {
         }
     }
 
-    pub fn set_new_rows(&mut self, rows: Vec<RustmissionTorrent>) {
+    pub fn set_new_rows(&mut self, mut rows: Vec<RustmissionTorrent>) {
+        if !self.selected_torrents_ids.is_empty() {
+            for row in &mut rows {
+                if let Id::Id(id) = row.id {
+                    if self.selected_torrents_ids.contains(&id) {
+                        row.is_selected = true;
+                    }
+                }
+            }
+        }
+
         self.table.set_items(rows);
         self.widths = self.header_widths(&self.table.items);
         self.update_rows_number();
