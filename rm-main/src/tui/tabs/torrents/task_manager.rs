@@ -12,14 +12,18 @@ use crate::tui::{
     components::{Component, ComponentAction},
 };
 
-use super::{
-    rustmission_torrent::RustmissionTorrent,
-    tasks::{self, CurrentTaskState},
-};
+use super::tasks::{self, CurrentTaskState, TorrentSelection};
 
 pub struct TaskManager {
     ctx: app::Ctx,
     current_task: CurrentTask,
+    // TODO:
+    // Put Default task in a seperate field and merge it with Status task
+    // and maybe with Selection task (or even Sort?).
+    // This way there won't be any edge cases in torrents/mod.rs anymore
+    // when dealing with TaskManager.
+    // Default task would keep the state info whether there are any tasks
+    // happening, whether the user is selecting torrents or is sorting them.
 }
 
 impl TaskManager {
@@ -40,6 +44,7 @@ pub enum CurrentTask {
     Default(tasks::Default),
     Status(tasks::Status),
     Sort(tasks::Sort),
+    Selection(tasks::Selection),
 }
 
 impl CurrentTask {
@@ -86,6 +91,7 @@ impl Component for TaskManager {
             }
             CurrentTask::Default(_) => (),
             CurrentTask::Sort(_) => (),
+            CurrentTask::Selection(_) => (),
         };
         ComponentAction::Nothing
     }
@@ -119,6 +125,7 @@ impl Component for TaskManager {
             CurrentTask::Status(status_bar) => status_bar.render(f, rect),
             CurrentTask::ChangeCategory(category_bar) => category_bar.render(f, rect),
             CurrentTask::Sort(sort_bar) => sort_bar.render(f, rect),
+            CurrentTask::Selection(selection_bar) => selection_bar.render(f, rect),
         }
     }
 
@@ -139,31 +146,29 @@ impl TaskManager {
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    pub fn delete_torrent(&mut self, torrent: &RustmissionTorrent) {
+    pub fn delete_torrents(&mut self, selection: TorrentSelection) {
+        self.current_task = CurrentTask::Delete(tasks::Delete::new(self.ctx.clone(), selection));
+        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+    }
+
+    pub fn move_torrent(&mut self, selection: TorrentSelection, current_dir: String) {
         self.current_task =
-            CurrentTask::Delete(tasks::Delete::new(self.ctx.clone(), vec![torrent.clone()]));
+            CurrentTask::Move(tasks::Move::new(self.ctx.clone(), selection, current_dir));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    pub fn move_torrent(&mut self, torrent: &RustmissionTorrent) {
-        self.current_task = CurrentTask::Move(tasks::Move::new(
-            self.ctx.clone(),
-            vec![torrent.id.clone()],
-            torrent.download_dir.to_string(),
-        ));
-        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
-    }
-
-    pub fn change_category(&mut self, torrent: &RustmissionTorrent) {
-        self.current_task = CurrentTask::ChangeCategory(tasks::ChangeCategory::new(
-            self.ctx.clone(),
-            vec![torrent.id.clone()],
-        ));
+    pub fn change_category(&mut self, selection: TorrentSelection) {
+        self.current_task =
+            CurrentTask::ChangeCategory(tasks::ChangeCategory::new(self.ctx.clone(), selection));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     pub fn default(&mut self) {
         self.current_task = CurrentTask::Default(tasks::Default::new());
+    }
+
+    pub fn select(&mut self, amount: usize) {
+        self.current_task = CurrentTask::Selection(tasks::Selection::new(amount));
     }
 
     pub fn sort(&mut self) {
@@ -198,8 +203,18 @@ impl TaskManager {
             return;
         }
 
-        self.current_task = CurrentTask::Default(tasks::Default::new());
-        self.ctx
-            .send_update_action(UpdateAction::SwitchToNormalMode);
+        self.ctx.send_update_action(UpdateAction::CancelTorrentTask);
+    }
+
+    pub fn is_finished_status_task(&self) -> bool {
+        if let CurrentTask::Status(task) = &self.current_task {
+            !matches!(task.task_status, CurrentTaskState::Loading(_))
+        } else {
+            false
+        }
+    }
+
+    pub fn is_selection_task(&self) -> bool {
+        matches!(self.current_task, CurrentTask::Selection(_))
     }
 }

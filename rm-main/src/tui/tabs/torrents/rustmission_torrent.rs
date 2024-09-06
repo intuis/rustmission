@@ -22,7 +22,7 @@ pub struct RustmissionTorrent {
     pub uploaded_ever: String,
     pub upload_ratio: String,
     status: TorrentStatus,
-    pub style: Style,
+    style: Style,
     pub id: Id,
     pub download_dir: String,
     pub activity_date: NaiveDateTime,
@@ -30,6 +30,7 @@ pub struct RustmissionTorrent {
     pub peers_connected: i64,
     pub category: Option<CategoryType>,
     pub error: Option<String>,
+    pub is_selected: bool,
 }
 
 #[derive(Clone)]
@@ -53,7 +54,7 @@ impl RustmissionTorrent {
             .iter()
             .map(|header| self.header_to_cell(*header))
             .collect::<Row>()
-            .style(self.style)
+            .style(self.style())
             .height(if self.error.is_some() { 2 } else { 1 })
     }
 
@@ -162,11 +163,23 @@ impl RustmissionTorrent {
             if *header == Header::Name {
                 cells.push(std::mem::take(&mut torrent_name_line).into())
             } else {
-                cells.push(self.header_to_cell(*header).style(self.style))
+                cells.push(self.header_to_cell(*header).style(self.style()))
             }
         }
 
-        Row::new(cells)
+        if self.is_selected {
+            Row::new(cells).reversed()
+        } else {
+            Row::new(cells)
+        }
+    }
+
+    fn style(&self) -> Style {
+        if self.is_selected {
+            self.style.reversed()
+        } else {
+            self.style
+        }
     }
 
     pub fn torrent_location(&self) -> String {
@@ -384,6 +397,7 @@ impl From<Torrent> for RustmissionTorrent {
             peers_connected,
             category,
             error,
+            is_selected: false,
         }
     }
 }

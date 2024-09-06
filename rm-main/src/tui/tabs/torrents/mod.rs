@@ -16,7 +16,8 @@ use ratatui::widgets::{Cell, Row, Table};
 use rm_config::CONFIG;
 use rm_shared::status_task::StatusTask;
 use rustmission_torrent::RustmissionTorrent;
-use transmission_rpc::types::TorrentStatus;
+use tasks::TorrentSelection;
+use transmission_rpc::types::{Id, TorrentStatus};
 
 use crate::transmission;
 use rm_shared::action::{Action, ErrorMessage, UpdateAction};
@@ -105,8 +106,21 @@ impl Component for TorrentsTab {
             return ComponentAction::Nothing;
         }
 
+        if !self.table_manager.selected_torrents_ids.is_empty() && action.is_soft_quit() {
+            self.table_manager
+                .table
+                .items
+                .iter_mut()
+                .for_each(|t| t.is_selected = false);
+            self.table_manager.selected_torrents_ids.drain(..);
+            self.task_manager.default();
+            self.ctx.send_action(Action::Render);
+            return ComponentAction::Nothing;
+        }
+
         if action.is_quit() {
             self.ctx.send_action(Action::HardQuit);
+            return ComponentAction::Nothing;
         }
 
         match action {
@@ -121,10 +135,20 @@ impl Component for TorrentsTab {
             A::ShowStats => self.show_statistics_popup(),
             A::ShowFiles => self.show_files_popup(),
             A::Confirm => self.show_details_popup(),
+            A::Select => {
+                self.table_manager.select_current_torrent();
+                if !self.table_manager.selected_torrents_ids.is_empty() {
+                    self.task_manager
+                        .select(self.table_manager.selected_torrents_ids.len());
+                } else {
+                    self.task_manager.default();
+                }
+                self.ctx.send_action(Action::Render);
+            }
             A::Pause => self.pause_current_torrent(),
             A::Delete => {
-                if let Some(torrent) = self.table_manager.current_torrent() {
-                    self.task_manager.delete_torrent(torrent);
+                if let Some(torrent_selection) = self.get_currently_selected() {
+                    self.task_manager.delete_torrents(torrent_selection);
                 }
             }
             A::AddMagnet => self.task_manager.add_magnet(),
@@ -136,13 +160,14 @@ impl Component for TorrentsTab {
                     .map(|f| f.pattern.clone()),
             ),
             A::MoveTorrent => {
-                if let Some(torrent) = self.table_manager.current_torrent() {
-                    self.task_manager.move_torrent(torrent);
+                if let Some(selection) = self.get_currently_selected() {
+                    self.task_manager
+                        .move_torrent(selection, self.ctx.session_info.download_dir.clone());
                 }
             }
             A::ChangeCategory => {
-                if let Some(torrent) = self.table_manager.current_torrent() {
-                    self.task_manager.change_category(torrent);
+                if let Some(selection) = self.get_currently_selected() {
+                    self.task_manager.change_category(selection);
                 }
             }
             A::XdgOpen => self.xdg_open_current_torrent(),
@@ -186,12 +211,33 @@ impl Component for TorrentsTab {
             }
             UpdateAction::UpdateTorrents(torrents) => {
                 let torrents = torrents.into_iter().map(RustmissionTorrent::from).collect();
+
                 self.table_manager.set_new_rows(torrents);
+                if self.table_manager.selected_torrents_ids.is_empty()
+                    && self.task_manager.is_selection_task()
+                {
+                    self.task_manager.default()
+                }
+
                 self.bottom_stats
                     .update_selected_indicator(&self.table_manager);
             }
             UpdateAction::UpdateCurrentTorrent(_) => {
                 self.popup_manager.handle_update_action(action)
+            }
+            UpdateAction::CancelTorrentTask => {
+                if !self.task_manager.is_finished_status_task() {
+                    return;
+                }
+
+                if !self.table_manager.selected_torrents_ids.is_empty() {
+                    self.task_manager
+                        .select(self.table_manager.selected_torrents_ids.len());
+                } else {
+                    self.task_manager.default();
+                }
+                self.ctx
+                    .send_update_action(UpdateAction::SwitchToNormalMode);
             }
             other => self.task_manager.handle_update_action(other),
         }
@@ -277,6 +323,26 @@ impl TorrentsTab {
             rect,
             &mut self.table_manager.table.state.borrow_mut(),
         );
+    }
+
+    fn get_currently_selected(&mut self) -> Option<TorrentSelection> {
+        if !self.table_manager.selected_torrents_ids.is_empty() {
+            Some(TorrentSelection::Many(
+                self.table_manager
+                    .selected_torrents_ids
+                    .clone()
+                    .into_iter()
+                    .map(Id::Id)
+                    .collect(),
+            ))
+        } else if let Some(t) = self.table_manager.current_torrent() {
+            Some(TorrentSelection::Single(
+                t.id.clone(),
+                t.torrent_name.to_string(),
+            ))
+        } else {
+            None
+        }
     }
 
     fn show_files_popup(&mut self) {

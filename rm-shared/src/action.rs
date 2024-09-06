@@ -57,6 +57,7 @@ pub enum UpdateAction {
     UpdateCurrentTorrent(Box<Torrent>),
     SearchFilterApply(String),
     SearchFilterClear,
+    CancelTorrentTask,
     // Search Tab
     SearchStarted,
     ProviderResult(MagneteaseResult),
