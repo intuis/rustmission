@@ -16,6 +16,7 @@ use ratatui::widgets::{Cell, Row, Table};
 use rm_config::CONFIG;
 use rm_shared::status_task::StatusTask;
 use rustmission_torrent::RustmissionTorrent;
+use tasks::TorrentSelection;
 use transmission_rpc::types::{Id, TorrentStatus};
 
 use crate::transmission;
@@ -148,8 +149,8 @@ impl Component for TorrentsTab {
             }
             A::Pause => self.pause_current_torrent(),
             A::Delete => {
-                if let Some((ids, first_name)) = self.get_torrents_for_a_task() {
-                    self.task_manager.delete_torrents(ids, first_name);
+                if let Some(torrent_selection) = self.get_currently_selected() {
+                    self.task_manager.delete_torrents(torrent_selection);
                 }
             }
             A::AddMagnet => self.task_manager.add_magnet(),
@@ -161,13 +162,14 @@ impl Component for TorrentsTab {
                     .map(|f| f.pattern.clone()),
             ),
             A::MoveTorrent => {
-                if let Some(torrent) = self.table_manager.current_torrent() {
-                    self.task_manager.move_torrent(torrent);
+                if let Some(selection) = self.get_currently_selected() {
+                    self.task_manager
+                        .move_torrent(selection, self.ctx.session_info.download_dir.clone());
                 }
             }
             A::ChangeCategory => {
-                if let Some(torrent) = self.table_manager.current_torrent() {
-                    self.task_manager.change_category(torrent);
+                if let Some(selection) = self.get_currently_selected() {
+                    self.task_manager.change_category(selection);
                 }
             }
             A::XdgOpen => self.xdg_open_current_torrent(),
@@ -318,20 +320,22 @@ impl TorrentsTab {
         );
     }
 
-    fn get_torrents_for_a_task(&mut self) -> Option<(Vec<Id>, String)> {
+    fn get_currently_selected(&mut self) -> Option<TorrentSelection> {
         if !self.table_manager.selected_torrents_ids.is_empty() {
-            Some((
+            Some(TorrentSelection::Many(
                 self.table_manager
                     .selected_torrents_ids
                     .clone()
                     .into_iter()
                     .map(|id| Id::Id(id))
                     .collect(),
-                "".to_string(),
             ))
         } else {
             if let Some(t) = self.table_manager.current_torrent() {
-                Some((vec![t.id.clone()], t.torrent_name.to_string()))
+                Some(TorrentSelection::Single(
+                    t.id.clone(),
+                    t.torrent_name.to_string(),
+                ))
             } else {
                 None
             }

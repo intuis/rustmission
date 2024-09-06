@@ -5,25 +5,26 @@ use rm_shared::{
     action::{Action, UpdateAction},
     status_task::StatusTask,
 };
-use transmission_rpc::types::Id;
 
 use crate::tui::{
     app,
     components::{Component, ComponentAction, InputManager},
 };
 
+use super::TorrentSelection;
+
 pub struct ChangeCategory {
-    torrents_to_change: Vec<Id>,
+    selection: TorrentSelection,
     ctx: app::Ctx,
     input_mgr: InputManager,
 }
 
 impl ChangeCategory {
-    pub fn new(ctx: app::Ctx, torrents_to_change: Vec<Id>) -> Self {
+    pub fn new(ctx: app::Ctx, selection: TorrentSelection) -> Self {
         let prompt = "New category: ".to_string();
 
         Self {
-            torrents_to_change,
+            selection,
             input_mgr: InputManager::new(prompt)
                 .autocompletions(CONFIG.categories.map.keys().cloned().collect()),
             ctx,
@@ -35,7 +36,7 @@ impl ChangeCategory {
             let category = self.input_mgr.text();
             self.ctx
                 .send_torrent_action(crate::transmission::TorrentAction::ChangeCategory(
-                    self.torrents_to_change.clone(),
+                    self.selection.ids(),
                     category.clone(),
                 ));
 

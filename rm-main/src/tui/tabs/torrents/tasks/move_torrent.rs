@@ -4,7 +4,6 @@ use rm_shared::{
     action::{Action, UpdateAction},
     status_task::StatusTask,
 };
-use transmission_rpc::types::Id;
 
 use crate::{
     transmission::TorrentAction,
@@ -14,18 +13,20 @@ use crate::{
     },
 };
 
+use super::TorrentSelection;
+
 pub struct Move {
-    torrents_to_move: Vec<Id>,
+    selection: TorrentSelection,
     ctx: app::Ctx,
     input_mgr: InputManager,
 }
 
 impl Move {
-    pub fn new(ctx: app::Ctx, torrents_to_move: Vec<Id>, existing_location: String) -> Self {
+    pub fn new(ctx: app::Ctx, selection: TorrentSelection, existing_location: String) -> Self {
         let prompt = "New directory: ".to_string();
 
         Self {
-            torrents_to_move,
+            selection,
             input_mgr: InputManager::new_with_value(prompt, existing_location),
             ctx,
         }
@@ -34,9 +35,8 @@ impl Move {
     fn handle_input(&mut self, input: KeyEvent) -> ComponentAction {
         if input.code == KeyCode::Enter {
             let new_location = self.input_mgr.text();
-            let torrents_to_move = self.torrents_to_move.clone();
 
-            let torrent_action = TorrentAction::Move(torrents_to_move, new_location.clone());
+            let torrent_action = TorrentAction::Move(self.selection.ids(), new_location.clone());
             self.ctx.send_torrent_action(torrent_action);
 
             let task = StatusTask::new_move(new_location);

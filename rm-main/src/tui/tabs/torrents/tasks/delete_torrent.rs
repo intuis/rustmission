@@ -1,6 +1,5 @@
 use crossterm::event::KeyCode;
 use ratatui::prelude::*;
-use transmission_rpc::types::Id;
 
 use crate::transmission::TorrentAction;
 use crate::tui::app;
@@ -8,22 +7,22 @@ use crate::tui::components::{Component, ComponentAction, InputManager};
 use rm_shared::action::{Action, UpdateAction};
 use rm_shared::status_task::StatusTask;
 
+use super::TorrentSelection;
+
 pub struct Delete {
     delete_with_files: bool,
-    torrents_to_delete: Vec<Id>,
-    name_of_first: String,
+    torrents_to_delete: TorrentSelection,
     input_mgr: InputManager,
     ctx: app::Ctx,
 }
 
 impl Delete {
-    pub fn new(ctx: app::Ctx, to_delete: Vec<Id>, name_of_first: String) -> Self {
+    pub fn new(ctx: app::Ctx, to_delete: TorrentSelection) -> Self {
         let prompt = String::from("Delete selected with files? (Y/n) ");
 
         Self {
             delete_with_files: false,
             torrents_to_delete: to_delete,
-            name_of_first,
             input_mgr: InputManager::new(prompt),
             ctx,
         }
@@ -32,18 +31,18 @@ impl Delete {
     fn delete(&self) {
         if self.delete_with_files {
             self.ctx
-                .send_torrent_action(TorrentAction::DelWithFiles(self.torrents_to_delete.clone()))
+                .send_torrent_action(TorrentAction::DelWithFiles(self.torrents_to_delete.ids()))
         } else {
             self.ctx.send_torrent_action(TorrentAction::DelWithoutFiles(
-                self.torrents_to_delete.clone(),
+                self.torrents_to_delete.ids(),
             ))
         }
 
-        let task = if self.torrents_to_delete.len() == 1 {
-            StatusTask::new_del(self.name_of_first.clone())
-        } else {
-            StatusTask::new_del(self.torrents_to_delete.len().to_string())
+        let task = match &self.torrents_to_delete {
+            TorrentSelection::Single(_, name) => StatusTask::new_del(name.clone()),
+            TorrentSelection::Many(ids) => StatusTask::new_del(ids.len().to_string()),
         };
+
         self.ctx
             .send_update_action(UpdateAction::StatusTaskSet(task));
     }

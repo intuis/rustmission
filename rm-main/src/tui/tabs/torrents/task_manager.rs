@@ -6,7 +6,6 @@ use rm_shared::{
     action::{Action, UpdateAction},
     status_task::StatusTask,
 };
-use transmission_rpc::types::Id;
 
 use crate::tui::{
     app,
@@ -15,7 +14,7 @@ use crate::tui::{
 
 use super::{
     rustmission_torrent::RustmissionTorrent,
-    tasks::{self, CurrentTaskState},
+    tasks::{self, CurrentTaskState, TorrentSelection},
 };
 
 pub struct TaskManager {
@@ -150,29 +149,20 @@ impl TaskManager {
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    pub fn delete_torrents(&mut self, torrents: Vec<Id>, name_of_first: String) {
-        self.current_task = CurrentTask::Delete(tasks::Delete::new(
-            self.ctx.clone(),
-            torrents,
-            name_of_first,
-        ));
+    pub fn delete_torrents(&mut self, selection: TorrentSelection) {
+        self.current_task = CurrentTask::Delete(tasks::Delete::new(self.ctx.clone(), selection));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    pub fn move_torrent(&mut self, torrent: &RustmissionTorrent) {
-        self.current_task = CurrentTask::Move(tasks::Move::new(
-            self.ctx.clone(),
-            vec![torrent.id.clone()],
-            torrent.download_dir.to_string(),
-        ));
+    pub fn move_torrent(&mut self, selection: TorrentSelection, current_dir: String) {
+        self.current_task =
+            CurrentTask::Move(tasks::Move::new(self.ctx.clone(), selection, current_dir));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    pub fn change_category(&mut self, torrent: &RustmissionTorrent) {
-        self.current_task = CurrentTask::ChangeCategory(tasks::ChangeCategory::new(
-            self.ctx.clone(),
-            vec![torrent.id.clone()],
-        ));
+    pub fn change_category(&mut self, selection: TorrentSelection) {
+        self.current_task =
+            CurrentTask::ChangeCategory(tasks::ChangeCategory::new(self.ctx.clone(), selection));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
