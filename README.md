@@ -2,15 +2,15 @@
 
 **Rustmission**
 
-Performant TUI client for Transmission daemon capable of managing hundreds of torrents.   
-It boasts a rich feature set that surpasses many other clients, offering a seamless torrenting experience :3
+Performant TUI for Transmission capable of managing hundreds of torrents.   
+It boasts a rich feature set that surpasses other clients, offering a seamless experience :3
 
 
 # 
 <div align="center">
     <img src="https://github.com/user-attachments/assets/265c7f7d-85c0-4440-98f8-18c1cbba1a32"/>
     <p>
-        <small>⚠️ Torrents you see are just samples fabricated by AI. Piracy is not something we tolerate here at Intuis.</small>
+        <small>⚠️ Torrents you see are just samples fabricated by AI.</small>
     </p>
 </div>
 
@@ -23,7 +23,7 @@ It boasts a rich feature set that surpasses many other clients, offering a seaml
 
 ## Requirements
 
-- Running [Transmission](https://github.com/transmission/transmission) daemon and its IP address
+- Running [Transmission](https://github.com/transmission/transmission) daemon in background and its IP address
 - [Nerd Fonts](https://www.nerdfonts.com/)
 
 ## Installation
@@ -91,12 +91,21 @@ free_space_refresh = 10
 # Available fields:
 # Id, Name, SizeWhenDone, Progress, DownloadRate, UploadRate, DownloadDir,
 # Padding, UploadRatio, UploadedEver, AddedDate, ActivityDate, PeersConnected
-# SmallStatus
-headers = ["Name", "SizeWhenDone", "Progress", "DownloadRate", "UploadRate"]
+# SmallStatus, Category, CategoryIcon
+headers = ["Name", "SizeWhenDone", "Progress", "Eta", "DownloadRate", "UploadRate"]
+
+[search_tab]
+# If you uncomment this, providers won't be automatically added in future
+# versions of Rustmission.
+# providers = ["Knaben", "Nyaa"]
+
+[icons]
+# ...
 
 ```
 
-There's also a self-documenting keymap config located at `~/.config/rustmission/keymap.toml` with sane defaults.
+There's also a self-documenting keymap config located at `~/.config/rustmission/keymap.toml` with sane defaults.  
+You can also define torrent categories at `~/.config/rustmission/categories.toml`.
 
 ## Alternatives
 - [Transgression](https://github.com/PanAeon/transg-tui)
