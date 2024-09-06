@@ -54,15 +54,15 @@ impl StatusTask {
         let truncated = truncated_str(&self.what, 60);
 
         match self.task_type {
-            TaskType::Add => format!("Added {truncated}"),
-            TaskType::Delete => format!("Deleted {truncated}"),
-            TaskType::Move => format!("Moved {truncated}"),
-            TaskType::Open => format!("Opened {truncated}"),
+            TaskType::Add => format!(" Added {truncated}"),
+            TaskType::Delete => format!(" Deleted {truncated}"),
+            TaskType::Move => format!(" Moved {truncated}"),
+            TaskType::Open => format!(" Opened {truncated}"),
             TaskType::ChangeCategory => {
                 if truncated.is_empty() {
-                    "Categories cleared!".to_string()
+                    " Categories cleared!".to_string()
                 } else {
-                    format!("Category set to {truncated}!")
+                    format!(" Category set to {truncated}!")
                 }
             }
         }
@@ -72,11 +72,11 @@ impl StatusTask {
         let truncated = truncated_str(&self.what, 60);
 
         match self.task_type {
-            TaskType::Add => format!("Error adding {truncated}"),
-            TaskType::Delete => format!("Error deleting {truncated}"),
-            TaskType::Move => format!("Error moving to {truncated}"),
-            TaskType::Open => format!("Error opening {truncated}"),
-            TaskType::ChangeCategory => format!("Error changing category to {truncated}"),
+            TaskType::Add => format!(" Error adding {truncated}"),
+            TaskType::Delete => format!(" Error deleting {truncated}"),
+            TaskType::Move => format!(" Error moving to {truncated}"),
+            TaskType::Open => format!(" Error opening {truncated}"),
+            TaskType::ChangeCategory => format!(" Error changing category to {truncated}"),
         }
     }
 
@@ -84,11 +84,11 @@ impl StatusTask {
         let truncated = truncated_str(&self.what, 60);
 
         match self.task_type {
-            TaskType::Add => format!("Adding {truncated}"),
-            TaskType::Delete => format!("Deleting {truncated}"),
-            TaskType::Move => format!("Moving {truncated}"),
-            TaskType::Open => format!("Opening {truncated}"),
-            TaskType::ChangeCategory => format!("Changing category to {truncated}"),
+            TaskType::Add => format!(" Adding {truncated}"),
+            TaskType::Delete => format!(" Deleting {truncated}"),
+            TaskType::Move => format!(" Moving {truncated}"),
+            TaskType::Open => format!(" Opening {truncated}"),
+            TaskType::ChangeCategory => format!(" Changing category to {truncated}"),
         }
     }
 }

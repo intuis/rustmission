@@ -16,7 +16,7 @@ use ratatui::widgets::{Cell, Row, Table};
 use rm_config::CONFIG;
 use rm_shared::status_task::StatusTask;
 use rustmission_torrent::RustmissionTorrent;
-use transmission_rpc::types::TorrentStatus;
+use transmission_rpc::types::{Id, TorrentStatus};
 
 use crate::transmission;
 use rm_shared::action::{Action, ErrorMessage, UpdateAction};
@@ -148,8 +148,8 @@ impl Component for TorrentsTab {
             }
             A::Pause => self.pause_current_torrent(),
             A::Delete => {
-                if let Some(torrent) = self.table_manager.current_torrent() {
-                    self.task_manager.delete_torrent(torrent);
+                if let Some((ids, first_name)) = self.get_torrents_for_a_task() {
+                    self.task_manager.delete_torrents(ids, first_name);
                 }
             }
             A::AddMagnet => self.task_manager.add_magnet(),
@@ -219,6 +219,10 @@ impl Component for TorrentsTab {
                 self.popup_manager.handle_update_action(action)
             }
             UpdateAction::CancelTorrentTask => {
+                if !self.task_manager.is_finished_status_task() {
+                    return;
+                }
+
                 if !self.table_manager.selected_torrents_ids.is_empty() {
                     self.task_manager
                         .select(self.table_manager.selected_torrents_ids.len());
@@ -312,6 +316,26 @@ impl TorrentsTab {
             rect,
             &mut self.table_manager.table.state.borrow_mut(),
         );
+    }
+
+    fn get_torrents_for_a_task(&mut self) -> Option<(Vec<Id>, String)> {
+        if !self.table_manager.selected_torrents_ids.is_empty() {
+            Some((
+                self.table_manager
+                    .selected_torrents_ids
+                    .clone()
+                    .into_iter()
+                    .map(|id| Id::Id(id))
+                    .collect(),
+                "".to_string(),
+            ))
+        } else {
+            if let Some(t) = self.table_manager.current_torrent() {
+                Some((vec![t.id.clone()], t.torrent_name.to_string()))
+            } else {
+                None
+            }
+        }
     }
 
     fn show_files_popup(&mut self) {

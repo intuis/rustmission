@@ -5,44 +5,45 @@ use transmission_rpc::types::Id;
 use crate::transmission::TorrentAction;
 use crate::tui::app;
 use crate::tui::components::{Component, ComponentAction, InputManager};
-use crate::tui::tabs::torrents::rustmission_torrent::RustmissionTorrent;
 use rm_shared::action::{Action, UpdateAction};
 use rm_shared::status_task::StatusTask;
 
 pub struct Delete {
-    torrents_to_delete: Vec<RustmissionTorrent>,
-    ctx: app::Ctx,
-    input_mgr: InputManager,
     delete_with_files: bool,
+    torrents_to_delete: Vec<Id>,
+    name_of_first: String,
+    input_mgr: InputManager,
+    ctx: app::Ctx,
 }
 
 impl Delete {
-    pub fn new(ctx: app::Ctx, to_delete: Vec<RustmissionTorrent>) -> Self {
+    pub fn new(ctx: app::Ctx, to_delete: Vec<Id>, name_of_first: String) -> Self {
         let prompt = String::from("Delete selected with files? (Y/n) ");
 
         Self {
+            delete_with_files: false,
             torrents_to_delete: to_delete,
+            name_of_first,
             input_mgr: InputManager::new(prompt),
             ctx,
-            delete_with_files: false,
         }
     }
 
     fn delete(&self) {
-        let torrents_to_delete: Vec<Id> = self
-            .torrents_to_delete
-            .iter()
-            .map(|x| x.id.clone())
-            .collect();
         if self.delete_with_files {
             self.ctx
-                .send_torrent_action(TorrentAction::DelWithFiles(torrents_to_delete))
+                .send_torrent_action(TorrentAction::DelWithFiles(self.torrents_to_delete.clone()))
         } else {
-            self.ctx
-                .send_torrent_action(TorrentAction::DelWithoutFiles(torrents_to_delete))
+            self.ctx.send_torrent_action(TorrentAction::DelWithoutFiles(
+                self.torrents_to_delete.clone(),
+            ))
         }
 
-        let task = StatusTask::new_del(self.torrents_to_delete[0].torrent_name.clone());
+        let task = if self.torrents_to_delete.len() == 1 {
+            StatusTask::new_del(self.name_of_first.clone())
+        } else {
+            StatusTask::new_del(self.torrents_to_delete.len().to_string())
+        };
         self.ctx
             .send_update_action(UpdateAction::StatusTaskSet(task));
     }

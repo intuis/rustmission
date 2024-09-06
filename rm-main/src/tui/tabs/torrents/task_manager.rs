@@ -6,6 +6,7 @@ use rm_shared::{
     action::{Action, UpdateAction},
     status_task::StatusTask,
 };
+use transmission_rpc::types::Id;
 
 use crate::tui::{
     app,
@@ -142,9 +143,12 @@ impl TaskManager {
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
-    pub fn delete_torrent(&mut self, torrent: &RustmissionTorrent) {
-        self.current_task =
-            CurrentTask::Delete(tasks::Delete::new(self.ctx.clone(), vec![torrent.clone()]));
+    pub fn delete_torrents(&mut self, torrents: Vec<Id>, name_of_first: String) {
+        self.current_task = CurrentTask::Delete(tasks::Delete::new(
+            self.ctx.clone(),
+            torrents,
+            name_of_first,
+        ));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
@@ -206,5 +210,13 @@ impl TaskManager {
         }
 
         self.ctx.send_update_action(UpdateAction::CancelTorrentTask);
+    }
+
+    pub fn is_finished_status_task(&self) -> bool {
+        if let CurrentTask::Status(task) = &self.current_task {
+            !matches!(task.task_status, CurrentTaskState::Loading(_))
+        } else {
+            false
+        }
     }
 }

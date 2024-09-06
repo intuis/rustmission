@@ -251,13 +251,25 @@ impl TableManager {
 
     pub fn set_new_rows(&mut self, mut rows: Vec<RustmissionTorrent>) {
         if !self.selected_torrents_ids.is_empty() {
+            let mut found_ids = vec![];
+
             for row in &mut rows {
                 if let Id::Id(id) = row.id {
                     if self.selected_torrents_ids.contains(&id) {
                         row.is_selected = true;
+                        found_ids.push(id);
                     }
                 }
             }
+
+            let new_selected: Vec<_> = self
+                .selected_torrents_ids
+                .iter()
+                .cloned()
+                .filter(|id| found_ids.contains(id))
+                .collect();
+
+            self.selected_torrents_ids = new_selected;
         }
 
         self.table.set_items(rows);
