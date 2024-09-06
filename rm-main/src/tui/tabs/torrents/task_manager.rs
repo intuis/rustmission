@@ -21,6 +21,13 @@ use super::{
 pub struct TaskManager {
     ctx: app::Ctx,
     current_task: CurrentTask,
+    // TODO:
+    // Put Default task in a seperate field and merge it with Status task
+    // and maybe with Selection task (or even Sort?).
+    // This way there won't be any edge cases in torrents/mod.rs anymore
+    // when dealing with TaskManager.
+    // Default task would keep the state info whether there are any tasks
+    // happening, whether the user is selecting torrents or is sorting them.
 }
 
 impl TaskManager {
