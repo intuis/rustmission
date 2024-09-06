@@ -216,4 +216,8 @@ impl TaskManager {
             false
         }
     }
+
+    pub fn is_selection_task(&self) -> bool {
+        matches!(self.current_task, CurrentTask::Selection(_))
+    }
 }

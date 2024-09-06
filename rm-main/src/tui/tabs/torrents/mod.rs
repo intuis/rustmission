@@ -213,7 +213,14 @@ impl Component for TorrentsTab {
             }
             UpdateAction::UpdateTorrents(torrents) => {
                 let torrents = torrents.into_iter().map(RustmissionTorrent::from).collect();
+
                 self.table_manager.set_new_rows(torrents);
+                if self.table_manager.selected_torrents_ids.is_empty()
+                    && self.task_manager.is_selection_task()
+                {
+                    self.task_manager.default()
+                }
+
                 self.bottom_stats
                     .update_selected_indicator(&self.table_manager);
             }
