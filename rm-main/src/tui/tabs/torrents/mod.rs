@@ -113,6 +113,7 @@ impl Component for TorrentsTab {
                     .iter_mut()
                     .for_each(|t| t.is_selected = false);
                 self.table_manager.selected_torrents_ids.drain(..);
+                self.task_manager.default();
                 self.ctx.send_action(Action::Render);
                 return ComponentAction::Nothing;
             }
@@ -137,6 +138,12 @@ impl Component for TorrentsTab {
             A::Confirm => self.show_details_popup(),
             A::Select => {
                 self.table_manager.select_current_torrent();
+                if !self.table_manager.selected_torrents_ids.is_empty() {
+                    self.task_manager
+                        .select(self.table_manager.selected_torrents_ids.len());
+                } else {
+                    self.task_manager.default();
+                }
                 self.ctx.send_action(Action::Render);
             }
             A::Pause => self.pause_current_torrent(),
@@ -210,6 +217,16 @@ impl Component for TorrentsTab {
             }
             UpdateAction::UpdateCurrentTorrent(_) => {
                 self.popup_manager.handle_update_action(action)
+            }
+            UpdateAction::CancelTorrentTask => {
+                if !self.table_manager.selected_torrents_ids.is_empty() {
+                    self.task_manager
+                        .select(self.table_manager.selected_torrents_ids.len());
+                } else {
+                    self.task_manager.default();
+                }
+                self.ctx
+                    .send_update_action(UpdateAction::SwitchToNormalMode);
             }
             other => self.task_manager.handle_update_action(other),
         }

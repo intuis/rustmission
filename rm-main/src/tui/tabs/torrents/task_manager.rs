@@ -40,6 +40,7 @@ pub enum CurrentTask {
     Default(tasks::Default),
     Status(tasks::Status),
     Sort(tasks::Sort),
+    Selection(tasks::Selection),
 }
 
 impl CurrentTask {
@@ -86,6 +87,7 @@ impl Component for TaskManager {
             }
             CurrentTask::Default(_) => (),
             CurrentTask::Sort(_) => (),
+            CurrentTask::Selection(_) => (),
         };
         ComponentAction::Nothing
     }
@@ -119,6 +121,7 @@ impl Component for TaskManager {
             CurrentTask::Status(status_bar) => status_bar.render(f, rect),
             CurrentTask::ChangeCategory(category_bar) => category_bar.render(f, rect),
             CurrentTask::Sort(sort_bar) => sort_bar.render(f, rect),
+            CurrentTask::Selection(selection_bar) => selection_bar.render(f, rect),
         }
     }
 
@@ -166,6 +169,10 @@ impl TaskManager {
         self.current_task = CurrentTask::Default(tasks::Default::new());
     }
 
+    pub fn select(&mut self, amount: usize) {
+        self.current_task = CurrentTask::Selection(tasks::Selection::new(amount));
+    }
+
     pub fn sort(&mut self) {
         self.current_task = CurrentTask::Sort(tasks::Sort::new());
     }
@@ -198,8 +205,6 @@ impl TaskManager {
             return;
         }
 
-        self.current_task = CurrentTask::Default(tasks::Default::new());
-        self.ctx
-            .send_update_action(UpdateAction::SwitchToNormalMode);
+        self.ctx.send_update_action(UpdateAction::CancelTorrentTask);
     }
 }
