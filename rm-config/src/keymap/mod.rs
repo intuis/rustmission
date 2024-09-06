@@ -53,7 +53,7 @@ impl<T: Into<Action> + Ord + UserAction> KeybindsHolder<T> {
             }
 
             keys.entry(&keybinding.action)
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(keybinding.keycode_string());
         }
 

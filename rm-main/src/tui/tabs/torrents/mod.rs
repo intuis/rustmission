@@ -106,18 +106,16 @@ impl Component for TorrentsTab {
             return ComponentAction::Nothing;
         }
 
-        if !self.table_manager.selected_torrents_ids.is_empty() {
-            if action.is_soft_quit() {
-                self.table_manager
-                    .table
-                    .items
-                    .iter_mut()
-                    .for_each(|t| t.is_selected = false);
-                self.table_manager.selected_torrents_ids.drain(..);
-                self.task_manager.default();
-                self.ctx.send_action(Action::Render);
-                return ComponentAction::Nothing;
-            }
+        if !self.table_manager.selected_torrents_ids.is_empty() && action.is_soft_quit() {
+            self.table_manager
+                .table
+                .items
+                .iter_mut()
+                .for_each(|t| t.is_selected = false);
+            self.table_manager.selected_torrents_ids.drain(..);
+            self.task_manager.default();
+            self.ctx.send_action(Action::Render);
+            return ComponentAction::Nothing;
         }
 
         if action.is_quit() {
@@ -334,18 +332,16 @@ impl TorrentsTab {
                     .selected_torrents_ids
                     .clone()
                     .into_iter()
-                    .map(|id| Id::Id(id))
+                    .map(Id::Id)
                     .collect(),
             ))
+        } else if let Some(t) = self.table_manager.current_torrent() {
+            Some(TorrentSelection::Single(
+                t.id.clone(),
+                t.torrent_name.to_string(),
+            ))
         } else {
-            if let Some(t) = self.table_manager.current_torrent() {
-                Some(TorrentSelection::Single(
-                    t.id.clone(),
-                    t.torrent_name.to_string(),
-                ))
-            } else {
-                None
-            }
+            None
         }
     }
 

@@ -12,10 +12,7 @@ use crate::tui::{
     components::{Component, ComponentAction},
 };
 
-use super::{
-    rustmission_torrent::RustmissionTorrent,
-    tasks::{self, CurrentTaskState, TorrentSelection},
-};
+use super::tasks::{self, CurrentTaskState, TorrentSelection};
 
 pub struct TaskManager {
     ctx: app::Ctx,
