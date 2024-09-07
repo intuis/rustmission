@@ -83,7 +83,7 @@ impl<T: Clone> GenericTable<T> {
         let new_selection = state.selected().unwrap_or_default() + amount;
 
         if new_selection > self.get_len() {
-            state.select(Some(self.get_len() - 1));
+            state.select(Some(self.get_len().saturating_sub(1)));
         } else {
             state.select(Some(new_selection));
         };

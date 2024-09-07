@@ -206,9 +206,9 @@ impl TaskManager {
         self.ctx.send_update_action(UpdateAction::CancelTorrentTask);
     }
 
-    pub fn is_finished_status_task(&self) -> bool {
+    pub fn is_status_task_in_progress(&self) -> bool {
         if let CurrentTask::Status(task) = &self.current_task {
-            !matches!(task.task_status, CurrentTaskState::Loading(_))
+            matches!(task.task_status, CurrentTaskState::Loading(_))
         } else {
             false
         }

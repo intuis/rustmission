@@ -276,6 +276,11 @@ impl TableManager {
         self.widths = self.header_widths(&self.table.items);
         self.update_rows_number();
         self.sort();
+
+        // let mut state = self.table.state.borrow_mut();
+        // if state.selected().is_none() && !self.table.items.is_empty() {
+        //     state.select(Some(0));
+        // }
     }
 
     pub fn set_filter(&mut self, filter: String) {
