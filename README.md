@@ -1,4 +1,4 @@
-<img align="left" width="100" height="100" src="https://github.com/user-attachments/assets/f3175886-2ccb-4521-a52b-3b9e63687fbb">
+<img align="left" width="100" height="100" src="https://github.com/user-attachments/assets/d2fc94d2-c52b-41db-8d96-3651bdfc2139">
 
 **Rustmission**
 
@@ -8,9 +8,9 @@ It boasts a rich feature set that surpasses other clients, offering a seamless e
 
 # 
 <div align="center">
-    <img src="https://github.com/user-attachments/assets/265c7f7d-85c0-4440-98f8-18c1cbba1a32"/>
+    <img src="https://github.com/user-attachments/assets/d6a7b35d-f6b4-408f-bf9e-1cf4ddc9914c"/>
     <p>
-        <small>⚠️ Torrents you see are just samples fabricated by AI.</small>
+        <small>Torrents you see are just samples fabricated by AI.</small>
     </p>
 </div>
 
