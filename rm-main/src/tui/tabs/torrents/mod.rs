@@ -226,7 +226,7 @@ impl Component for TorrentsTab {
                 self.popup_manager.handle_update_action(action)
             }
             UpdateAction::CancelTorrentTask => {
-                if !self.task_manager.is_finished_status_task() {
+                if self.task_manager.is_status_task_in_progress() {
                     return;
                 }
 
