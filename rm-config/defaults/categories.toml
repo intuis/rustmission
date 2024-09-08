@@ -1,5 +1,5 @@
 # Example category:
-# [[category]]
+# [[categories]]
 # name = "Classical Music"             # required
 # icon = "[M]"                         # optional, default: ""
 # default_dir = "/mnt/Music/Classical" # optional, default: transmission's default
