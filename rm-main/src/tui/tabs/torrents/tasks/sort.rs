@@ -18,13 +18,13 @@ impl Component for Sort {
         let mut line = Line::default();
         let mut line_is_empty = true;
 
-        if let Some(keys) = CONFIG.keybindings.get_keys_for_action(Action::Close) {
+        if let Some(keys) = CONFIG.keybindings.get_keys_for_action_joined(Action::Close) {
             line_is_empty = false;
             line.push_span(Span::styled(keys, keybinding_style()));
             line.push_span(Span::raw(" - reset & exit"));
         }
 
-        if let Some(keys) = CONFIG.keybindings.get_keys_for_action(Action::Confirm) {
+        if let Some(keys) = CONFIG.keybindings.get_keys_for_action_joined(Action::Confirm) {
             if !line_is_empty {
                 line.push_span(Span::raw(" | "));
             }
@@ -33,7 +33,7 @@ impl Component for Sort {
             line.push_span(Span::raw(" - apply"));
         }
 
-        if let Some(keys) = CONFIG.keybindings.get_keys_for_action(Action::Down) {
+        if let Some(keys) = CONFIG.keybindings.get_keys_for_action_joined(Action::Down) {
             if !line_is_empty {
                 line.push_span(Span::raw(" | "));
             }

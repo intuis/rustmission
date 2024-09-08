@@ -137,7 +137,7 @@ impl Component for SearchState {
         let append_key_info = |line: &mut Line| {
             let providers_key = CONFIG
                 .keybindings
-                .get_keys_for_action(Action::ShowProvidersInfo);
+                .get_keys_for_action_joined(Action::ShowProvidersInfo);
             if let Some(key) = providers_key {
                 line.push_span(Span::raw("Press "));
                 line.push_span(Span::styled(key, keybinding_style()));

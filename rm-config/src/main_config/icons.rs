@@ -123,7 +123,7 @@ fn default_disk() -> String {
 }
 
 fn default_help() -> String {
-    "󰘥".into()
+    "".into()
 }
 
 fn default_success() -> String {
