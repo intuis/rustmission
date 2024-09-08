@@ -19,7 +19,7 @@ impl Component for Selection {
         let mut line = Line::default();
         let mut line_is_empty = true;
 
-        if let Some(keys) = CONFIG.keybindings.get_keys_for_action(Action::Close) {
+        if let Some(keys) = CONFIG.keybindings.get_keys_for_action_joined(Action::Close) {
             line_is_empty = false;
             line.push_span(Span::styled(keys, keybinding_style()));
             line.push_span(Span::raw(" - clear selection"));

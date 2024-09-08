@@ -367,7 +367,13 @@ impl KeymapConfig {
         }
     }
 
-    pub fn get_keys_for_action(&self, action: Action) -> Option<String> {
+    pub fn get_keys_for_action_joined(&self, action: Action) -> Option<String> {
+        let keys = self.get_keys_for_action(action)?;
+
+        Some(keys.join("/"))
+    }
+
+    pub fn get_keys_for_action(&self, action: Action) -> Option<Vec<String>> {
         let mut keys = vec![];
 
         for keybinding in &self.general.keybindings {
@@ -390,8 +396,9 @@ impl KeymapConfig {
         if keys.is_empty() {
             None
         } else {
-            Some(keys.join("/"))
+            Some(keys)
         }
+        
     }
 
     fn populate_hashmap(&mut self) {

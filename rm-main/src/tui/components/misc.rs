@@ -42,7 +42,6 @@ pub fn popup_rects(rect: Rect, percent_x: u16, percent_y: u16) -> (Rect, Rect, R
 
 pub fn keybinding_style() -> Style {
     Style::default()
-        .fg(CONFIG.general.accent_color)
         .underlined()
         .underline_color(CONFIG.general.accent_color)
 }

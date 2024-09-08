@@ -75,8 +75,8 @@ impl UserAction for GeneralAction {
             GeneralAction::GoToBeginning => "scroll to beginning",
             GeneralAction::GoToEnd => "scroll to end",
             GeneralAction::XdgOpen => "open with xdg-open",
-            GeneralAction::MoveToColumnRight => "move to right column",
-            GeneralAction::MoveToColumnLeft => "move to left column",
+            GeneralAction::MoveToColumnRight => "move to right column (sorting)",
+            GeneralAction::MoveToColumnLeft => "move to left column (sorting)",
         }
     }
 

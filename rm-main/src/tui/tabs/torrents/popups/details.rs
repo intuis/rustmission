@@ -86,7 +86,7 @@ impl Component for DetailsPopup {
         show_files_line.push_span(Span::styled(
             CONFIG
                 .keybindings
-                .get_keys_for_action(Action::ShowFiles)
+                .get_keys_for_action_joined(Action::ShowFiles)
                 .unwrap_or_default(),
             keybinding_style(),
         ));
@@ -96,7 +96,7 @@ impl Component for DetailsPopup {
         move_location_line.push_span(Span::styled(
             CONFIG
                 .keybindings
-                .get_keys_for_action(Action::MoveTorrent)
+                .get_keys_for_action_joined(Action::MoveTorrent)
                 .unwrap_or_default(),
             keybinding_style(),
         ));
@@ -106,7 +106,7 @@ impl Component for DetailsPopup {
         delete_line.push_span(Span::styled(
             CONFIG
                 .keybindings
-                .get_keys_for_action(Action::Delete)
+                .get_keys_for_action_joined(Action::Delete)
                 .unwrap_or_default(),
             keybinding_style(),
         ));
@@ -116,7 +116,7 @@ impl Component for DetailsPopup {
         change_category_line.push_span(Span::styled(
             CONFIG
                 .keybindings
-                .get_keys_for_action(Action::ChangeCategory)
+                .get_keys_for_action_joined(Action::ChangeCategory)
                 .unwrap_or_default(),
             keybinding_style(),
         ));

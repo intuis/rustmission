@@ -285,13 +285,13 @@ impl Component for FilesPopup {
                 if CONFIG.general.beginner_mode {
                     let mut keys = vec![];
 
-                    if let Some(key) = CONFIG.keybindings.get_keys_for_action(Action::Select) {
+                    if let Some(key) = CONFIG.keybindings.get_keys_for_action_joined(Action::Select) {
                         keys.push(Span::raw(" "));
                         keys.push(Span::styled(key, keybinding_style()));
                         keys.push(Span::raw(" - toggle | "));
                     }
 
-                    if let Some(key) = CONFIG.keybindings.get_keys_for_action(Action::XdgOpen) {
+                    if let Some(key) = CONFIG.keybindings.get_keys_for_action_joined(Action::XdgOpen) {
                         keys.push(Span::styled(key, keybinding_style()));
                         keys.push(Span::raw(" - xdg_open "));
                     }

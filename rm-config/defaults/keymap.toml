@@ -33,6 +33,10 @@ keybindings = [
   { on = "l", action = "Right" },
   { on = "k", action = "Up" },
   { on = "j", action = "Down" },
+
+  # Sorting
+  { on = "H", action = "MoveToColumnLeft"},
+  { on = "L", action = "MoveToColumnRight"},
 ]
 
 [torrents_tab]
