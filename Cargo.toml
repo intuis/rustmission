@@ -6,7 +6,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.4.3"
+version = "0.5.0"
 edition = "2021"
 authors = ["Remigiusz Micielski <rmicielski@purelymail.com>"]
 repository = "https://github.com/intuis/rustmission"
@@ -14,8 +14,8 @@ homepage = "https://github.com/intuis/rustmission"
 license = "GPL-3.0-or-later"
 
 [workspace.dependencies]
-rm-config = { version = "0.4", path = "rm-config" }
-rm-shared = { version = "0.4", path = "rm-shared" }
+rm-config = { version = "0.5", path = "rm-config" }
+rm-shared = { version = "0.5", path = "rm-shared" }
 
 magnetease = "0.3"
 anyhow = "1"

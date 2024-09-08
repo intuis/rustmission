@@ -1,11 +1,11 @@
 [package]
 name = "rustmission"
-version = "0.4.3"
-edition = "2021"
 description = "TUI for Transmission daemon"
-repository = "https://github.com/intuis/rustmission"
-homepage = "https://github.com/intuis/rustmission"
-license = "GPL-3.0-or-later"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+homepage.workspace = true
+license.workspace = true
 
 [[bin]]
 name = "rustmission"

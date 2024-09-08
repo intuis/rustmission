@@ -1620,7 +1620,7 @@ dependencies = [
 
 [[package]]
 name = "rm-config"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "crossterm",
@@ -1637,7 +1637,7 @@ dependencies = [
 
 [[package]]
 name = "rm-shared"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "chrono",
  "crossterm",
@@ -1727,7 +1727,7 @@ dependencies = [
 
 [[package]]
 name = "rustmission"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "base64",
