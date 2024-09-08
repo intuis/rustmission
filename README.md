@@ -16,15 +16,17 @@ It boasts a rich feature set that surpasses other clients, offering a seamless e
 
 ## Features
 
-- **Basic operations**: Allows to add, pause, remove, fuzzy filter your torrents.
-- **Built-in magnet search**: Search for magnets without leaving your terminal.
+- **Basic operations**: Add, pause, remove or fuzzy filter your torrents.
+- **Categories**: Categorize your torrents, each with its own default directory.
+- **Sorting**: Sort your torrents, for example, to get rid of the bulkiest ones.
+- **Built-in magnet search**: Search for new magnets without leaving your terminal.
 - **Asynchronous**: UI is always responsive.
 - **RSS**: Fetch torrents automatically with a cronjob using `--fetch-rss`
 
 ## Requirements
 
-- Running [Transmission](https://github.com/transmission/transmission) daemon in background and its IP address
-- [Nerd Fonts](https://www.nerdfonts.com/)
+- [Transmission](https://github.com/transmission/transmission) daemon running in background and its IP address
+- [Nerd Fonts](https://www.nerdfonts.com/) (though you can set alternative set of icons)
 
 ## Installation
 
