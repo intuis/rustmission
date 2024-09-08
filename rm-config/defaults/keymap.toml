@@ -44,8 +44,7 @@ keybindings = [
   { on = "f", action = "ShowFiles" },
   { on = "s", action = "ShowStats" },
 
-  { on = "d", action = "DeleteWithoutFiles" },
-  { on = "D", action = "DeleteWithFiles" },
+  { on = "d", action = "Delete" },
 ]
 
 [search_tab]
