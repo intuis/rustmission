@@ -40,7 +40,7 @@ impl MainConfig {
             Err(e) => match e {
                 ConfigFetchingError::Io(e) if e.kind() == ErrorKind::NotFound => {
                     utils::put_config::<Self>(Self::DEFAULT_CONFIG, Self::FILENAME)?;
-                    println!("Update {:?} and start rustmission again", Self::path());
+                    println!("Update {:?} (especially connection url) and start rustmission again", Self::path());
                     std::process::exit(0);
                 }
                 ConfigFetchingError::Toml(e) => Err(e).with_context(|| {
