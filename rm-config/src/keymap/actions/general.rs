@@ -36,25 +36,6 @@ pub enum GeneralActionMergable {
 }
 
 impl UserAction for GeneralAction {
-    fn is_mergable_with(&self, other: &GeneralAction) -> bool {
-        let other = *other;
-        match self {
-            GeneralAction::SwitchToTorrents => other == Self::SwitchToSearch,
-            GeneralAction::SwitchToSearch => other == Self::SwitchToTorrents,
-            GeneralAction::Left => other == Self::Right,
-            GeneralAction::Right => other == Self::Left,
-            GeneralAction::Down => other == Self::Up,
-            GeneralAction::Up => other == Self::Down,
-            GeneralAction::ScrollPageDown => other == Self::ScrollPageUp,
-            GeneralAction::ScrollPageUp => other == Self::ScrollPageDown,
-            GeneralAction::GoToBeginning => other == Self::GoToEnd,
-            GeneralAction::GoToEnd => other == Self::GoToBeginning,
-            GeneralAction::MoveToColumnLeft => other == Self::MoveToColumnRight,
-            GeneralAction::MoveToColumnRight => other == Self::MoveToColumnLeft,
-            _ => false,
-        }
-    }
-
     fn desc(&self) -> &'static str {
         match self {
             GeneralAction::ShowHelp => "toggle help",
@@ -80,7 +61,7 @@ impl UserAction for GeneralAction {
         }
     }
 
-    fn merged_desc(&self, other: &GeneralAction) -> Option<&'static str> {
+    fn merge_desc_with(&self, other: &GeneralAction) -> Option<&'static str> {
         match (&self, other) {
             (Self::Left, Self::Right) => Some("switch to tab left / right"),
             (Self::Right, Self::Left) => Some("switch to tab right / left"),

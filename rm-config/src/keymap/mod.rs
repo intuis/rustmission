@@ -42,7 +42,7 @@ pub struct KeybindsHolder<T: Into<Action> + UserAction> {
     pub keybindings: Vec<Keybinding<T>>,
 }
 
-impl<T: Into<Action> + Ord + UserAction> KeybindsHolder<T> {
+impl<T: Ord + UserAction> KeybindsHolder<T> {
     const KEYS_DELIMITER: &'static str = ", ";
 
     pub fn get_help_repr(&self) -> Vec<(String, &'static str)> {
@@ -73,7 +73,7 @@ impl<T: Into<Action> + Ord + UserAction> KeybindsHolder<T> {
             }
 
             if let Some((next_action, next_keycodes)) = new_keys.get(idx + 1) {
-                if action.is_mergable_with(next_action) {
+                if let Some(merged_desc) = action.merge_desc_with(next_action) {
                     skip_next_loop = true;
                     let keys = format!(
                         "{} / {}",
@@ -81,11 +81,7 @@ impl<T: Into<Action> + Ord + UserAction> KeybindsHolder<T> {
                         next_keycodes.join(Self::KEYS_DELIMITER)
                     );
 
-                    let desc = action
-                        .merged_desc(next_action)
-                        .expect("keys checked for mergability before");
-
-                    res.push((keys, desc));
+                    res.push((keys, merged_desc));
                     continue;
                 }
             }
@@ -100,7 +96,7 @@ impl<T: Into<Action> + Ord + UserAction> KeybindsHolder<T> {
 }
 
 #[derive(Serialize, Clone)]
-pub struct Keybinding<T: UserAction> {
+pub struct Keybinding<T> {
     pub on: KeyCode,
     #[serde(default)]
     pub modifier: KeyModifier,
@@ -108,7 +104,7 @@ pub struct Keybinding<T: UserAction> {
     pub show_in_help: bool,
 }
 
-impl<T: Into<Action> + UserAction> Keybinding<T> {
+impl<T> Keybinding<T> {
     pub fn keycode_string(&self) -> String {
         let key = match self.on {
             KeyCode::Backspace => "Backspace".into(),
@@ -154,7 +150,7 @@ impl<T: Into<Action> + UserAction> Keybinding<T> {
     }
 }
 
-impl<T: UserAction> Keybinding<T> {
+impl<T> Keybinding<T> {
     fn new(on: KeyCode, action: T, modifier: Option<KeyModifier>, show_in_help: bool) -> Self {
         Self {
             on,
@@ -165,7 +161,7 @@ impl<T: UserAction> Keybinding<T> {
     }
 }
 
-impl<'de, T: Deserialize<'de> + UserAction> Deserialize<'de> for Keybinding<T> {
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Keybinding<T> {
     fn deserialize<D>(deserializer: D) -> std::prelude::v1::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -183,7 +179,7 @@ impl<'de, T: Deserialize<'de> + UserAction> Deserialize<'de> for Keybinding<T> {
             phantom: PhantomData<T>,
         }
 
-        impl<'de, T: Deserialize<'de> + UserAction> Visitor<'de> for KeybindingVisitor<T> {
+        impl<'de, T: Deserialize<'de>> Visitor<'de> for KeybindingVisitor<T> {
             type Value = Keybinding<T>;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -398,7 +394,6 @@ impl KeymapConfig {
         } else {
             Some(keys)
         }
-        
     }
 
     fn populate_hashmap(&mut self) {
