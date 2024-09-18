@@ -1,6 +1,7 @@
 pub mod actions;
 
 use std::{
+    borrow::Cow,
     collections::{BTreeMap, HashMap},
     io::ErrorKind,
     marker::PhantomData,
@@ -10,7 +11,9 @@ use std::{
 
 use actions::{search_tab::SearchAction, UserAction};
 use anyhow::{Context, Result};
-use crossterm::event::{KeyCode, KeyModifiers as CrosstermKeyModifiers};
+use crossterm::event::{
+    KeyCode, KeyModifiers as CrosstermKeyModifiers, MediaKeyCode, ModifierKeyCode,
+};
 use serde::{
     de::{self, Visitor},
     Deserialize, Serialize,
@@ -54,7 +57,7 @@ impl<T: Ord + UserAction> KeybindsHolder<T> {
 
             keys.entry(&keybinding.action)
                 .or_default()
-                .push(keybinding.keycode_string());
+                .push(keybinding.keycode_string().into());
         }
 
         let mut new_keys = vec![];
@@ -65,7 +68,6 @@ impl<T: Ord + UserAction> KeybindsHolder<T> {
 
         let mut res = vec![];
         let mut skip_next_loop = false;
-
         for (idx, (action, keycodes)) in new_keys.iter().enumerate() {
             if skip_next_loop {
                 skip_next_loop = false;
@@ -105,45 +107,77 @@ pub struct Keybinding<T> {
 }
 
 impl<T> Keybinding<T> {
-    pub fn keycode_string(&self) -> String {
+    pub fn keycode_string(&self) -> Cow<'static, str> {
         let key = match self.on {
             KeyCode::Backspace => "Backspace".into(),
             KeyCode::Enter => "Enter".into(),
-            KeyCode::Left => CONFIG.icons.arrow_left.clone(),
-            KeyCode::Right => CONFIG.icons.arrow_right.clone(),
-            KeyCode::Up => CONFIG.icons.arrow_up.clone(),
-            KeyCode::Down => CONFIG.icons.arrow_down.clone(),
+            KeyCode::Left => CONFIG.icons.arrow_left.clone().into(),
+            KeyCode::Right => CONFIG.icons.arrow_right.clone().into(),
+            KeyCode::Up => CONFIG.icons.arrow_up.clone().into(),
+            KeyCode::Down => CONFIG.icons.arrow_down.clone().into(),
             KeyCode::Home => "Home".into(),
             KeyCode::End => "End".into(),
             KeyCode::PageUp => "PageUp".into(),
             KeyCode::PageDown => "PageDown".into(),
             KeyCode::Tab => "Tab".into(),
-            KeyCode::BackTab => todo!(),
-            KeyCode::Delete => todo!(),
+            KeyCode::BackTab => "BackTab".into(),
+            KeyCode::Delete => "Delete".into(),
             KeyCode::Insert => "Insert".into(),
-            KeyCode::F(i) => format!("F{i}"),
+            KeyCode::F(i) => format!("F{i}").into(),
             KeyCode::Char(c) => {
                 if c == ' ' {
-                    "Space".into()
+                    Cow::Borrowed("Space")
                 } else {
-                    c.into()
+                    Cow::Owned(c.to_string())
                 }
             }
-            KeyCode::Null => todo!(),
+            KeyCode::Null => "Null".into(),
             KeyCode::Esc => "Esc".into(),
-            KeyCode::CapsLock => todo!(),
-            KeyCode::ScrollLock => todo!(),
-            KeyCode::NumLock => todo!(),
-            KeyCode::PrintScreen => todo!(),
-            KeyCode::Pause => todo!(),
-            KeyCode::Menu => todo!(),
-            KeyCode::KeypadBegin => todo!(),
-            KeyCode::Media(_) => todo!(),
-            KeyCode::Modifier(_) => todo!(),
-        };
+            KeyCode::CapsLock => "CapsLock".into(),
+            KeyCode::ScrollLock => "ScrollLock".into(),
+            KeyCode::NumLock => "NumLock".into(),
+            KeyCode::PrintScreen => "PrintScreen".into(),
+            KeyCode::Pause => "Pause".into(),
+            KeyCode::Menu => "Menu".into(),
+            KeyCode::KeypadBegin => "KeypadBegin".into(),
+            KeyCode::Media(media) => match media {
+                MediaKeyCode::Play => "Play",
+                MediaKeyCode::Pause => "Pause",
+                MediaKeyCode::PlayPause => "PlayPause",
+                MediaKeyCode::Reverse => "Reverse",
+                MediaKeyCode::Stop => "Stop",
+                MediaKeyCode::FastForward => "FastForward",
+                MediaKeyCode::Rewind => "Rewind",
+                MediaKeyCode::TrackNext => "TrackNext",
+                MediaKeyCode::TrackPrevious => "TrackPrevious",
+                MediaKeyCode::Record => "Record",
+                MediaKeyCode::LowerVolume => "LowerVolume",
+                MediaKeyCode::RaiseVolume => "RaiseVolume",
+                MediaKeyCode::MuteVolume => "MuteVolume",
+            }
+            .into(),
+            KeyCode::Modifier(modifier) => match modifier {
+                ModifierKeyCode::LeftShift => "LeftShift",
+                ModifierKeyCode::LeftControl => "LeftControl",
+                ModifierKeyCode::LeftAlt => "LeftAlt",
+                ModifierKeyCode::LeftSuper => "LeftSuper",
+                ModifierKeyCode::LeftHyper => "LeftHyper",
+                ModifierKeyCode::LeftMeta => "LeftMeta",
+                ModifierKeyCode::RightShift => "RightShift",
+                ModifierKeyCode::RightControl => "RightControl",
+                ModifierKeyCode::RightAlt => "RightAlt",
+                ModifierKeyCode::RightSuper => "RightSuper",
+                ModifierKeyCode::RightHyper => "RightHyper",
+                ModifierKeyCode::RightMeta => "RightMeta",
+                ModifierKeyCode::IsoLevel3Shift => "IsoLevel3Shift",
+                ModifierKeyCode::IsoLevel5Shift => "IsoLevel5Shift",
+            }
+            .into(),
+        }
+        .into();
 
         if !self.modifier.is_none() {
-            format!("{}-{key}", self.modifier.to_str())
+            format!("{}-{key}", self.modifier.to_str()).into()
         } else {
             key
         }
@@ -369,23 +403,23 @@ impl KeymapConfig {
         Some(keys.join("/"))
     }
 
-    pub fn get_keys_for_action(&self, action: Action) -> Option<Vec<String>> {
+    pub fn get_keys_for_action(&self, action: Action) -> Option<Vec<Cow<'static, str>>> {
         let mut keys = vec![];
 
         for keybinding in &self.general.keybindings {
             if action == keybinding.action.into() {
-                keys.push(keybinding.keycode_string());
+                keys.push(keybinding.keycode_string().into());
             }
         }
 
         for keybinding in &self.torrents_tab.keybindings {
             if action == keybinding.action.into() {
-                keys.push(keybinding.keycode_string());
+                keys.push(keybinding.keycode_string().into());
             }
         }
         for keybinding in &self.search_tab.keybindings {
             if action == keybinding.action.into() {
-                keys.push(keybinding.keycode_string());
+                keys.push(keybinding.keycode_string().into());
             }
         }
 
