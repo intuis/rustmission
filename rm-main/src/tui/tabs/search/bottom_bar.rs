@@ -5,7 +5,7 @@ use ratatui::{
     widgets::Paragraph,
     Frame,
 };
-use rm_config::CONFIG;
+use rm_config::{keymap::SearchAction, CONFIG};
 use rm_shared::action::{Action, UpdateAction};
 use throbber_widgets_tui::ThrobberState;
 
@@ -137,7 +137,8 @@ impl Component for SearchState {
         let append_key_info = |line: &mut Line| {
             let providers_key = CONFIG
                 .keybindings
-                .get_keys_for_action_joined(Action::ShowProvidersInfo);
+                .search_tab
+                .get_keys_for_action_joined(SearchAction::ShowProvidersInfo);
             if let Some(key) = providers_key {
                 line.push_span(Span::raw("Press "));
                 line.push_span(Span::styled(key, keybinding_style()));

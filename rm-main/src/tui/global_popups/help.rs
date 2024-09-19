@@ -1,3 +1,6 @@
+use std::borrow::Cow;
+
+use crossterm::event::KeyCode;
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Clear, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
@@ -49,11 +52,30 @@ impl Scroll {
 
 impl HelpPopup {
     pub fn new(ctx: app::Ctx) -> Self {
+        fn override_keycode(key: KeyCode) -> Option<Cow<'static, str>> {
+            match key {
+                KeyCode::Left => Some(CONFIG.icons.arrow_left.as_str().into()),
+                KeyCode::Right => Some(CONFIG.icons.arrow_right.as_str().into()),
+                KeyCode::Up => Some(CONFIG.icons.arrow_up.as_str().into()),
+                KeyCode::Down => Some(CONFIG.icons.arrow_down.as_str().into()),
+                _ => None,
+            }
+        }
+
         let mut max_key_len = 0;
         let mut max_line_len = 0;
-        let global_keys = CONFIG.keybindings.general.get_help_repr();
-        let torrent_keys = CONFIG.keybindings.torrents_tab.get_help_repr();
-        let search_keys = CONFIG.keybindings.search_tab.get_help_repr();
+        let global_keys = CONFIG
+            .keybindings
+            .general
+            .get_help_repr_with_override(override_keycode);
+        let torrent_keys = CONFIG
+            .keybindings
+            .torrents_tab
+            .get_help_repr_with_override(override_keycode);
+        let search_keys = CONFIG
+            .keybindings
+            .search_tab
+            .get_help_repr_with_override(override_keycode);
 
         let mut calc_max_lens = |keys: &[(String, &'static str)]| {
             for (keycode, desc) in keys {
