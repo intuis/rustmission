@@ -1,6 +1,5 @@
 use ratatui::prelude::*;
-use rm_config::CONFIG;
-use rm_shared::action::Action;
+use rm_config::{keymap::GeneralAction, CONFIG};
 
 use crate::tui::components::{keybinding_style, Component};
 
@@ -18,7 +17,11 @@ impl Component for Default {
         let mut line_is_empty = true;
 
         if CONFIG.general.beginner_mode {
-            if let Some(keys) = CONFIG.keybindings.get_keys_for_action(Action::ShowHelp) {
+            if let Some(keys) = CONFIG
+                .keybindings
+                .general
+                .get_keys_for_action(GeneralAction::ShowHelp)
+            {
                 line.push_span(Span::raw(format!("{}  ", CONFIG.icons.help)));
                 line_is_empty = false;
                 let keys_len = keys.len();
@@ -30,7 +33,11 @@ impl Component for Default {
                 }
                 line.push_span(Span::raw(" - help"));
             }
-            if let Some(keys) = CONFIG.keybindings.get_keys_for_action_joined(Action::Confirm) {
+            if let Some(keys) = CONFIG
+                .keybindings
+                .general
+                .get_keys_for_action_joined(GeneralAction::Confirm)
+            {
                 if !line_is_empty {
                     line.push_span(Span::raw(" | "));
                 } else {

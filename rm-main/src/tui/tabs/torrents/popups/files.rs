@@ -8,7 +8,7 @@ use ratatui::{
         Clear, Paragraph,
     },
 };
-use rm_config::CONFIG;
+use rm_config::{keymap::GeneralAction, CONFIG};
 use tokio::{sync::oneshot, task::JoinHandle};
 use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
@@ -285,13 +285,21 @@ impl Component for FilesPopup {
                 if CONFIG.general.beginner_mode {
                     let mut keys = vec![];
 
-                    if let Some(key) = CONFIG.keybindings.get_keys_for_action_joined(Action::Select) {
+                    if let Some(key) = CONFIG
+                        .keybindings
+                        .general
+                        .get_keys_for_action_joined(GeneralAction::Select)
+                    {
                         keys.push(Span::raw(" "));
                         keys.push(Span::styled(key, keybinding_style()));
                         keys.push(Span::raw(" - toggle | "));
                     }
 
-                    if let Some(key) = CONFIG.keybindings.get_keys_for_action_joined(Action::XdgOpen) {
+                    if let Some(key) = CONFIG
+                        .keybindings
+                        .general
+                        .get_keys_for_action_joined(GeneralAction::XdgOpen)
+                    {
                         keys.push(Span::styled(key, keybinding_style()));
                         keys.push(Span::raw(" - xdg_open "));
                     }

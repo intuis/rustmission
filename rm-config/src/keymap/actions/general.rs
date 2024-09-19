@@ -1,9 +1,8 @@
+use intuitils::user_action::UserAction;
 use rm_shared::action::Action;
 use serde::{Deserialize, Serialize};
 
-use super::UserAction;
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum GeneralAction {
     ShowHelp,
     Quit,

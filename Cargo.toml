@@ -17,6 +17,8 @@ license = "GPL-3.0-or-later"
 rm-config = { version = "0.5", path = "rm-config" }
 rm-shared = { version = "0.5", path = "rm-shared" }
 
+intuitils = "0.0.2"
+
 magnetease = "0.3"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }

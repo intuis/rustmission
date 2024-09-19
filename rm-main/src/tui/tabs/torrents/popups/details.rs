@@ -2,7 +2,7 @@ use ratatui::{
     prelude::*,
     widgets::{block::Title, Block, BorderType, Clear, Paragraph, Wrap},
 };
-use rm_config::CONFIG;
+use rm_config::{keymap::TorrentsAction, CONFIG};
 use rm_shared::{action::Action, utils::bytes_to_human_format};
 use style::Styled;
 
@@ -86,7 +86,8 @@ impl Component for DetailsPopup {
         show_files_line.push_span(Span::styled(
             CONFIG
                 .keybindings
-                .get_keys_for_action_joined(Action::ShowFiles)
+                .torrents_tab
+                .get_keys_for_action_joined(TorrentsAction::ShowFiles)
                 .unwrap_or_default(),
             keybinding_style(),
         ));
@@ -96,7 +97,8 @@ impl Component for DetailsPopup {
         move_location_line.push_span(Span::styled(
             CONFIG
                 .keybindings
-                .get_keys_for_action_joined(Action::MoveTorrent)
+                .torrents_tab
+                .get_keys_for_action_joined(TorrentsAction::MoveTorrent)
                 .unwrap_or_default(),
             keybinding_style(),
         ));
@@ -106,7 +108,8 @@ impl Component for DetailsPopup {
         delete_line.push_span(Span::styled(
             CONFIG
                 .keybindings
-                .get_keys_for_action_joined(Action::Delete)
+                .torrents_tab
+                .get_keys_for_action_joined(TorrentsAction::Delete)
                 .unwrap_or_default(),
             keybinding_style(),
         ));
@@ -116,7 +119,8 @@ impl Component for DetailsPopup {
         change_category_line.push_span(Span::styled(
             CONFIG
                 .keybindings
-                .get_keys_for_action_joined(Action::ChangeCategory)
+                .torrents_tab
+                .get_keys_for_action_joined(TorrentsAction::ChangeCategory)
                 .unwrap_or_default(),
             keybinding_style(),
         ));
