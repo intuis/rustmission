@@ -37,6 +37,10 @@ impl Component for DetailsPopup {
                 self.ctx.send_action(Action::ShowFiles);
                 ComponentAction::Quit
             }
+            Action::Rename => {
+                self.ctx.send_action(Action::Rename);
+                ComponentAction::Quit
+            }
             Action::ChangeCategory => {
                 self.ctx.send_action(Action::ChangeCategory);
                 ComponentAction::Quit
@@ -103,6 +107,17 @@ impl Component for DetailsPopup {
             keybinding_style(),
         ));
 
+        let mut rename_line = Line::default();
+        rename_line.push_span(Span::raw("Rename: "));
+        rename_line.push_span(Span::styled(
+            CONFIG
+                .keybindings
+                .torrents_tab
+                .get_keys_for_action_joined(TorrentsAction::Rename)
+                .unwrap_or_default(),
+            keybinding_style(),
+        ));
+
         let mut delete_line = Line::default();
         delete_line.push_span(Span::raw("Delete: "));
         delete_line.push_span(Span::styled(
@@ -158,6 +173,7 @@ impl Component for DetailsPopup {
         lines.push(padding_line);
         lines.push(delete_line);
         lines.push(show_files_line);
+        lines.push(rename_line);
         lines.push(move_location_line);
         lines.push(change_category_line);
 

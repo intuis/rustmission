@@ -41,6 +41,7 @@ pub enum Action {
     AddMagnet,
     MoveTorrent,
     ChangeCategory,
+    Rename,
     // Search Tab
     ShowProvidersInfo,
 }

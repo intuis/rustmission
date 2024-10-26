@@ -9,6 +9,7 @@ pub struct StatusTask {
 enum TaskType {
     Add,
     Delete,
+    Rename,
     Move,
     Open,
     ChangeCategory,
@@ -18,6 +19,13 @@ impl StatusTask {
     pub fn new_add(what: impl Into<String>) -> Self {
         StatusTask {
             task_type: TaskType::Add,
+            what: what.into(),
+        }
+    }
+
+    pub fn new_rename(what: impl Into<String>) -> Self {
+        StatusTask {
+            task_type: TaskType::Rename,
             what: what.into(),
         }
     }
@@ -65,6 +73,7 @@ impl StatusTask {
                     format!(" Category set to {truncated}!")
                 }
             }
+            TaskType::Rename => format!("Renamed {truncated}"),
         }
     }
 
@@ -77,6 +86,7 @@ impl StatusTask {
             TaskType::Move => format!(" Error moving to {truncated}"),
             TaskType::Open => format!(" Error opening {truncated}"),
             TaskType::ChangeCategory => format!(" Error changing category to {truncated}"),
+            TaskType::Rename => format!(" Error renaming {truncated}"),
         }
     }
 
@@ -89,6 +99,7 @@ impl StatusTask {
             TaskType::Move => format!(" Moving {truncated}"),
             TaskType::Open => format!(" Opening {truncated}"),
             TaskType::ChangeCategory => format!(" Changing category to {truncated}"),
+            TaskType::Rename => format!(" Renaming {truncated}"),
         }
     }
 }

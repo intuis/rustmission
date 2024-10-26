@@ -23,6 +23,8 @@ pub enum TorrentAction {
     Start(Vec<Id>),
     // Torrent ID, Directory to move to
     Move(Vec<Id>, String),
+    // Torrent ID, Current name, Name to change to
+    Rename(Id, String, String),
     // Torrent ID, Category to set
     ChangeCategory(Vec<Id>, String),
     // Delete Torrents with these given IDs (without files)
@@ -223,6 +225,22 @@ pub async fn action_handler(
                     Ok(_) => action_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = "Failed to set category";
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                        action_tx
+                            .send(UpdateAction::Error(Box::new(err_message)))
+                            .unwrap();
+                        action_tx.send(UpdateAction::StatusTaskFailure).unwrap();
+                    }
+                }
+            }
+            TorrentAction::Rename(id, current_name, new_name) => {
+                match client
+                    .torrent_rename_path(vec![id], current_name, new_name)
+                    .await
+                {
+                    Ok(_) => action_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
+                    Err(err) => {
+                        let msg = "Failed to rename a torrent";
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         action_tx
                             .send(UpdateAction::Error(Box::new(err_message)))

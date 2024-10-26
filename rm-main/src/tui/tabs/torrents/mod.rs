@@ -151,6 +151,12 @@ impl Component for TorrentsTab {
                     self.task_manager.delete_torrents(torrent_selection);
                 }
             }
+            A::Rename => {
+                if let Some(TorrentSelection::Single(id, curr_name)) = self.get_currently_selected()
+                {
+                    self.task_manager.rename(id, curr_name);
+                }
+            }
             A::AddMagnet => self.task_manager.add_magnet(),
             A::Search => self.task_manager.search(
                 &self
