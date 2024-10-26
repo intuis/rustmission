@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub enum TorrentsAction {
     AddMagnet,
     MoveTorrent,
+    Rename,
     Pause,
     Delete,
     ShowFiles,
@@ -23,6 +24,7 @@ impl UserAction for TorrentsAction {
             TorrentsAction::ShowFiles => "show files",
             TorrentsAction::ShowStats => "show statistics",
             TorrentsAction::ChangeCategory => "change category",
+            TorrentsAction::Rename => "rename torrent path",
         }
     }
 }
@@ -37,6 +39,7 @@ impl From<TorrentsAction> for Action {
             TorrentsAction::ShowFiles => Action::ShowFiles,
             TorrentsAction::ShowStats => Action::ShowStats,
             TorrentsAction::ChangeCategory => Action::ChangeCategory,
+            TorrentsAction::Rename => Action::Rename,
         }
     }
 }

@@ -6,6 +6,7 @@ use rm_shared::{
     action::{Action, UpdateAction},
     status_task::StatusTask,
 };
+use transmission_rpc::types::Id;
 
 use crate::tui::{
     app,
@@ -45,6 +46,7 @@ pub enum CurrentTask {
     Status(tasks::Status),
     Sort(tasks::Sort),
     Selection(tasks::Selection),
+    Rename(tasks::Rename),
 }
 
 impl CurrentTask {
@@ -89,6 +91,11 @@ impl Component for TaskManager {
                     self.cancel_task()
                 }
             }
+            CurrentTask::Rename(rename_bar) => {
+                if rename_bar.handle_actions(action).is_quit() {
+                    self.cancel_task()
+                }
+            }
             CurrentTask::Default(_) => (),
             CurrentTask::Sort(_) => (),
             CurrentTask::Selection(_) => (),
@@ -126,6 +133,7 @@ impl Component for TaskManager {
             CurrentTask::ChangeCategory(category_bar) => category_bar.render(f, rect),
             CurrentTask::Sort(sort_bar) => sort_bar.render(f, rect),
             CurrentTask::Selection(selection_bar) => selection_bar.render(f, rect),
+            CurrentTask::Rename(rename_bar) => rename_bar.render(f, rect),
         }
     }
 
@@ -143,6 +151,12 @@ impl TaskManager {
     pub fn search(&mut self, current_pattern: &Option<String>) {
         self.current_task =
             CurrentTask::Filter(tasks::Filter::new(self.ctx.clone(), current_pattern));
+        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+    }
+
+    pub fn rename(&mut self, id: Id, curr_name: String) {
+        self.current_task =
+            CurrentTask::Rename(tasks::Rename::new(self.ctx.clone(), id, curr_name));
         self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
     }
 

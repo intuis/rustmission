@@ -43,6 +43,7 @@ keybindings = [
 keybindings = [
   { on = "a", action = "AddMagnet" },
   { on = "m", action = "MoveTorrent" },
+  { on = "r", action = "Rename" },
   { on = "c", action = "ChangeCategory" },
   { on = "p", action = "Pause" },
   { on = "f", action = "ShowFiles" },
