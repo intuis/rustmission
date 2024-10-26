@@ -212,12 +212,12 @@ pub fn event_to_action(ctx: &Ctx, mode: Mode, current_tab: CurrentTab, event: Ev
         Event::Key(key) => {
             let keymaps = match current_tab {
                 CurrentTab::Torrents => [
-                    &CONFIG.keybindings.general_keymap,
-                    &CONFIG.keybindings.torrent_keymap,
+                    &CONFIG.keybindings.general.map,
+                    &CONFIG.keybindings.torrents_tab.map,
                 ],
                 CurrentTab::Search => [
-                    &CONFIG.keybindings.general_keymap,
-                    &CONFIG.keybindings.search_keymap,
+                    &CONFIG.keybindings.general.map,
+                    &CONFIG.keybindings.search_tab.map,
                 ],
             };
 

@@ -1,12 +1,12 @@
 pub mod categories;
 pub mod keymap;
 pub mod main_config;
-mod utils;
 
 use std::{path::PathBuf, sync::LazyLock};
 
 use anyhow::Result;
 use categories::CategoriesConfig;
+use intuitils::config::IntuiConfig;
 use keymap::KeymapConfig;
 use main_config::MainConfig;
 
