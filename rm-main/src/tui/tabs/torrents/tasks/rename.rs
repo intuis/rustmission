@@ -23,7 +23,7 @@ pub struct Rename {
 
 impl Rename {
     pub fn new(ctx: app::Ctx, to_rename: Id, curr_name: String) -> Self {
-        let prompt = String::from("New name ");
+        let prompt = String::from("New name: ");
 
         Self {
             id: to_rename,
@@ -34,6 +34,12 @@ impl Rename {
     }
 
     fn rename(&self) {
+        let new_name = self.input_mgr.text();
+
+        if self.curr_name == new_name {
+            return;
+        }
+
         let task = StatusTask::new_rename(self.curr_name.clone());
 
         self.ctx
