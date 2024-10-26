@@ -36,3 +36,4 @@ regex.workspace = true
 throbber-widgets-tui.workspace = true 
 chrono.workspace = true
 open.workspace = true
+intuitils.workspace = true

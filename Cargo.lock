@@ -938,12 +938,16 @@ dependencies = [
 
 [[package]]
 name = "intuitils"
-version = "0.0.2"
+version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe41f023631befe1fdb683fbaf9af116277e39ad99a5580a61ac3a9616e7f757"
+checksum = "49f619d42c7cc56f9a2d773a1570a07118105113bc8467460dc95d5f828d7b3c"
 dependencies = [
+ "anyhow",
  "crossterm",
  "serde",
+ "thiserror",
+ "toml",
+ "xdg",
 ]
 
 [[package]]
@@ -1747,6 +1751,7 @@ dependencies = [
  "crossterm",
  "futures",
  "fuzzy-matcher",
+ "intuitils",
  "magnetease",
  "open",
  "ratatui",
