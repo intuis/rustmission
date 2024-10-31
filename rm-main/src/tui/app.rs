@@ -5,6 +5,7 @@ use crate::{
     tui::components::Component,
 };
 
+use intuitils::Terminal;
 use rm_config::CONFIG;
 use rm_shared::action::{Action, UpdateAction};
 
@@ -13,7 +14,7 @@ use crossterm::event::{Event, KeyCode, KeyModifiers};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use transmission_rpc::{types::SessionGet, TransClient};
 
-use super::{components::CurrentTab, main_window::MainWindow, terminal::Tui};
+use super::{components::CurrentTab, main_window::MainWindow};
 
 #[derive(Clone)]
 pub struct Ctx {
@@ -96,22 +97,22 @@ impl App {
     }
 
     pub async fn run(&mut self) -> Result<()> {
-        let mut tui = Tui::new()?;
+        let mut terminal = Terminal::new()?;
 
-        tui.enter()?;
+        terminal.init()?;
 
-        self.render(&mut tui)?;
+        self.render(&mut terminal)?;
 
-        self.main_loop(&mut tui).await?;
+        self.main_loop(&mut terminal).await?;
 
-        tui.exit()?;
+        terminal.exit()?;
         Ok(())
     }
 
-    async fn main_loop(&mut self, tui: &mut Tui) -> Result<()> {
+    async fn main_loop(&mut self, terminal: &mut Terminal) -> Result<()> {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(250));
         loop {
-            let tui_event = tui.next();
+            let tui_event = terminal.next();
             let action = self.action_rx.recv();
             let update_action = self.update_rx.recv();
             let tick_action = interval.tick();
@@ -130,7 +131,7 @@ impl App {
                 action = action => {
                     if let Some(action) = action {
                         if action.is_render() {
-                            self.render(tui)?;
+                            self.render(terminal)?;
                         } else {
                             self.handle_user_action(action).await
                         }
@@ -144,8 +145,8 @@ impl App {
         }
     }
 
-    fn render(&mut self, tui: &mut Tui) -> Result<()> {
-        tui.terminal.draw(|f| {
+    fn render(&mut self, terminal: &mut Terminal) -> Result<()> {
+        terminal.draw(|f| {
             self.main_window.render(f, f.area());
         })?;
         Ok(())

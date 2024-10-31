@@ -938,14 +938,18 @@ dependencies = [
 
 [[package]]
 name = "intuitils"
-version = "0.0.3"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49f619d42c7cc56f9a2d773a1570a07118105113bc8467460dc95d5f828d7b3c"
+checksum = "c01810c86170f0bc2dab8dbeea9958e73e5aa90d9dd9881a954a29deeb36af22"
 dependencies = [
  "anyhow",
  "crossterm",
+ "futures",
+ "ratatui",
  "serde",
  "thiserror",
+ "tokio",
+ "tokio-util",
  "toml",
  "xdg",
 ]
