@@ -14,7 +14,7 @@ use crossterm::event::{Event, KeyCode, KeyModifiers};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use transmission_rpc::{types::SessionGet, TransClient};
 
-use super::{components::CurrentTab, main_window::MainWindow};
+use super::main_window::{CurrentTab, MainWindow};
 
 #[derive(Clone)]
 pub struct Ctx {
@@ -117,7 +117,7 @@ impl App {
             let update_action = self.update_rx.recv();
             let tick_action = interval.tick();
 
-            let current_tab = self.main_window.tabs.current_tab;
+            let current_tab = self.main_window.tabs.current();
 
             tokio::select! {
                 _ = tick_action => self.tick(),

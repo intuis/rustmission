@@ -1,7 +1,6 @@
 mod input_manager;
 mod misc;
 mod table;
-mod tabs;
 
 pub use input_manager::InputManager;
 pub use misc::{
@@ -9,10 +8,8 @@ pub use misc::{
     popup_close_button_highlight, popup_rects,
 };
 pub use table::GenericTable;
-pub use tabs::{CurrentTab, TabComponent};
 
 use ratatui::prelude::*;
-use ratatui::Frame;
 
 use rm_shared::action::Action;
 use rm_shared::action::UpdateAction;

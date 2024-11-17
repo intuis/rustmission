@@ -412,7 +412,7 @@ impl Component for SearchTab {
             .fg(CONFIG.general.accent_color);
 
         let table = {
-            let table = Table::new(items, widths).highlight_style(table_higlight_style);
+            let table = Table::new(items, widths).row_highlight_style(table_higlight_style);
             if !CONFIG.general.headers_hide {
                 table.header(header)
             } else {
