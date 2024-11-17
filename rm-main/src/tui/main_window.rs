@@ -1,30 +1,55 @@
+use std::fmt::Display;
+
+use intui_tabs::{Tabs, TabsState};
 use ratatui::prelude::*;
 
+use rm_config::CONFIG;
 use rm_shared::action::{Action, UpdateAction};
-
-use crate::tui::components::CurrentTab;
 
 use super::{
     app,
-    components::{Component, ComponentAction, TabComponent},
+    components::{Component, ComponentAction},
     global_popups::{ErrorPopup, GlobalPopupManager},
     tabs::{search::SearchTab, torrents::TorrentsTab},
 };
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum CurrentTab {
+    Torrents = 0,
+    Search,
+}
+
+impl Default for CurrentTab {
+    fn default() -> Self {
+        CurrentTab::Torrents
+    }
+}
+
+impl Display for CurrentTab {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CurrentTab::Torrents => write!(f, "Torrents"),
+            CurrentTab::Search => write!(f, "Search"),
+        }
+    }
+}
+
 pub struct MainWindow {
-    pub tabs: TabComponent,
+    pub tabs: intui_tabs::TabsState<CurrentTab>,
     torrents_tab: TorrentsTab,
     search_tab: SearchTab,
     global_popup_manager: GlobalPopupManager,
+    ctx: app::Ctx,
 }
 
 impl MainWindow {
     pub fn new(ctx: app::Ctx) -> Self {
         Self {
-            tabs: TabComponent::new(ctx.clone()),
+            tabs: TabsState::new(vec![CurrentTab::Torrents, CurrentTab::Search]),
             torrents_tab: TorrentsTab::new(ctx.clone()),
             search_tab: SearchTab::new(ctx.clone()),
-            global_popup_manager: GlobalPopupManager::new(ctx),
+            global_popup_manager: GlobalPopupManager::new(ctx.clone()),
+            ctx,
         }
     }
 }
@@ -40,13 +65,22 @@ impl Component for MainWindow {
             _ if self.global_popup_manager.needs_action() => {
                 self.global_popup_manager.handle_actions(action);
             }
-            A::ChangeTab(_) | A::Left | A::Right => {
-                self.tabs.handle_actions(action);
+            A::Left | A::ChangeTab(1) => {
+                if self.tabs.current() != CurrentTab::Torrents {
+                    self.tabs.set(1);
+                    self.ctx.send_action(Action::Render);
+                }
             }
-            _ if self.tabs.current_tab == CurrentTab::Torrents => {
+            A::Right | A::ChangeTab(2) => {
+                if self.tabs.current() != CurrentTab::Search {
+                    self.tabs.set(2);
+                    self.ctx.send_action(Action::Render);
+                }
+            }
+            _ if self.tabs.current() == CurrentTab::Torrents => {
                 self.torrents_tab.handle_actions(action);
             }
-            _ if self.tabs.current_tab == CurrentTab::Search => {
+            _ if self.tabs.current() == CurrentTab::Search => {
                 self.search_tab.handle_actions(action);
             }
             _ => unreachable!(),
@@ -61,10 +95,10 @@ impl Component for MainWindow {
                 let error_popup = ErrorPopup::new(err.title, err.description, err.source);
                 self.global_popup_manager.error_popup = Some(error_popup);
             }
-            action if self.tabs.current_tab == CurrentTab::Torrents => {
+            action if self.tabs.current() == CurrentTab::Torrents => {
                 self.torrents_tab.handle_update_action(action)
             }
-            action if self.tabs.current_tab == CurrentTab::Search => {
+            action if self.tabs.current() == CurrentTab::Search => {
                 self.search_tab.handle_update_action(action)
             }
             _ => unreachable!(),
@@ -80,9 +114,12 @@ impl Component for MainWindow {
         let [top_bar, main_window] =
             Layout::vertical([Constraint::Length(1), Constraint::Percentage(100)]).areas(rect);
 
-        self.tabs.render(f, top_bar);
+        let tabs = Tabs::new()
+            .beginner_mode(CONFIG.general.beginner_mode)
+            .color(CONFIG.general.accent_color);
+        f.render_stateful_widget(tabs, top_bar, &mut self.tabs);
 
-        match self.tabs.current_tab {
+        match self.tabs.current() {
             CurrentTab::Torrents => self.torrents_tab.render(f, main_window),
             CurrentTab::Search => self.search_tab.render(f, main_window),
         }

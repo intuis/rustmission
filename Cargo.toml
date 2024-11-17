@@ -17,7 +17,7 @@ license = "GPL-3.0-or-later"
 rm-config = { version = "0.5", path = "rm-config" }
 rm-shared = { version = "0.5", path = "rm-shared" }
 
-intuitils = "0.0.4"
+intuitils = "0.0.5"
 
 magnetease = "0.3"
 anyhow = "1"
@@ -43,10 +43,11 @@ futures = "0.3"
 
 # TUI
 crossterm = { version = "0.28", features = ["event-stream", "serde"] }
-ratatui = { version = "0.28", features = ["serde"] }
-tui-input = "0.10.1"
-tui-tree-widget = "0.22"
-throbber-widgets-tui = "0.7"
+ratatui = { version = "0.29", features = ["serde"] }
+tui-input = "0.11"
+tui-tree-widget = "0.23"
+throbber-widgets-tui = "0.8"
+intui-tabs = "0.3"
 
 # Config for 'cargo dist'
 [workspace.metadata.dist]
