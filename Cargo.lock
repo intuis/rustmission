@@ -1126,7 +1126,7 @@ dependencies = [
  "futures",
  "ratatui",
  "serde",
- "thiserror 1.0.69",
+ "thiserror",
  "tokio",
  "tokio-util",
  "toml",
