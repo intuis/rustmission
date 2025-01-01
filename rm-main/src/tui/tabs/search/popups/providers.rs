@@ -26,7 +26,9 @@ impl From<&ConfiguredProvider> for Row<'_> {
             ProviderState::Idle => format!(" {} ", CONFIG.icons.idle).yellow().into(),
             ProviderState::Searching => format!(" {} ", CONFIG.icons.searching).yellow().into(),
             ProviderState::Found(_) => format!(" {} ", CONFIG.icons.success).green().into(),
-            ProviderState::Error(_) => format!(" {} ", CONFIG.icons.failure).red().into(),
+            ProviderState::Error(_) | ProviderState::Timeout => {
+                format!(" {} ", CONFIG.icons.failure).red().into()
+            }
         };
 
         name.push_span(value.provider.name());
@@ -55,6 +57,7 @@ impl From<&ConfiguredProvider> for Row<'_> {
                 line.push_span(")");
                 line
             }
+            ProviderState::Timeout => "Timeout".red().into(),
             ProviderState::Error(e) => e.to_string().red().into(),
         };
 

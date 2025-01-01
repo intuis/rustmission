@@ -96,7 +96,7 @@ impl App {
         })
     }
 
-    pub async fn run(&mut self) -> Result<()> {
+    pub async fn run(mut self) -> Result<()> {
         let mut terminal = Terminal::new()?;
 
         terminal.init()?;
@@ -109,7 +109,7 @@ impl App {
         Ok(())
     }
 
-    async fn main_loop(&mut self, terminal: &mut Terminal) -> Result<()> {
+    async fn main_loop(mut self, terminal: &mut Terminal) -> Result<()> {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(250));
         loop {
             let tui_event = terminal.next();
@@ -131,7 +131,7 @@ impl App {
                 action = action => {
                     if let Some(action) = action {
                         if action.is_render() {
-                            self.render(terminal)?;
+                            tokio::task::block_in_place(|| self.render(terminal).unwrap() );
                         } else {
                             self.handle_user_action(action).await
                         }

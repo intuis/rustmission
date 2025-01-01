@@ -6,7 +6,7 @@ use anyhow::Result;
 use clap::Parser;
 use tui::app::App;
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main()]
 async fn main() -> Result<()> {
     let args = cli::Args::parse();
 
@@ -20,7 +20,7 @@ async fn main() -> Result<()> {
 }
 
 async fn run_tui() -> Result<()> {
-    let mut app = App::new().await?;
+    let app = App::new().await?;
     app.run().await?;
     Ok(())
 }

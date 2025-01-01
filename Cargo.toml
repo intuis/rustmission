@@ -19,7 +19,7 @@ rm-shared = { version = "0.5", path = "rm-shared" }
 
 intuitils = "0.0.5"
 
-magnetease = "0.3"
+magnetease = "0.3.1"
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 transmission-rpc = "0.4"
@@ -37,7 +37,7 @@ chrono = "0.4"
 open = "5.3.0"
 
 # Async
-tokio = { version = "1", features = ["macros", "sync"] }
+tokio = { version = "1", features = ["macros", "sync", "rt-multi-thread"] }
 tokio-util = "0.7"
 futures = "0.3"
 
