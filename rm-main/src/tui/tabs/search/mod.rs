@@ -1,7 +1,7 @@
 mod bottom_bar;
 mod popups;
 
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, sync::Arc, time::Duration};
 
 use bottom_bar::BottomBar;
 use crossterm::event::{Event, KeyCode, KeyEvent};
@@ -82,13 +82,26 @@ impl SearchTab {
                         }
                     }
 
-                    while let Some(result) = futures.next().await {
-                        match result {
-                            Ok(response) => {
-                                ctx.send_update_action(UpdateAction::ProviderResult(response))
-                            }
-                            Err(e) => ctx.send_update_action(UpdateAction::ProviderError(e)),
-                        }
+                    loop {
+                        tokio::select! {
+                            _ = tokio::time::sleep(Duration::from_secs(5)) => {
+                                break;
+                            },
+                            maybe_result = futures.next() => {
+                                if let Some(result) = maybe_result {
+                                    match result {
+                                        Ok(response) => {
+                                            ctx.send_update_action(UpdateAction::ProviderResult(response))
+                                        },
+                                        Err(e) => ctx.send_update_action(UpdateAction::ProviderError(e)),
+                                    }
+                                } else {
+                                    // This means that the whole search is finished.
+                                    // Not breaking here would make us wait for the timeout.
+                                    break;
+                                }
+                            },
+                        };
                     }
                     ctx.send_update_action(UpdateAction::SearchFinished);
                 }
@@ -299,6 +312,9 @@ impl Component for SearchTab {
                 self.table.state.borrow_mut().select(None);
 
                 self.bottom_bar
+                    .search_state
+                    .update_counts(&self.configured_providers);
+                self.bottom_bar
                     .handle_update_action(UpdateAction::SearchStarted);
                 self.update_providers_popup();
             }
@@ -333,6 +349,12 @@ impl Component for SearchTab {
                 if self.table.items.is_empty() {
                     self.bottom_bar.search_state.not_found();
                 } else {
+                    for provider in &mut self.configured_providers {
+                        if matches!(provider.provider_state, ProviderState::Searching) {
+                            provider.provider_state = ProviderState::Timeout;
+                        }
+                    }
+
                     self.bottom_bar.search_state.found(self.table.items.len());
                 }
             }
@@ -449,5 +471,6 @@ enum ProviderState {
     Idle,
     Searching,
     Found(u16),
+    Timeout,
     Error(Arc<MagneteaseErrorKind>),
 }

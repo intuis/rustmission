@@ -59,7 +59,12 @@ impl Component for BottomBar {
                     .send_update_action(UpdateAction::SwitchToNormalMode);
             };
         }
+
         ComponentAction::Nothing
+    }
+
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        self.search_state.handle_update_action(action);
     }
 
     fn tick(&mut self) {
@@ -102,15 +107,20 @@ impl SearchState {
     }
 
     pub fn update_counts(&mut self, providers: &Vec<ConfiguredProvider>) {
+        let mut providers_finished = 0;
+        let mut providers_errored = 0;
         for provider in providers {
             if provider.enabled {
                 if matches!(provider.provider_state, ProviderState::Found(_)) {
-                    self.providers_finished += 1;
+                    providers_finished += 1;
                 } else if matches!(provider.provider_state, ProviderState::Error(_)) {
-                    self.providers_errored += 1;
+                    providers_errored += 1;
                 }
             }
         }
+
+        self.providers_finished = providers_finished;
+        self.providers_errored = providers_errored;
     }
 
     pub fn searching(&mut self) {
@@ -150,8 +160,8 @@ impl Component for SearchState {
             SearchStage::Nothing => (),
             SearchStage::Searching(ref mut state) => {
                 let label = format!(
-                    "Searching... {:.0}%",
-                    self.providers_finished / self.providers_count
+                    "Searching... {}/{}",
+                    self.providers_finished, self.providers_count
                 );
                 let default_throbber = throbber_widgets_tui::Throbber::default()
                     .label(label)
