@@ -1,4 +1,4 @@
-<img align="left" width="100" height="100" src="https://github.com/user-attachments/assets/d2fc94d2-c52b-41db-8d96-3651bdfc2139">
+<img align="left" width="100" height="100" src="https://github.com/user-attachments/assets/29ce0441-889e-42d7-b9ce-3f1c9888ef31">
 
 **Rustmission**
 
