@@ -7,6 +7,7 @@ use crate::{
     tui::{
         app,
         components::{Component, ComponentAction, InputManager},
+        tabs::torrents::SESSION_GET,
     },
 };
 use rm_shared::{
@@ -40,7 +41,7 @@ impl AddMagnet {
                 .autocompletions(CONFIG.categories.map.keys().cloned().collect()),
             input_location_mgr: InputManager::new_with_value(
                 LOCATION_PROMPT.to_string(),
-                ctx.session_info.download_dir.clone(),
+                SESSION_GET.get().unwrap().download_dir.clone(),
             ),
             stage: Stage::Magnet,
             ctx,

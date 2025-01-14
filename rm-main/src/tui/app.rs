@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     transmission::{self, TorrentAction},
     tui::components::Component,
@@ -9,46 +7,29 @@ use intuitils::Terminal;
 use rm_config::CONFIG;
 use rm_shared::action::{Action, UpdateAction};
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use crossterm::event::{Event, KeyCode, KeyModifiers};
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
-use transmission_rpc::{types::SessionGet, TransClient};
 
 use super::main_window::{CurrentTab, MainWindow};
 
 #[derive(Clone)]
 pub struct Ctx {
-    pub session_info: Arc<SessionGet>,
     action_tx: UnboundedSender<Action>,
     update_tx: UnboundedSender<UpdateAction>,
     trans_tx: UnboundedSender<TorrentAction>,
 }
 
 impl Ctx {
-    async fn new(
-        client: &mut TransClient,
+    fn new(
         action_tx: UnboundedSender<Action>,
         update_tx: UnboundedSender<UpdateAction>,
         trans_tx: UnboundedSender<TorrentAction>,
-    ) -> Result<Self> {
-        let response = client.session_get().await;
-        match response {
-            Ok(res) => {
-                let session_info = Arc::new(res.arguments);
-                Ok(Self {
-                    action_tx,
-                    trans_tx,
-                    update_tx,
-                    session_info,
-                })
-            }
-            Err(e) => {
-                let config_path = CONFIG.directories.main_path;
-                Err(Error::msg(format!(
-                    "{e}\nIs the connection info in {:?} correct?",
-                    config_path
-                )))
-            }
+    ) -> Self {
+        Self {
+            action_tx,
+            update_tx,
+            trans_tx,
         }
     }
 
@@ -79,10 +60,10 @@ impl App {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (update_tx, update_rx) = mpsc::unbounded_channel();
 
-        let mut client = transmission::utils::new_client();
+        let client = transmission::utils::new_client();
 
         let (trans_tx, trans_rx) = mpsc::unbounded_channel();
-        let ctx = Ctx::new(&mut client, action_tx.clone(), update_tx.clone(), trans_tx).await?;
+        let ctx = Ctx::new(action_tx.clone(), update_tx.clone(), trans_tx);
 
         tokio::spawn(transmission::action_handler(client, trans_rx, update_tx));
 

@@ -5,6 +5,8 @@ pub mod table_manager;
 pub mod task_manager;
 pub mod tasks;
 
+use std::sync::OnceLock;
+
 use crate::transmission::TorrentAction;
 use crate::tui::app;
 use crate::tui::components::{Component, ComponentAction};
@@ -17,7 +19,7 @@ use rm_config::CONFIG;
 use rm_shared::status_task::StatusTask;
 use rustmission_torrent::RustmissionTorrent;
 use tasks::TorrentSelection;
-use transmission_rpc::types::{Id, TorrentStatus};
+use transmission_rpc::types::{Id, SessionGet, TorrentStatus};
 
 use crate::transmission;
 use rm_shared::action::{Action, ErrorMessage, UpdateAction};
@@ -27,6 +29,8 @@ use self::popups::files::FilesPopup;
 use self::popups::{CurrentPopup, PopupManager};
 use self::table_manager::TableManager;
 use self::task_manager::TaskManager;
+
+pub static SESSION_GET: OnceLock<SessionGet> = OnceLock::new();
 
 pub struct TorrentsTab {
     ctx: app::Ctx,
@@ -167,8 +171,10 @@ impl Component for TorrentsTab {
             ),
             A::MoveTorrent => {
                 if let Some(selection) = self.get_currently_selected() {
-                    self.task_manager
-                        .move_torrent(selection, self.ctx.session_info.download_dir.clone());
+                    if let Some(session_info) = SESSION_GET.get() {
+                        self.task_manager
+                            .move_torrent(selection, session_info.download_dir.clone());
+                    }
                 }
             }
             A::ChangeCategory => {
