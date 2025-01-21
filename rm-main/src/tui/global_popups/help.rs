@@ -10,7 +10,7 @@ use rm_config::CONFIG;
 use rm_shared::action::Action;
 
 use crate::tui::{
-    app,
+    app::CTX,
     components::{popup_block_with_close_highlight, popup_rects, Component, ComponentAction},
 };
 
@@ -25,7 +25,6 @@ macro_rules! add_line {
 }
 
 pub struct HelpPopup {
-    ctx: app::Ctx,
     scroll: Option<Scroll>,
     global_keys: Vec<(String, &'static str)>,
     torrent_keys: Vec<(String, &'static str)>,
@@ -51,7 +50,7 @@ impl Scroll {
 }
 
 impl HelpPopup {
-    pub fn new(ctx: app::Ctx) -> Self {
+    pub fn new() -> Self {
         fn override_keycode(key: KeyCode) -> Option<Cow<'static, str>> {
             match key {
                 KeyCode::Left => Some(CONFIG.icons.arrow_left.as_str().into()),
@@ -99,7 +98,6 @@ impl HelpPopup {
         debug_assert!(max_key_len > 0);
         debug_assert!(max_line_len > 0);
         Self {
-            ctx,
             scroll: None,
             global_keys,
             torrent_keys,
@@ -117,7 +115,7 @@ impl HelpPopup {
 
             scroll.position = scroll.position.saturating_add(1);
             scroll.state.next();
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
         ComponentAction::Nothing
     }
@@ -126,7 +124,7 @@ impl HelpPopup {
         if let Some(scroll) = &mut self.scroll {
             scroll.position = scroll.position.saturating_sub(1);
             scroll.state.prev();
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
         ComponentAction::Nothing
     }
@@ -135,7 +133,7 @@ impl HelpPopup {
         if let Some(scroll) = &mut self.scroll {
             scroll.position = scroll.position_max;
             scroll.state.last();
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
         ComponentAction::Nothing
     }
@@ -144,7 +142,7 @@ impl HelpPopup {
         if let Some(scroll) = &mut self.scroll {
             scroll.position = 0;
             scroll.state.first();
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
         ComponentAction::Nothing
     }

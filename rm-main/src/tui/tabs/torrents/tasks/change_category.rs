@@ -9,7 +9,7 @@ use rm_shared::{
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app,
+        app::CTX,
         components::{Component, ComponentAction, InputManager},
     },
 };
@@ -18,7 +18,6 @@ use super::TorrentSelection;
 
 pub struct ChangeCategory {
     selection: TorrentSelection,
-    ctx: app::Ctx,
     category_input_mgr: InputManager,
     directory_input_mgr: InputManager,
     default_dir: Option<String>,
@@ -31,14 +30,13 @@ enum Stage {
 }
 
 impl ChangeCategory {
-    pub fn new(ctx: app::Ctx, selection: TorrentSelection) -> Self {
+    pub fn new(selection: TorrentSelection) -> Self {
         let prompt = "New category: ".to_string();
 
         Self {
             selection,
             category_input_mgr: InputManager::new(prompt)
                 .autocompletions(CONFIG.categories.map.keys().cloned().collect()),
-            ctx,
             directory_input_mgr: InputManager::new(
                 "Move to category's default dir? (Y/n): ".into(),
             ),
@@ -48,8 +46,7 @@ impl ChangeCategory {
     }
     fn send_status_task(&self) {
         let task = StatusTask::new_category(self.category_input_mgr.text());
-        self.ctx
-            .send_update_action(UpdateAction::StatusTaskSet(task));
+        CTX.send_update_action(UpdateAction::StatusTaskSet(task));
     }
 
     fn set_stage_directory(&mut self, directory: String) {
@@ -69,12 +66,12 @@ impl ChangeCategory {
             if self.directory_input_mgr.text().to_lowercase() == "y"
                 || self.directory_input_mgr.text().is_empty()
             {
-                self.ctx.send_torrent_action(TorrentAction::ChangeCategory(
+                CTX.send_torrent_action(TorrentAction::ChangeCategory(
                     self.selection.ids(),
                     self.category_input_mgr.text(),
                 ));
 
-                self.ctx.send_torrent_action(TorrentAction::Move(
+                CTX.send_torrent_action(TorrentAction::Move(
                     self.selection.ids(),
                     self.default_dir
                         .take()
@@ -85,7 +82,7 @@ impl ChangeCategory {
 
                 return ComponentAction::Quit;
             } else if self.directory_input_mgr.text().to_lowercase() == "n" {
-                self.ctx.send_torrent_action(TorrentAction::ChangeCategory(
+                CTX.send_torrent_action(TorrentAction::ChangeCategory(
                     self.selection.ids(),
                     self.category_input_mgr.text(),
                 ));
@@ -101,7 +98,7 @@ impl ChangeCategory {
         }
 
         if self.directory_input_mgr.handle_key(input).is_some() {
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
 
         ComponentAction::Nothing
@@ -113,10 +110,10 @@ impl ChangeCategory {
 
             if let Some(config_category) = CONFIG.categories.map.get(&category) {
                 self.set_stage_directory(config_category.default_dir.clone());
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
                 return ComponentAction::Nothing;
             } else {
-                self.ctx.send_torrent_action(TorrentAction::ChangeCategory(
+                CTX.send_torrent_action(TorrentAction::ChangeCategory(
                     self.selection.ids(),
                     category.clone(),
                 ));
@@ -130,7 +127,7 @@ impl ChangeCategory {
         }
 
         if self.category_input_mgr.handle_key(input).is_some() {
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
 
         ComponentAction::Nothing

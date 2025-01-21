@@ -5,7 +5,7 @@ use rm_config::CONFIG;
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app,
+        app::CTX,
         components::{Component, ComponentAction, InputManager},
         tabs::torrents::SESSION_GET,
     },
@@ -20,7 +20,6 @@ pub struct AddMagnet {
     input_category_mgr: InputManager,
     input_location_mgr: InputManager,
     stage: Stage,
-    ctx: app::Ctx,
 }
 
 enum Stage {
@@ -34,7 +33,7 @@ const CATEGORY_PROMPT: &str = "Category (empty for default): ";
 const LOCATION_PROMPT: &str = "Directory: ";
 
 impl AddMagnet {
-    pub fn new(ctx: app::Ctx) -> Self {
+    pub fn new() -> Self {
         Self {
             input_magnet_mgr: InputManager::new(MAGNET_PROMPT.to_string()),
             input_category_mgr: InputManager::new(CATEGORY_PROMPT.to_string())
@@ -44,7 +43,6 @@ impl AddMagnet {
                 SESSION_GET.get().unwrap().download_dir.clone(),
             ),
             stage: Stage::Magnet,
-            ctx,
         }
     }
 
@@ -74,7 +72,7 @@ impl AddMagnet {
             } else {
                 self.stage = Stage::Category;
             }
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
             return ComponentAction::Nothing;
         }
 
@@ -83,7 +81,7 @@ impl AddMagnet {
         }
 
         if self.input_magnet_mgr.handle_key(input).is_some() {
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
 
         ComponentAction::Nothing
@@ -93,7 +91,7 @@ impl AddMagnet {
         if input.code == KeyCode::Enter {
             if self.input_category_mgr.text().is_empty() {
                 self.stage = Stage::Location;
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
                 return ComponentAction::Nothing;
             } else if let Some(category) =
                 CONFIG.categories.map.get(&self.input_category_mgr.text())
@@ -103,14 +101,14 @@ impl AddMagnet {
                     category.default_dir.to_string(),
                 );
                 self.stage = Stage::Location;
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
                 return ComponentAction::Nothing;
             } else {
                 self.input_category_mgr.set_prompt(format!(
                     "Category ({} not found): ",
                     self.input_category_mgr.text()
                 ));
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
                 return ComponentAction::Nothing;
             };
         }
@@ -120,7 +118,7 @@ impl AddMagnet {
         }
 
         if self.input_category_mgr.handle_key(input).is_some() {
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
 
         ComponentAction::Nothing
@@ -139,17 +137,16 @@ impl AddMagnet {
                 Some(self.input_location_mgr.text()),
                 category,
             );
-            self.ctx.send_torrent_action(torrent_action);
+            CTX.send_torrent_action(torrent_action);
 
             let task = StatusTask::new_add(self.input_magnet_mgr.text());
-            self.ctx
-                .send_update_action(UpdateAction::StatusTaskSet(task));
+            CTX.send_update_action(UpdateAction::StatusTaskSet(task));
 
             ComponentAction::Quit
         } else if input.code == KeyCode::Esc {
             ComponentAction::Quit
         } else if self.input_location_mgr.handle_key(input).is_some() {
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
             ComponentAction::Nothing
         } else {
             ComponentAction::Nothing

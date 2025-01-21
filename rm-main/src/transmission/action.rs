@@ -51,7 +51,7 @@ pub enum TorrentAction {
 pub async fn action_handler(
     mut client: TransClient,
     mut trans_rx: UnboundedReceiver<TorrentAction>,
-    action_tx: UnboundedSender<UpdateAction>,
+    update_tx: UnboundedSender<UpdateAction>,
 ) {
     while let Some(action) = trans_rx.recv().await {
         match action {
@@ -74,15 +74,15 @@ pub async fn action_handler(
                 };
                 match client.torrent_add(args).await {
                     Ok(_) => {
-                        action_tx.send(UpdateAction::StatusTaskSuccess).unwrap();
+                        update_tx.send(UpdateAction::StatusTaskSuccess).unwrap();
                     }
                     Err(err) => {
                         let msg = format!("Failed to add torrent with URL/Path: \"{url}\"");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                        action_tx
+                        update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
-                        action_tx.send(UpdateAction::StatusTaskFailure).unwrap();
+                        update_tx.send(UpdateAction::StatusTaskFailure).unwrap();
                     }
                 }
             }
@@ -92,7 +92,7 @@ pub async fn action_handler(
                     Err(err) => {
                         let msg = format!("Failed to stop torrents with these IDs: {:?}", ids);
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                        action_tx
+                        update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
                     }
@@ -104,7 +104,7 @@ pub async fn action_handler(
                     Err(err) => {
                         let msg = format!("Failed to start torrents with these IDs: {:?}", ids);
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                        action_tx
+                        update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
                     }
@@ -112,27 +112,27 @@ pub async fn action_handler(
             }
             TorrentAction::DelWithFiles(ids) => {
                 match client.torrent_remove(ids.clone(), true).await {
-                    Ok(_) => action_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
+                    Ok(_) => update_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = format!("Failed to remove torrents with these IDs: {:?}", ids);
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                        action_tx
+                        update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
-                        action_tx.send(UpdateAction::StatusTaskFailure).unwrap();
+                        update_tx.send(UpdateAction::StatusTaskFailure).unwrap();
                     }
                 }
             }
             TorrentAction::DelWithoutFiles(ids) => {
                 match client.torrent_remove(ids.clone(), false).await {
-                    Ok(_) => action_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
+                    Ok(_) => update_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = format!("Failed to remove torrents with these IDs: {:?}", ids);
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                        action_tx
+                        update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
-                        action_tx.send(UpdateAction::StatusTaskFailure).unwrap();
+                        update_tx.send(UpdateAction::StatusTaskFailure).unwrap();
                     }
                 }
             }
@@ -145,7 +145,7 @@ pub async fn action_handler(
                             ids
                         );
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                        action_tx
+                        update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
                     }
@@ -158,7 +158,7 @@ pub async fn action_handler(
                 Err(err) => {
                     let msg = "Failed to get session data";
                     let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                    action_tx
+                    update_tx
                         .send(UpdateAction::Error(Box::new(err_message)))
                         .unwrap();
                 }
@@ -170,7 +170,7 @@ pub async fn action_handler(
                 {
                     let msg = format!("Failed to move torrent to new directory:\n{new_directory}");
                     let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                    action_tx
+                    update_tx
                         .send(UpdateAction::Error(Box::new(err_message)))
                         .unwrap();
                 }
@@ -222,14 +222,14 @@ pub async fn action_handler(
                     ..Default::default()
                 };
                 match client.torrent_set(args, Some(ids)).await {
-                    Ok(_) => action_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
+                    Ok(_) => update_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = "Failed to set category";
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                        action_tx
+                        update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
-                        action_tx.send(UpdateAction::StatusTaskFailure).unwrap();
+                        update_tx.send(UpdateAction::StatusTaskFailure).unwrap();
                     }
                 }
             }
@@ -238,14 +238,14 @@ pub async fn action_handler(
                     .torrent_rename_path(vec![id], current_name, new_name)
                     .await
                 {
-                    Ok(_) => action_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
+                    Ok(_) => update_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = "Failed to rename a torrent";
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                        action_tx
+                        update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
-                        action_tx.send(UpdateAction::StatusTaskFailure).unwrap();
+                        update_tx.send(UpdateAction::StatusTaskFailure).unwrap();
                     }
                 }
             }

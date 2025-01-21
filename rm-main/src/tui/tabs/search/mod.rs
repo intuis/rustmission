@@ -19,7 +19,7 @@ use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::{backend::crossterm::to_input_request, Input};
 
 use crate::tui::{
-    app,
+    app::CTX,
     components::{Component, ComponentAction, GenericTable},
 };
 use rm_shared::{
@@ -42,11 +42,10 @@ pub(crate) struct SearchTab {
     configured_providers: Vec<ConfiguredProvider>,
     bottom_bar: BottomBar,
     currently_displaying_no: u16,
-    ctx: app::Ctx,
 }
 
 impl SearchTab {
-    pub(crate) fn new(ctx: app::Ctx) -> Self {
+    pub(crate) fn new() -> Self {
         let (search_query_tx, mut search_query_rx) = mpsc::unbounded_channel::<String>();
         let table = GenericTable::new(vec![]);
 
@@ -66,15 +65,14 @@ impl SearchTab {
             }
         }
 
-        let bottom_bar = BottomBar::new(ctx.clone(), &configured_providers);
+        let bottom_bar = BottomBar::new(&configured_providers);
 
         tokio::task::spawn({
-            let ctx = ctx.clone();
             let configured_providers = configured_providers.clone();
             async move {
                 let client = Client::new();
                 while let Some(phrase) = search_query_rx.recv().await {
-                    ctx.send_update_action(UpdateAction::SearchStarted);
+                    CTX.send_update_action(UpdateAction::SearchStarted);
                     let mut futures = FuturesUnordered::new();
                     for configured_provider in &configured_providers {
                         if configured_provider.enabled {
@@ -91,9 +89,9 @@ impl SearchTab {
                                 if let Some(result) = maybe_result {
                                     match result {
                                         Ok(response) => {
-                                            ctx.send_update_action(UpdateAction::ProviderResult(response))
+                                            CTX.send_update_action(UpdateAction::ProviderResult(response))
                                         },
-                                        Err(e) => ctx.send_update_action(UpdateAction::ProviderError(e)),
+                                        Err(e) => CTX.send_update_action(UpdateAction::ProviderError(e)),
                                     }
                                 } else {
                                     // This means that the whole search is finished.
@@ -103,7 +101,7 @@ impl SearchTab {
                             },
                         };
                     }
-                    ctx.send_update_action(UpdateAction::SearchFinished);
+                    CTX.send_update_action(UpdateAction::SearchFinished);
                 }
             }
         });
@@ -115,8 +113,7 @@ impl SearchTab {
             bottom_bar,
             search_query_rx: search_query_tx,
             currently_displaying_no: 0,
-            popup_manager: PopupManager::new(ctx.clone()),
-            ctx,
+            popup_manager: PopupManager::new(),
             configured_providers,
         }
     }
@@ -136,7 +133,7 @@ impl SearchTab {
         } else {
             self.focus = SearchTabFocus::Search;
         }
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn add_magnet(&mut self) {
@@ -154,20 +151,18 @@ impl SearchTab {
                 if !self.input.to_string().is_empty() {
                     self.search_query_rx.send(self.input.to_string()).unwrap();
                     self.focus = SearchTabFocus::List;
-                    self.ctx
-                        .send_update_action(UpdateAction::SwitchToNormalMode);
+                    CTX.send_update_action(UpdateAction::SwitchToNormalMode);
                 }
             }
             KeyCode::Esc => {
                 self.focus = SearchTabFocus::List;
-                self.ctx
-                    .send_update_action(UpdateAction::SwitchToNormalMode);
+                CTX.send_update_action(UpdateAction::SwitchToNormalMode);
             }
             _ => {
                 let event = Event::Key(input);
                 if let Some(req) = to_input_request(&event) {
                     self.input.handle(req);
-                    self.ctx.send_action(A::Render);
+                    CTX.send_action(A::Render);
                 }
             }
         }
@@ -175,49 +170,49 @@ impl SearchTab {
 
     fn start_search(&mut self) {
         self.focus = SearchTabFocus::Search;
-        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+        CTX.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     fn next_torrent(&mut self) {
         self.table.next();
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn previous_torrent(&mut self) {
         self.table.previous();
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn scroll_up_by(&mut self, amount: u8) {
         self.table.scroll_up_by(usize::from(amount));
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn scroll_down_by(&mut self, amount: u8) {
         self.table.scroll_down_by(usize::from(amount));
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn scroll_down_page(&mut self) {
         self.table
             .scroll_down_by(usize::from(self.currently_displaying_no));
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn scroll_up_page(&mut self) {
         self.table
             .scroll_up_by(usize::from(self.currently_displaying_no));
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn scroll_to_end(&mut self) {
         self.table.select_last();
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn scroll_to_home(&mut self) {
         self.table.select_first();
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn xdg_open(&mut self) {
@@ -229,7 +224,7 @@ impl SearchTab {
     fn show_providers_info(&mut self) {
         self.popup_manager
             .show_providers_info_popup(self.configured_providers.clone());
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn providers_searching(&mut self) {
@@ -275,11 +270,11 @@ impl Component for SearchTab {
         }
 
         if action.is_quit() {
-            self.ctx.send_action(Action::HardQuit);
+            CTX.send_action(Action::HardQuit);
         }
 
         match action {
-            A::Quit => self.ctx.send_action(Action::Quit),
+            A::Quit => CTX.send_action(Action::Quit),
             A::Search => self.start_search(),
             A::ChangeFocus => self.change_focus(),
             A::Input(_) if self.bottom_bar.requires_input() => {

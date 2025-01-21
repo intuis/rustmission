@@ -8,7 +8,7 @@ pub mod tasks;
 use std::sync::OnceLock;
 
 use crate::transmission::TorrentAction;
-use crate::tui::app;
+use crate::tui::app::CTX;
 use crate::tui::components::{Component, ComponentAction};
 
 use popups::details::DetailsPopup;
@@ -33,7 +33,6 @@ use self::task_manager::TaskManager;
 pub static SESSION_GET: OnceLock<SessionGet> = OnceLock::new();
 
 pub struct TorrentsTab {
-    ctx: app::Ctx,
     table_manager: TableManager,
     popup_manager: PopupManager,
     task_manager: TaskManager,
@@ -41,20 +40,19 @@ pub struct TorrentsTab {
 }
 
 impl TorrentsTab {
-    pub fn new(ctx: app::Ctx) -> Self {
+    pub fn new() -> Self {
         let table_manager = TableManager::new();
         let bottom_stats = BottomStats::new();
 
-        tokio::spawn(transmission::fetchers::stats(ctx.clone()));
-        tokio::spawn(transmission::fetchers::torrents(ctx.clone()));
-        tokio::spawn(transmission::fetchers::free_space(ctx.clone()));
+        tokio::spawn(transmission::fetchers::stats());
+        tokio::spawn(transmission::fetchers::torrents());
+        tokio::spawn(transmission::fetchers::free_space());
 
         Self {
             bottom_stats,
-            task_manager: TaskManager::new(ctx.clone()),
+            task_manager: TaskManager::new(),
             table_manager,
-            popup_manager: PopupManager::new(ctx.clone()),
-            ctx,
+            popup_manager: PopupManager::new(),
         }
     }
 }
@@ -86,24 +84,24 @@ impl Component for TorrentsTab {
                 A::Close => {
                     self.table_manager.leave_sorting();
                     self.task_manager.default();
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
                 A::MoveToColumnLeft => {
                     self.table_manager.move_to_column_left();
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
                 A::MoveToColumnRight => {
                     self.table_manager.move_to_column_right();
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
                 A::Down | A::Up => {
                     self.table_manager.reverse_sort();
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
                 A::Confirm => {
                     self.table_manager.apply_sort();
                     self.task_manager.default();
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
                 _ => (),
             }
@@ -118,12 +116,12 @@ impl Component for TorrentsTab {
                 .for_each(|t| t.is_selected = false);
             self.table_manager.selected_torrents_ids.drain(..);
             self.task_manager.default();
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
             return ComponentAction::Nothing;
         }
 
         if action.is_quit() {
-            self.ctx.send_action(Action::HardQuit);
+            CTX.send_action(Action::HardQuit);
             return ComponentAction::Nothing;
         }
 
@@ -147,7 +145,7 @@ impl Component for TorrentsTab {
                 } else {
                     self.task_manager.default();
                 }
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
             }
             A::Pause => self.pause_current_torrent(),
             A::Delete => {
@@ -186,7 +184,7 @@ impl Component for TorrentsTab {
             A::MoveToColumnLeft | A::MoveToColumnRight => {
                 self.table_manager.enter_sorting_selection();
                 self.task_manager.sort();
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
             }
             other => {
                 self.task_manager.handle_actions(other);
@@ -248,8 +246,7 @@ impl Component for TorrentsTab {
                 } else {
                     self.task_manager.default();
                 }
-                self.ctx
-                    .send_update_action(UpdateAction::SwitchToNormalMode);
+                CTX.send_update_action(UpdateAction::SwitchToNormalMode);
             }
             other => self.task_manager.handle_update_action(other),
         }
@@ -359,17 +356,17 @@ impl TorrentsTab {
 
     fn show_files_popup(&mut self) {
         if let Some(highlighted_torrent) = self.table_manager.current_torrent() {
-            let popup = FilesPopup::new(self.ctx.clone(), highlighted_torrent.id.clone());
+            let popup = FilesPopup::new(highlighted_torrent.id.clone());
             self.popup_manager.show_popup(CurrentPopup::Files(popup));
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
     }
 
     fn show_details_popup(&mut self) {
         if let Some(highlighted_torrent) = self.table_manager.current_torrent() {
-            let popup = DetailsPopup::new(self.ctx.clone(), highlighted_torrent.clone());
+            let popup = DetailsPopup::new(highlighted_torrent.clone());
             self.popup_manager.show_popup(CurrentPopup::Details(popup));
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
     }
 
@@ -377,7 +374,7 @@ impl TorrentsTab {
         if let Some(stats) = &self.bottom_stats.stats {
             let popup = StatisticsPopup::new(stats.clone());
             self.popup_manager.show_popup(CurrentPopup::Stats(popup));
-            self.ctx.send_action(Action::Render)
+            CTX.send_action(Action::Render)
         }
     }
 
@@ -385,28 +382,28 @@ impl TorrentsTab {
         self.table_manager.table.previous();
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn next_torrent(&mut self) {
         self.table_manager.table.next();
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn scroll_up_by(&mut self, amount: u8) {
         self.table_manager.table.scroll_up_by(usize::from(amount));
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn scroll_down_by(&mut self, amount: u8) {
         self.table_manager.table.scroll_down_by(usize::from(amount));
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn scroll_page_down(&mut self) {
@@ -414,7 +411,7 @@ impl TorrentsTab {
         self.table_manager.table.scroll_down_by(scroll_by as usize);
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn scroll_page_up(&mut self) {
@@ -422,21 +419,21 @@ impl TorrentsTab {
         self.table_manager.table.scroll_up_by(scroll_by as usize);
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn select_first(&mut self) {
         self.table_manager.table.select_first();
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn select_last(&mut self) {
         self.table_manager.table.select_last();
         self.bottom_stats
             .update_selected_indicator(&self.table_manager);
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn pause_current_torrent(&mut self) {
@@ -444,16 +441,14 @@ impl TorrentsTab {
             let torrent_id = torrent.id.clone();
             match torrent.status() {
                 TorrentStatus::Stopped => {
-                    self.ctx
-                        .send_torrent_action(TorrentAction::Start(vec![torrent_id]));
+                    CTX.send_torrent_action(TorrentAction::Start(vec![torrent_id]));
                     torrent.update_status(TorrentStatus::Downloading);
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
                 _ => {
-                    self.ctx
-                        .send_torrent_action(TorrentAction::Stop(vec![torrent_id]));
+                    CTX.send_torrent_action(TorrentAction::Stop(vec![torrent_id]));
                     torrent.update_status(TorrentStatus::Stopped);
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
             }
         }
@@ -463,11 +458,9 @@ impl TorrentsTab {
         if let Some(torrent) = self.table_manager.current_torrent() {
             let torrent_location = torrent.torrent_location();
             match open::that_detached(&torrent_location) {
-                Ok(()) => self
-                    .ctx
-                    .send_update_action(UpdateAction::StatusTaskSetSuccess(StatusTask::new_open(
-                        torrent_location,
-                    ))),
+                Ok(()) => CTX.send_update_action(UpdateAction::StatusTaskSetSuccess(
+                    StatusTask::new_open(torrent_location),
+                )),
                 Err(err) => {
                     let desc = format!(
                         "Encountered an error while trying to open \"{}\"",
@@ -478,8 +471,7 @@ impl TorrentsTab {
                         desc,
                         Box::new(err),
                     );
-                    self.ctx
-                        .send_update_action(UpdateAction::Error(Box::new(err_msg)));
+                    CTX.send_update_action(UpdateAction::Error(Box::new(err_msg)));
                 }
             };
         }

@@ -8,7 +8,7 @@ use rm_shared::{
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app,
+        app::{self, CTX},
         components::{Component, ComponentAction, InputManager},
     },
 };
@@ -17,18 +17,16 @@ use super::TorrentSelection;
 
 pub struct Move {
     selection: TorrentSelection,
-    ctx: app::Ctx,
     input_mgr: InputManager,
 }
 
 impl Move {
-    pub fn new(ctx: app::Ctx, selection: TorrentSelection, existing_location: String) -> Self {
+    pub fn new(selection: TorrentSelection, existing_location: String) -> Self {
         let prompt = "New directory: ".to_string();
 
         Self {
             selection,
             input_mgr: InputManager::new_with_value(prompt, existing_location),
-            ctx,
         }
     }
 
@@ -37,17 +35,16 @@ impl Move {
             let new_location = self.input_mgr.text();
 
             let torrent_action = TorrentAction::Move(self.selection.ids(), new_location.clone());
-            self.ctx.send_torrent_action(torrent_action);
+            CTX.send_torrent_action(torrent_action);
 
             let task = StatusTask::new_move(new_location);
-            self.ctx
-                .send_update_action(UpdateAction::StatusTaskSet(task));
+            CTX.send_update_action(UpdateAction::StatusTaskSet(task));
 
             ComponentAction::Quit
         } else if input.code == KeyCode::Esc {
             ComponentAction::Quit
         } else if self.input_mgr.handle_key(input).is_some() {
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
             ComponentAction::Nothing
         } else {
             ComponentAction::Nothing

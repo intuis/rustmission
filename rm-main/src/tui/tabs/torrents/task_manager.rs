@@ -9,14 +9,13 @@ use rm_shared::{
 use transmission_rpc::types::Id;
 
 use crate::tui::{
-    app,
+    app::CTX,
     components::{Component, ComponentAction},
 };
 
 use super::tasks::{self, CurrentTaskState, TorrentSelection};
 
 pub struct TaskManager {
-    ctx: app::Ctx,
     current_task: CurrentTask,
     // TODO:
     // Put Default task in a seperate field and merge it with Status task
@@ -28,10 +27,9 @@ pub struct TaskManager {
 }
 
 impl TaskManager {
-    pub fn new(ctx: app::Ctx) -> Self {
+    pub fn new() -> Self {
         Self {
             current_task: CurrentTask::Default(tasks::Default::new()),
-            ctx,
         }
     }
 }
@@ -144,37 +142,33 @@ impl Component for TaskManager {
 
 impl TaskManager {
     pub fn add_magnet(&mut self) {
-        self.current_task = CurrentTask::AddMagnet(tasks::AddMagnet::new(self.ctx.clone()));
-        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+        self.current_task = CurrentTask::AddMagnet(tasks::AddMagnet::new());
+        CTX.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     pub fn search(&mut self, current_pattern: &Option<String>) {
-        self.current_task =
-            CurrentTask::Filter(tasks::Filter::new(self.ctx.clone(), current_pattern));
-        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+        self.current_task = CurrentTask::Filter(tasks::Filter::new(current_pattern));
+        CTX.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     pub fn rename(&mut self, id: Id, curr_name: String) {
-        self.current_task =
-            CurrentTask::Rename(tasks::Rename::new(self.ctx.clone(), id, curr_name));
-        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+        self.current_task = CurrentTask::Rename(tasks::Rename::new(id, curr_name));
+        CTX.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     pub fn delete_torrents(&mut self, selection: TorrentSelection) {
-        self.current_task = CurrentTask::Delete(tasks::Delete::new(self.ctx.clone(), selection));
-        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+        self.current_task = CurrentTask::Delete(tasks::Delete::new(selection));
+        CTX.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     pub fn move_torrent(&mut self, selection: TorrentSelection, current_dir: String) {
-        self.current_task =
-            CurrentTask::Move(tasks::Move::new(self.ctx.clone(), selection, current_dir));
-        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+        self.current_task = CurrentTask::Move(tasks::Move::new(selection, current_dir));
+        CTX.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     pub fn change_category(&mut self, selection: TorrentSelection) {
-        self.current_task =
-            CurrentTask::ChangeCategory(tasks::ChangeCategory::new(self.ctx.clone(), selection));
-        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+        self.current_task = CurrentTask::ChangeCategory(tasks::ChangeCategory::new(selection));
+        CTX.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     pub fn default(&mut self) {
@@ -191,7 +185,6 @@ impl TaskManager {
 
     fn success_task(&mut self, task: StatusTask) {
         self.current_task = CurrentTask::Status(tasks::Status::new(
-            self.ctx.clone(),
             task,
             CurrentTaskState::Success(Instant::now()),
         ))
@@ -203,13 +196,9 @@ impl TaskManager {
         }
 
         let state = ThrobberState::default();
-        self.current_task = CurrentTask::Status(tasks::Status::new(
-            self.ctx.clone(),
-            task,
-            CurrentTaskState::Loading(state),
-        ));
-        self.ctx
-            .send_update_action(UpdateAction::SwitchToNormalMode);
+        self.current_task =
+            CurrentTask::Status(tasks::Status::new(task, CurrentTaskState::Loading(state)));
+        CTX.send_update_action(UpdateAction::SwitchToNormalMode);
     }
 
     fn cancel_task(&mut self) {
@@ -217,7 +206,7 @@ impl TaskManager {
             return;
         }
 
-        self.ctx.send_update_action(UpdateAction::CancelTorrentTask);
+        CTX.send_update_action(UpdateAction::CancelTorrentTask);
     }
 
     pub fn is_status_task_in_progress(&self) -> bool {

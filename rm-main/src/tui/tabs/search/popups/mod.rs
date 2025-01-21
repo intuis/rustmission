@@ -1,18 +1,16 @@
 mod providers;
 
+use crate::tui::app::CTX;
+use crate::tui::components::Component;
+use crate::tui::components::ComponentAction;
 use providers::ProvidersPopup;
 use ratatui::prelude::*;
 use ratatui::Frame;
 use rm_shared::action::Action;
 
-use crate::tui::app;
-use crate::tui::components::Component;
-use crate::tui::components::ComponentAction;
-
 use super::ConfiguredProvider;
 
 pub struct PopupManager {
-    ctx: app::Ctx,
     pub current_popup: Option<CurrentPopup>,
 }
 
@@ -21,9 +19,8 @@ pub enum CurrentPopup {
 }
 
 impl PopupManager {
-    pub const fn new(ctx: app::Ctx) -> Self {
+    pub const fn new() -> Self {
         Self {
-            ctx,
             current_popup: None,
         }
     }
@@ -52,7 +49,7 @@ impl Component for PopupManager {
                 CurrentPopup::Providers(popup) => {
                     if popup.handle_actions(action).is_quit() {
                         self.close_popup();
-                        self.ctx.send_action(Action::Render);
+                        CTX.send_action(Action::Render);
                     }
                 }
             }
