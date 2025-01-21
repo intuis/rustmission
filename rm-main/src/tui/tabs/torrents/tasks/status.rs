@@ -6,12 +6,11 @@ use rm_shared::{
 use throbber_widgets_tui::ThrobberState;
 use tokio::time::{self, Instant};
 
-use crate::tui::{app, components::Component};
+use crate::tui::{app::CTX, components::Component};
 
 pub struct Status {
     task: StatusTask,
     pub task_status: CurrentTaskState,
-    ctx: app::Ctx,
 }
 
 #[derive(Clone)]
@@ -22,12 +21,8 @@ pub enum CurrentTaskState {
 }
 
 impl Status {
-    pub const fn new(ctx: app::Ctx, task: StatusTask, task_status: CurrentTaskState) -> Self {
-        Self {
-            task,
-            task_status,
-            ctx,
-        }
+    pub const fn new(task: StatusTask, task_status: CurrentTaskState) -> Self {
+        Self { task, task_status }
     }
 
     pub fn set_failure(&mut self) {
@@ -70,11 +65,11 @@ impl Component for Status {
         match action {
             UpdateAction::StatusTaskSuccess => {
                 self.set_success();
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
             }
             UpdateAction::Error(_) => {
                 self.set_failure();
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
             }
             _ => (),
         }
@@ -84,18 +79,18 @@ impl Component for Status {
         match &mut self.task_status {
             CurrentTaskState::Loading(state) => {
                 state.calc_next();
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
             }
             CurrentTaskState::Success(start) => {
                 let expiration_duration = time::Duration::from_secs(5);
                 if start.elapsed() >= expiration_duration {
-                    self.ctx.send_update_action(UpdateAction::StatusTaskClear);
+                    CTX.send_update_action(UpdateAction::StatusTaskClear);
                 }
             }
             CurrentTaskState::Failure(start) => {
                 let expiration_duration = time::Duration::from_secs(5);
                 if start.elapsed() >= expiration_duration {
-                    self.ctx.send_update_action(UpdateAction::StatusTaskClear);
+                    CTX.send_update_action(UpdateAction::StatusTaskClear);
                 }
             }
         }

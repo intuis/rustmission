@@ -2,7 +2,7 @@ use std::{error::Error, sync::Arc};
 
 use crossterm::event::KeyEvent;
 use magnetease::{MagneteaseError, MagneteaseResult};
-use transmission_rpc::types::{FreeSpace, SessionStats, Torrent};
+use transmission_rpc::types::{FreeSpace, SessionGet, SessionStats, Torrent};
 
 use crate::status_task::StatusTask;
 
@@ -53,6 +53,7 @@ pub enum UpdateAction {
     Error(Box<ErrorMessage>),
     // Torrents Tab
     SessionStats(Arc<SessionStats>),
+    SessionGet(Arc<SessionGet>),
     FreeSpace(Arc<FreeSpace>),
     UpdateTorrents(Vec<Torrent>),
     UpdateCurrentTorrent(Box<Torrent>),

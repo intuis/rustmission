@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{LazyLock, Mutex};
 
 use crate::{
     transmission::{self, TorrentAction},
@@ -9,47 +9,56 @@ use intuitils::Terminal;
 use rm_config::CONFIG;
 use rm_shared::action::{Action, UpdateAction};
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use crossterm::event::{Event, KeyCode, KeyModifiers};
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
-use transmission_rpc::{types::SessionGet, TransClient};
+use tokio::sync::mpsc::{self, unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 use super::main_window::{CurrentTab, MainWindow};
 
+pub static CTX: LazyLock<Ctx> = LazyLock::new(|| CTX_RAW.0.clone());
+
+static CTX_RAW: LazyLock<(
+    Ctx,
+    Mutex<
+        Option<(
+            UnboundedReceiver<Action>,
+            UnboundedReceiver<UpdateAction>,
+            UnboundedReceiver<TorrentAction>,
+        )>,
+    >,
+)> = LazyLock::new(|| {
+    let (ctx, act_rx, upd_rx, tor_rx) = Ctx::new();
+    (ctx, Mutex::new(Some((act_rx, upd_rx, tor_rx))))
+});
+
 #[derive(Clone)]
 pub struct Ctx {
-    pub session_info: Arc<SessionGet>,
     action_tx: UnboundedSender<Action>,
     update_tx: UnboundedSender<UpdateAction>,
     trans_tx: UnboundedSender<TorrentAction>,
 }
 
 impl Ctx {
-    async fn new(
-        client: &mut TransClient,
-        action_tx: UnboundedSender<Action>,
-        update_tx: UnboundedSender<UpdateAction>,
-        trans_tx: UnboundedSender<TorrentAction>,
-    ) -> Result<Self> {
-        let response = client.session_get().await;
-        match response {
-            Ok(res) => {
-                let session_info = Arc::new(res.arguments);
-                Ok(Self {
-                    action_tx,
-                    trans_tx,
-                    update_tx,
-                    session_info,
-                })
-            }
-            Err(e) => {
-                let config_path = CONFIG.directories.main_path;
-                Err(Error::msg(format!(
-                    "{e}\nIs the connection info in {:?} correct?",
-                    config_path
-                )))
-            }
-        }
+    fn new() -> (
+        Self,
+        UnboundedReceiver<Action>,
+        UnboundedReceiver<UpdateAction>,
+        UnboundedReceiver<TorrentAction>,
+    ) {
+        let (action_tx, action_rx) = unbounded_channel();
+        let (update_tx, update_rx) = unbounded_channel();
+        let (trans_tx, trans_rx) = unbounded_channel();
+
+        (
+            Self {
+                action_tx,
+                update_tx,
+                trans_tx,
+            },
+            action_rx,
+            update_rx,
+            trans_rx,
+        )
     }
 
     pub(crate) fn send_action(&self, action: Action) {
@@ -67,7 +76,6 @@ impl Ctx {
 
 pub struct App {
     should_quit: bool,
-    ctx: Ctx,
     action_rx: UnboundedReceiver<Action>,
     update_rx: UnboundedReceiver<UpdateAction>,
     main_window: MainWindow,
@@ -76,22 +84,26 @@ pub struct App {
 
 impl App {
     pub async fn new() -> Result<Self> {
-        let (action_tx, action_rx) = mpsc::unbounded_channel();
-        let (update_tx, update_rx) = mpsc::unbounded_channel();
+        let client = transmission::utils::new_client();
 
-        let mut client = transmission::utils::new_client();
+        let (action_rx, update_rx, torrent_rx) = CTX_RAW
+            .1
+            .lock()
+            .unwrap()
+            .take()
+            .expect("it wasn't taken before");
 
-        let (trans_tx, trans_rx) = mpsc::unbounded_channel();
-        let ctx = Ctx::new(&mut client, action_tx.clone(), update_tx.clone(), trans_tx).await?;
-
-        tokio::spawn(transmission::action_handler(client, trans_rx, update_tx));
+        tokio::spawn(transmission::action_handler(
+            client,
+            torrent_rx,
+            CTX.update_tx.clone(),
+        ));
 
         Ok(Self {
             should_quit: false,
-            main_window: MainWindow::new(ctx.clone()),
+            main_window: MainWindow::new(),
             action_rx,
             update_rx,
-            ctx,
             mode: Mode::Normal,
         })
     }
@@ -123,7 +135,7 @@ impl App {
                 _ = tick_action => self.tick(),
 
                 event = tui_event => {
-                    event_to_action(&self.ctx, self.mode, current_tab, event.unwrap());
+                    event_to_action(self.mode, current_tab, event.unwrap());
                 },
 
                 update_action = update_action => self.handle_update_action(update_action.unwrap()).await,
@@ -177,7 +189,7 @@ impl App {
 
             _ => self.main_window.handle_update_action(action),
         };
-        self.ctx.send_action(Action::Render);
+        CTX.send_action(Action::Render);
     }
 
     fn tick(&mut self) {
@@ -191,23 +203,23 @@ pub enum Mode {
     Normal,
 }
 
-pub fn event_to_action(ctx: &Ctx, mode: Mode, current_tab: CurrentTab, event: Event) {
+pub fn event_to_action(mode: Mode, current_tab: CurrentTab, event: Event) {
     // Handle CTRL+C first
     if let Event::Key(key_event) = event {
         if key_event.modifiers == KeyModifiers::CONTROL
             && (key_event.code == KeyCode::Char('c') || key_event.code == KeyCode::Char('C'))
         {
-            ctx.send_action(Action::HardQuit);
+            CTX.send_action(Action::HardQuit);
         }
     }
 
     match event {
-        Event::Key(key) if mode == Mode::Input => ctx.send_action(Action::Input(key)),
+        Event::Key(key) if mode == Mode::Input => CTX.send_action(Action::Input(key)),
         Event::Mouse(mouse_event) => match mouse_event.kind {
             crossterm::event::MouseEventKind::ScrollDown => {
-                ctx.send_action(Action::ScrollDownBy(3))
+                CTX.send_action(Action::ScrollDownBy(3))
             }
-            crossterm::event::MouseEventKind::ScrollUp => ctx.send_action(Action::ScrollUpBy(3)),
+            crossterm::event::MouseEventKind::ScrollUp => CTX.send_action(Action::ScrollUpBy(3)),
             _ => (),
         },
         Event::Key(key) => {
@@ -236,12 +248,12 @@ pub fn event_to_action(ctx: &Ctx, mode: Mode, current_tab: CurrentTab, event: Ev
 
             for keymap in keymaps {
                 if let Some(action) = keymap.get(&keybinding).cloned() {
-                    ctx.send_action(action);
+                    CTX.send_action(action);
                     return;
                 }
             }
         }
-        Event::Resize(_, _) => ctx.send_action(Action::Render),
+        Event::Resize(_, _) => CTX.send_action(Action::Render),
         _ => (),
     }
 }

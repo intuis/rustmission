@@ -6,6 +6,8 @@ use ratatui::prelude::*;
 use rm_config::CONFIG;
 use rm_shared::action::{Action, UpdateAction};
 
+use crate::tui::app::CTX;
+
 use super::{
     app,
     components::{Component, ComponentAction},
@@ -39,17 +41,15 @@ pub struct MainWindow {
     torrents_tab: TorrentsTab,
     search_tab: SearchTab,
     global_popup_manager: GlobalPopupManager,
-    ctx: app::Ctx,
 }
 
 impl MainWindow {
-    pub fn new(ctx: app::Ctx) -> Self {
+    pub fn new() -> Self {
         Self {
             tabs: TabsState::new(vec![CurrentTab::Torrents, CurrentTab::Search]),
-            torrents_tab: TorrentsTab::new(ctx.clone()),
-            search_tab: SearchTab::new(ctx.clone()),
-            global_popup_manager: GlobalPopupManager::new(ctx.clone()),
-            ctx,
+            torrents_tab: TorrentsTab::new(),
+            search_tab: SearchTab::new(),
+            global_popup_manager: GlobalPopupManager::new(),
         }
     }
 }
@@ -68,13 +68,13 @@ impl Component for MainWindow {
             A::Left | A::ChangeTab(1) => {
                 if self.tabs.current() != CurrentTab::Torrents {
                     self.tabs.set(1);
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
             }
             A::Right | A::ChangeTab(2) => {
                 if self.tabs.current() != CurrentTab::Search {
                     self.tabs.set(2);
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
             }
             _ if self.tabs.current() == CurrentTab::Torrents => {

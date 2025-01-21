@@ -9,7 +9,7 @@ use transmission_rpc::types::Id;
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app,
+        app::CTX,
         components::{Component, ComponentAction, InputManager},
     },
 };
@@ -18,16 +18,14 @@ pub struct Rename {
     id: Id,
     curr_name: String,
     input_mgr: InputManager,
-    ctx: app::Ctx,
 }
 
 impl Rename {
-    pub fn new(ctx: app::Ctx, to_rename: Id, curr_name: String) -> Self {
+    pub fn new(to_rename: Id, curr_name: String) -> Self {
         let prompt = String::from("New name: ");
 
         Self {
             id: to_rename,
-            ctx,
             input_mgr: InputManager::new_with_value(prompt, curr_name.clone()),
             curr_name,
         }
@@ -42,9 +40,8 @@ impl Rename {
 
         let task = StatusTask::new_rename(self.curr_name.clone());
 
-        self.ctx
-            .send_update_action(UpdateAction::StatusTaskSet(task));
-        self.ctx.send_torrent_action(TorrentAction::Rename(
+        CTX.send_update_action(UpdateAction::StatusTaskSet(task));
+        CTX.send_torrent_action(TorrentAction::Rename(
             self.id.clone(),
             self.curr_name.clone(),
             self.input_mgr.text(),
@@ -64,7 +61,7 @@ impl Component for Rename {
                 }
 
                 if self.input_mgr.handle_key(input).is_some() {
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
 
                 ComponentAction::Nothing

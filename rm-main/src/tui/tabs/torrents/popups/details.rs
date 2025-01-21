@@ -7,20 +7,19 @@ use rm_shared::{action::Action, utils::bytes_to_human_format};
 use style::Styled;
 
 use crate::tui::{
-    app,
+    app::CTX,
     components::{keybinding_style, popup_close_button_highlight, Component, ComponentAction},
     main_window::centered_rect,
     tabs::torrents::rustmission_torrent::{CategoryType, RustmissionTorrent},
 };
 
 pub struct DetailsPopup {
-    ctx: app::Ctx,
     torrent: RustmissionTorrent,
 }
 
 impl DetailsPopup {
-    pub fn new(ctx: app::Ctx, torrent: RustmissionTorrent) -> Self {
-        Self { ctx, torrent }
+    pub fn new(torrent: RustmissionTorrent) -> Self {
+        Self { torrent }
     }
 }
 
@@ -30,23 +29,23 @@ impl Component for DetailsPopup {
             _ if action.is_soft_quit() => ComponentAction::Quit,
             Action::Confirm => ComponentAction::Quit,
             Action::Delete => {
-                self.ctx.send_action(Action::Delete);
+                CTX.send_action(Action::Delete);
                 ComponentAction::Quit
             }
             Action::ShowFiles => {
-                self.ctx.send_action(Action::ShowFiles);
+                CTX.send_action(Action::ShowFiles);
                 ComponentAction::Quit
             }
             Action::Rename => {
-                self.ctx.send_action(Action::Rename);
+                CTX.send_action(Action::Rename);
                 ComponentAction::Quit
             }
             Action::ChangeCategory => {
-                self.ctx.send_action(Action::ChangeCategory);
+                CTX.send_action(Action::ChangeCategory);
                 ComponentAction::Quit
             }
             Action::MoveTorrent => {
-                self.ctx.send_action(Action::MoveTorrent);
+                CTX.send_action(Action::MoveTorrent);
                 ComponentAction::Quit
             }
             _ => ComponentAction::Nothing,

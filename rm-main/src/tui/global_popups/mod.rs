@@ -8,22 +8,21 @@ pub use help::HelpPopup;
 
 use rm_shared::action::Action;
 
-use crate::tui::app;
-
-use super::components::{Component, ComponentAction};
+use super::{
+    app::CTX,
+    components::{Component, ComponentAction},
+};
 
 pub(super) struct GlobalPopupManager {
     pub error_popup: Option<ErrorPopup>,
     pub help_popup: Option<HelpPopup>,
-    ctx: app::Ctx,
 }
 
 impl GlobalPopupManager {
-    pub fn new(ctx: app::Ctx) -> Self {
+    pub fn new() -> Self {
         Self {
             error_popup: None,
             help_popup: None,
-            ctx,
         }
     }
 
@@ -35,7 +34,7 @@ impl GlobalPopupManager {
         if self.help_popup.is_some() {
             self.help_popup = None;
         } else {
-            self.help_popup = Some(HelpPopup::new(self.ctx.clone()));
+            self.help_popup = Some(HelpPopup::new());
         }
     }
 
@@ -43,12 +42,12 @@ impl GlobalPopupManager {
         if let Some(popup) = &mut self.error_popup {
             if popup.handle_actions(action).is_quit() {
                 self.error_popup = None;
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
             }
         } else if let Some(popup) = &mut self.help_popup {
             if popup.handle_actions(action).is_quit() {
                 self.help_popup = None;
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
             }
         }
     }
@@ -59,7 +58,7 @@ impl Component for GlobalPopupManager {
         use Action as A;
         if action == A::ShowHelp {
             self.toggle_help();
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
             return ComponentAction::Nothing;
         }
 

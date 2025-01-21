@@ -1,5 +1,5 @@
 use crate::tui::{
-    app,
+    app::CTX,
     components::{Component, ComponentAction},
 };
 
@@ -14,7 +14,6 @@ pub mod files;
 pub mod stats;
 
 pub struct PopupManager {
-    ctx: app::Ctx,
     pub current_popup: Option<CurrentPopup>,
 }
 
@@ -25,9 +24,8 @@ pub enum CurrentPopup {
 }
 
 impl PopupManager {
-    pub const fn new(ctx: app::Ctx) -> Self {
+    pub const fn new() -> Self {
         Self {
-            ctx,
             current_popup: None,
         }
     }
@@ -56,7 +54,7 @@ impl Component for PopupManager {
 
             if should_close {
                 self.close_popup();
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
             }
         }
         ComponentAction::Nothing

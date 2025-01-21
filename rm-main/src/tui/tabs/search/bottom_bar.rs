@@ -10,7 +10,7 @@ use rm_shared::action::{Action, UpdateAction};
 use throbber_widgets_tui::ThrobberState;
 
 use crate::tui::{
-    app,
+    app::CTX,
     components::{keybinding_style, Component, ComponentAction},
     tabs::torrents::tasks,
 };
@@ -20,21 +20,19 @@ use super::{ConfiguredProvider, ProviderState};
 pub struct BottomBar {
     pub search_state: SearchState,
     pub task: Option<tasks::AddMagnet>,
-    ctx: app::Ctx,
 }
 
 impl BottomBar {
-    pub fn new(ctx: app::Ctx, providers: &Vec<ConfiguredProvider>) -> Self {
+    pub fn new(providers: &Vec<ConfiguredProvider>) -> Self {
         Self {
-            search_state: SearchState::new(ctx.clone(), providers),
-            ctx,
+            search_state: SearchState::new(providers),
             task: None,
         }
     }
 
     pub fn add_magnet(&mut self, magnet: impl Into<String>) {
-        self.task = Some(tasks::AddMagnet::new(self.ctx.clone()).magnet(magnet));
-        self.ctx.send_update_action(UpdateAction::SwitchToInputMode);
+        self.task = Some(tasks::AddMagnet::new().magnet(magnet));
+        CTX.send_update_action(UpdateAction::SwitchToInputMode);
     }
 
     pub fn requires_input(&self) -> bool {
@@ -55,8 +53,7 @@ impl Component for BottomBar {
         if let Some(task) = &mut self.task {
             if task.handle_actions(action).is_quit() {
                 self.task = None;
-                self.ctx
-                    .send_update_action(UpdateAction::SwitchToNormalMode);
+                CTX.send_update_action(UpdateAction::SwitchToNormalMode);
             };
         }
 
@@ -73,7 +70,6 @@ impl Component for BottomBar {
 }
 
 pub struct SearchState {
-    ctx: app::Ctx,
     stage: SearchStage,
     providers_finished: u8,
     providers_errored: u8,
@@ -89,7 +85,7 @@ enum SearchStage {
 }
 
 impl SearchState {
-    fn new(ctx: app::Ctx, providers: &Vec<ConfiguredProvider>) -> Self {
+    fn new(providers: &Vec<ConfiguredProvider>) -> Self {
         let mut providers_count = 0u8;
         for provider in providers {
             if provider.enabled {
@@ -98,7 +94,6 @@ impl SearchState {
         }
 
         Self {
-            ctx,
             stage: SearchStage::Nothing,
             providers_errored: 0,
             providers_finished: 0,
@@ -190,7 +185,7 @@ impl Component for SearchState {
     fn tick(&mut self) {
         if let SearchStage::Searching(state) = &mut self.stage {
             state.calc_next();
-            self.ctx.send_action(Action::Render);
+            CTX.send_action(Action::Render);
         }
     }
 }

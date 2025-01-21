@@ -16,7 +16,7 @@ use tui_tree_widget::{Tree, TreeItem, TreeState};
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app,
+        app::CTX,
         components::{
             keybinding_style, popup_block, popup_close_button, popup_close_button_highlight,
             popup_rects, Component, ComponentAction,
@@ -29,7 +29,6 @@ use rm_shared::{
 };
 
 pub struct FilesPopup {
-    ctx: app::Ctx,
     torrent: Option<Torrent>,
     torrent_id: Id,
     tree_state: TreeState<String>,
@@ -39,22 +38,22 @@ pub struct FilesPopup {
     torrent_info_task_handle: JoinHandle<()>,
 }
 
-async fn fetch_new_files(ctx: app::Ctx, torrent_id: Id) {
+async fn fetch_new_files(torrent_id: Id) {
     loop {
         let (torrent_tx, torrent_rx) = oneshot::channel();
-        ctx.send_torrent_action(TorrentAction::GetTorrentsById(
+        CTX.send_torrent_action(TorrentAction::GetTorrentsById(
             vec![torrent_id.clone()],
             torrent_tx,
         ));
 
         match torrent_rx.await.unwrap() {
             Ok(mut torrents) => {
-                ctx.send_update_action(UpdateAction::UpdateCurrentTorrent(Box::new(
+                CTX.send_update_action(UpdateAction::UpdateCurrentTorrent(Box::new(
                     torrents.pop().unwrap(),
                 )));
             }
             Err(err_message) => {
-                ctx.send_update_action(UpdateAction::Error(err_message));
+                CTX.send_update_action(UpdateAction::Error(err_message));
             }
         };
 
@@ -69,16 +68,14 @@ enum CurrentFocus {
 }
 
 impl FilesPopup {
-    pub fn new(ctx: app::Ctx, torrent_id: Id) -> Self {
+    pub fn new(torrent_id: Id) -> Self {
         let torrent = None;
         let tree_state = TreeState::default();
         let tree = Node::new();
 
-        let torrent_info_task_handle =
-            tokio::task::spawn(fetch_new_files(ctx.clone(), torrent_id.clone()));
+        let torrent_info_task_handle = tokio::task::spawn(fetch_new_files(torrent_id.clone()));
 
         Self {
-            ctx,
             torrent,
             tree_state,
             tree,
@@ -116,7 +113,7 @@ impl Component for FilesPopup {
             }
             (A::ChangeFocus, _) => {
                 self.switch_focus();
-                self.ctx.send_action(A::Render);
+                CTX.send_action(A::Render);
             }
             (A::Confirm, CurrentFocus::CloseButton) => {
                 self.torrent_info_task_handle.abort();
@@ -137,7 +134,7 @@ impl Component for FilesPopup {
 
                     if selected_ids.is_empty() {
                         self.tree_state.toggle_selected();
-                        self.ctx.send_action(A::Render);
+                        CTX.send_action(A::Render);
                         return ComponentAction::Nothing;
                     }
 
@@ -180,22 +177,22 @@ impl Component for FilesPopup {
                         }
                     };
 
-                    self.ctx.send_torrent_action(TorrentAction::SetArgs(
+                    CTX.send_torrent_action(TorrentAction::SetArgs(
                         Box::new(args),
                         Some(vec![self.torrent_id.clone()]),
                     ));
 
-                    self.ctx.send_action(Action::Render);
+                    CTX.send_action(Action::Render);
                 }
             }
 
             (A::Up | A::ScrollUpBy(_), CurrentFocus::Files) => {
                 self.tree_state.key_up();
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
             }
             (A::Down | A::ScrollDownBy(_), CurrentFocus::Files) => {
                 self.tree_state.key_down();
-                self.ctx.send_action(Action::Render);
+                CTX.send_action(Action::Render);
             }
             (A::XdgOpen, CurrentFocus::Files) => {
                 if let Some(torrent) = &self.torrent {
@@ -216,18 +213,15 @@ impl Component for FilesPopup {
                     let path = format!("{}/{}", torrent.download_dir.as_ref().unwrap(), sub_path,);
 
                     match open::that_detached(&path) {
-                        Ok(()) => self
-                            .ctx
-                            .send_update_action(UpdateAction::StatusTaskSetSuccess(
-                                StatusTask::new_open(&path),
-                            )),
+                        Ok(()) => CTX.send_update_action(UpdateAction::StatusTaskSetSuccess(
+                            StatusTask::new_open(&path),
+                        )),
                         Err(err) => {
                             let desc =
                                 format!("An error occured while trying to open \"{}\"", path);
                             let err_msg =
                                 ErrorMessage::new("Failed to open a file", desc, Box::new(err));
-                            self.ctx
-                                .send_update_action(UpdateAction::Error(Box::new(err_msg)));
+                            CTX.send_update_action(UpdateAction::Error(Box::new(err_msg)));
                         }
                     };
                 }
