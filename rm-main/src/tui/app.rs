@@ -11,9 +11,15 @@ use rm_shared::action::{Action, UpdateAction};
 
 use anyhow::Result;
 use crossterm::event::{Event, KeyCode, KeyModifiers};
-use tokio::sync::mpsc::{self, unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::{
+    mpsc::{self, unbounded_channel, UnboundedReceiver, UnboundedSender},
+    oneshot,
+};
 
-use super::main_window::{CurrentTab, MainWindow};
+use super::{
+    main_window::{CurrentTab, MainWindow},
+    tabs::torrents::SESSION_GET,
+};
 
 pub static CTX: LazyLock<Ctx> = LazyLock::new(|| CTX_RAW.0.clone());
 
@@ -98,6 +104,13 @@ impl App {
             torrent_rx,
             CTX.update_tx.clone(),
         ));
+
+        tokio::spawn(async move {
+            let (sess_tx, sess_rx) = oneshot::channel();
+
+            CTX.send_torrent_action(TorrentAction::GetSessionGet(sess_tx));
+            SESSION_GET.set(sess_rx.await.unwrap().unwrap()).unwrap();
+        });
 
         Ok(Self {
             should_quit: false,
