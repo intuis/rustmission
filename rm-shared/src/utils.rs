@@ -1,11 +1,15 @@
-pub fn bytes_to_human_format(bytes: i64) -> String {
+fn raw_bytes_to_human_format(bytes: i64, short: bool) -> String {
     const KB: f64 = 1024.0;
     const MB: f64 = KB * 1024.0;
     const GB: f64 = MB * 1024.0;
     const TB: f64 = GB * 1024.0;
 
     if bytes == 0 {
-        return "0 B".to_string();
+        if short {
+            return "0B".to_string();
+        } else {
+            return "0 B".to_string();
+        }
     }
 
     let (value, unit) = if bytes < (KB - 25f64) as i64 {
@@ -20,7 +24,19 @@ pub fn bytes_to_human_format(bytes: i64) -> String {
         (bytes as f64 / TB, "TB")
     };
 
-    format!("{value:.1} {unit}")
+    if short {
+        format!("{value:.0}{unit}")
+    } else {
+        format!("{value:.1} {unit}")
+    }
+}
+
+pub fn bytes_to_human_format(bytes: i64) -> String {
+    raw_bytes_to_human_format(bytes, false)
+}
+
+pub fn bytes_to_short_human_format(bytes: i64) -> String {
+    raw_bytes_to_human_format(bytes, true)
 }
 
 pub fn seconds_to_human_format(seconds: i64) -> String {

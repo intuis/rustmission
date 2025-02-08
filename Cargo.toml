@@ -71,7 +71,6 @@ install-updater = true
 [profile.release]
 opt-level = 3
 strip = "symbols"
-codegen-units = 1
 lto = "fat"
 panic = "abort"
 

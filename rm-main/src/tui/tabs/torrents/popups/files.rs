@@ -26,7 +26,7 @@ use crate::{
 use rm_shared::{
     action::{Action, ErrorMessage, UpdateAction},
     status_task::StatusTask,
-    utils::bytes_to_human_format,
+    utils::{bytes_to_human_format, bytes_to_short_human_format},
 };
 
 pub struct FilesPopup {
@@ -424,7 +424,11 @@ impl Node {
             } else {
                 0.0
             };
-            let progress_percent = format!(" {}% ", (progress * 100f64).ceil());
+            let mut progress_percent = format!("{}% ", (progress * 100f64).ceil());
+
+            if progress_percent.len() == 3 {
+                progress_percent.push(' ');
+            }
 
             if transmission_file.wanted {
                 name.push_span(Span::raw("󰄲 "));
@@ -432,11 +436,30 @@ impl Node {
                 name.push_span(Span::raw(" "));
             }
 
+            name.push_span(Span::raw("| "));
+
             if progress != 1.0 {
+                name.push_span(Span::styled(
+                    progress_percent,
+                    Style::new().fg(CONFIG.general.accent_color),
+                ));
+
                 name.push_span(Span::raw("["));
-                name.push_span(Span::raw(progress_percent).fg(CONFIG.general.accent_color));
+                name.push_span(Span::styled(
+                    bytes_to_short_human_format(transmission_file.bytes_completed),
+                    Style::new().fg(CONFIG.general.accent_color),
+                ));
+                name.push_span(Span::raw("/"));
+                name.push_span(Span::raw(bytes_to_short_human_format(
+                    transmission_file.length,
+                )));
+                name.push_span(Span::raw("] "));
+            } else {
+                name.push_span(Span::raw("["));
+                name.push_span(bytes_to_human_format(transmission_file.length));
                 name.push_span(Span::raw("] "));
             }
+
             name.push_span(Span::raw(transmission_file.name.as_str()));
 
             tree_items.push(TreeItem::new_leaf(transmission_file.id.to_string(), name));
