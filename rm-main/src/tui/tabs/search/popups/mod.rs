@@ -1,8 +1,7 @@
 mod providers;
 
-use crate::tui::app::CTX;
-use crate::tui::components::Component;
-use crate::tui::components::ComponentAction;
+use crate::tui::components::{Component, ComponentAction};
+use crate::tui::ctx::CTX;
 use providers::ProvidersPopup;
 use ratatui::prelude::*;
 use ratatui::Frame;

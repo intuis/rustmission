@@ -328,6 +328,8 @@ impl From<Torrent> for RustmissionTorrent {
 
         let download_dir = t.download_dir.clone().expect("field requested");
 
+        let file_stats = t.file_stats.expect("field requested");
+
         let uploaded_ever = bytes_to_human_format(t.uploaded_ever.expect("field requested"));
 
         let upload_ratio = {

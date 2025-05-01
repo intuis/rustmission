@@ -1,5 +1,6 @@
 pub mod actions;
 
+use actions::torrents_tab_file_viewer::TorrentsFileViewerAction;
 use intuitils::config::{keybindings::KeybindsHolder, IntuiConfig};
 use serde::Deserialize;
 
@@ -13,6 +14,7 @@ pub use self::actions::{
 pub struct KeymapConfig {
     pub general: KeybindsHolder<GeneralAction, Action>,
     pub torrents_tab: KeybindsHolder<TorrentsAction, Action>,
+    pub torrents_tab_file_viewer: KeybindsHolder<TorrentsFileViewerAction, Action>,
     pub search_tab: KeybindsHolder<SearchAction, Action>,
 }
 

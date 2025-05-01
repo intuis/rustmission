@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use color_eyre::{eyre::bail, Result};
 use regex::Regex;
 use transmission_rpc::types::TorrentAddArgs;
 

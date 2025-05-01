@@ -8,21 +8,27 @@ pub mod tasks;
 use std::sync::OnceLock;
 
 use crate::transmission::TorrentAction;
-use crate::tui::app::CTX;
 use crate::tui::components::{Component, ComponentAction};
+use crate::tui::ctx::CTX;
 
 use popups::details::DetailsPopup;
 use popups::stats::StatisticsPopup;
-use ratatui::prelude::*;
-use ratatui::widgets::{Cell, Row, Table};
+use ratatui::{
+    prelude::*,
+    widgets::{Cell, Row, Table},
+};
+
 use rm_config::CONFIG;
-use rm_shared::status_task::StatusTask;
+use rm_shared::{
+    action::{Action, ErrorMessage, UpdateAction},
+    current_window::TorrentWindow,
+    status_task::StatusTask,
+};
 use rustmission_torrent::RustmissionTorrent;
 use tasks::TorrentSelection;
 use transmission_rpc::types::{Id, SessionGet, TorrentStatus};
 
 use crate::transmission;
-use rm_shared::action::{Action, ErrorMessage, UpdateAction};
 
 use self::bottom_stats::BottomStats;
 use self::popups::files::FilesPopup;
@@ -33,6 +39,7 @@ use self::task_manager::TaskManager;
 pub static SESSION_GET: OnceLock<SessionGet> = OnceLock::new();
 
 pub struct TorrentsTab {
+    pub current_window: TorrentWindow,
     table_manager: TableManager,
     popup_manager: PopupManager,
     task_manager: TaskManager,
@@ -53,6 +60,7 @@ impl TorrentsTab {
             task_manager: TaskManager::new(),
             table_manager,
             popup_manager: PopupManager::new(),
+            current_window: TorrentWindow::General,
         }
     }
 }
@@ -63,11 +71,8 @@ impl Component for TorrentsTab {
             Layout::vertical([Constraint::Min(10), Constraint::Length(1)]).areas(rect);
 
         self.render_table(f, torrents_list_rect);
-
         self.bottom_stats.render(f, stats_rect);
-
         self.task_manager.render(f, stats_rect);
-
         self.popup_manager.render(f, f.area());
     }
 
@@ -196,6 +201,9 @@ impl Component for TorrentsTab {
 
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
+            UpdateAction::ChangeTorrentWindow(window) => {
+                self.current_window = window;
+            }
             UpdateAction::SessionStats(stats) => {
                 if let Some(CurrentPopup::Stats(popup)) = &mut self.popup_manager.current_popup {
                     popup.update_stats(&stats)
@@ -358,7 +366,9 @@ impl TorrentsTab {
         if let Some(highlighted_torrent) = self.table_manager.current_torrent() {
             let popup = FilesPopup::new(highlighted_torrent.id.clone());
             self.popup_manager.show_popup(CurrentPopup::Files(popup));
-            CTX.send_action(Action::Render);
+
+            let update_action = UpdateAction::ChangeTorrentWindow(TorrentWindow::FileViewer);
+            CTX.send_update_action(update_action);
         }
     }
 

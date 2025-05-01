@@ -19,11 +19,12 @@ use tokio::sync::mpsc::{self, UnboundedSender};
 use tui_input::{backend::crossterm::to_input_request, Input};
 
 use crate::tui::{
-    app::CTX,
     components::{Component, ComponentAction, GenericTable},
+    ctx::CTX,
 };
 use rm_shared::{
     action::{Action, UpdateAction},
+    current_window::SearchWindow,
     utils::bytes_to_human_format,
 };
 
@@ -34,6 +35,7 @@ enum SearchTabFocus {
 }
 
 pub(crate) struct SearchTab {
+    pub current_window: SearchWindow,
     focus: SearchTabFocus,
     input: Input,
     search_query_rx: UnboundedSender<String>,
@@ -107,6 +109,7 @@ impl SearchTab {
         });
 
         Self {
+            current_window: SearchWindow::General,
             focus: SearchTabFocus::List,
             input: Input::default(),
             table,

@@ -17,10 +17,9 @@ license = "GPL-3.0-or-later"
 rm-config = { version = "0.5", path = "rm-config" }
 rm-shared = { version = "0.5", path = "rm-shared" }
 
-intuitils = "0.0.5"
+intuitils = "0.0.6"
 
 magnetease = "0.3.1"
-anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 transmission-rpc = "0.4"
 fuzzy-matcher = "0.3.7"
@@ -35,6 +34,7 @@ regex = "1"
 thiserror = "1"
 chrono = "0.4"
 open = "5.3.0"
+color-eyre = { version = "0.6", features = ["issue-url"] }
 
 # Async
 tokio = { version = "1", features = ["macros", "sync", "rt-multi-thread"] }

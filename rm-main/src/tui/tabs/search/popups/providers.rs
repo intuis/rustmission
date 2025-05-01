@@ -97,7 +97,7 @@ impl Component for ProvidersPopup {
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
             .title(Title::from(" Providers ".set_style(title_style)))
-            .title(popup_close_button_highlight());
+            .title_bottom(popup_close_button_highlight());
 
         let widths = [
             Constraint::Length(10), // Provider name (and icon status prefix)

@@ -1,8 +1,8 @@
 mod add_torrent;
 mod fetch_rss;
 
-use anyhow::Result;
 use clap::{Parser, Subcommand};
+use color_eyre::Result;
 
 use add_torrent::add_torrent;
 use fetch_rss::fetch_rss;

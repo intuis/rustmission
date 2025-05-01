@@ -9,8 +9,8 @@ use transmission_rpc::types::Id;
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app::CTX,
         components::{Component, ComponentAction, InputManager},
+        ctx::CTX,
     },
 };
 

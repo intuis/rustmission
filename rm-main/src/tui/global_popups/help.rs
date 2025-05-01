@@ -10,8 +10,8 @@ use rm_config::CONFIG;
 use rm_shared::action::Action;
 
 use crate::tui::{
-    app::CTX,
     components::{popup_block_with_close_highlight, popup_rects, Component, ComponentAction},
+    ctx::CTX,
 };
 
 macro_rules! add_line {
@@ -28,6 +28,7 @@ pub struct HelpPopup {
     scroll: Option<Scroll>,
     global_keys: Vec<(String, &'static str)>,
     torrent_keys: Vec<(String, &'static str)>,
+    torrent_file_viewer_keys: Vec<(String, &'static str)>,
     search_keys: Vec<(String, &'static str)>,
     max_key_len: usize,
     max_line_len: usize,
@@ -71,6 +72,10 @@ impl HelpPopup {
             .keybindings
             .torrents_tab
             .get_help_repr_with_override(override_keycode);
+        let torrent_file_viewer_keys = CONFIG
+            .keybindings
+            .torrents_tab_file_viewer
+            .get_help_repr_with_override(override_keycode);
         let search_keys = CONFIG
             .keybindings
             .search_tab
@@ -101,6 +106,7 @@ impl HelpPopup {
             scroll: None,
             global_keys,
             torrent_keys,
+            torrent_file_viewer_keys,
             search_keys,
             max_key_len,
             max_line_len,
@@ -190,6 +196,7 @@ impl Component for HelpPopup {
 
         let global_keys = padded_keys(&mut self.global_keys);
         let torrent_keys = padded_keys(&mut self.torrent_keys);
+        let torrent_file_viewer_keys = padded_keys(&mut self.torrent_file_viewer_keys);
         let search_keys = padded_keys(&mut self.search_keys);
 
         let mut lines = vec![];
@@ -221,6 +228,16 @@ impl Component for HelpPopup {
         );
 
         insert_keys(&mut lines, torrent_keys);
+
+        lines.push(
+            Line::from(vec![Span::styled(
+                "Torrents File Viewer",
+                Style::default().bold().underlined(),
+            )])
+            .centered(),
+        );
+
+        insert_keys(&mut lines, torrent_file_viewer_keys);
 
         lines.push(
             Line::from(vec![Span::styled(

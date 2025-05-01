@@ -3,24 +3,21 @@ use std::{collections::BTreeMap, time::Duration};
 use ratatui::{
     prelude::*,
     style::Styled,
-    widgets::{
-        block::{Position, Title},
-        Clear, Paragraph,
-    },
+    widgets::{Clear, Paragraph},
 };
 use rm_config::{keymap::GeneralAction, CONFIG};
 use tokio::{sync::oneshot, task::JoinHandle};
-use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
+use transmission_rpc::types::{Id, Priority, Torrent, TorrentSetArgs};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app::CTX,
         components::{
             keybinding_style, popup_block, popup_close_button, popup_close_button_highlight,
             popup_rects, Component, ComponentAction,
         },
+        ctx::CTX,
     },
 };
 use rm_shared::{
@@ -111,6 +108,9 @@ impl Component for FilesPopup {
             (action, _) if action.is_soft_quit() => {
                 self.torrent_info_task_handle.abort();
                 return ComponentAction::Quit;
+            }
+            (A::ChangeFilePriority, CurrentFocus::Files) => {
+                todo!();
             }
             (A::ChangeFocus, _) => {
                 self.switch_focus();
@@ -311,12 +311,8 @@ impl Component for FilesPopup {
                         .set_style(highlight_style)
                         .into_right_aligned_line(),
                 )
-                .title(close_button)
-                .title(
-                    Title::from(keybinding_tip)
-                        .alignment(Alignment::Left)
-                        .position(Position::Bottom),
-                );
+                .title_bottom(close_button)
+                .title_bottom(Line::from(keybinding_tip).left_aligned());
 
             let tree_items = self.tree.make_tree();
 
@@ -341,6 +337,7 @@ struct TransmissionFile {
     name: String,
     id: usize,
     wanted: bool,
+    priority: Priority,
     length: i64,
     bytes_completed: i64,
 }
@@ -348,6 +345,14 @@ struct TransmissionFile {
 impl TransmissionFile {
     fn set_wanted(&mut self, new_wanted: bool) {
         self.wanted = new_wanted;
+    }
+
+    fn priority_str(&self) -> &'static str {
+        match self.priority {
+            Priority::Low => "Low",
+            Priority::Normal => "Normal",
+            Priority::High => "High",
+        }
     }
 }
 
@@ -373,12 +378,15 @@ impl Node {
 
             let wanted = torrent.wanted.as_ref().unwrap()[id] != 0;
 
+            let priority = torrent.priorities.as_ref().unwrap()[id].clone();
+
             let file = TransmissionFile {
                 id,
                 name: path[path.len() - 1].clone(),
                 wanted,
                 length: file.length,
                 bytes_completed: file.bytes_completed,
+                priority,
             };
 
             root.add_transmission_file(file, &path);
@@ -437,6 +445,8 @@ impl Node {
             }
 
             name.push_span(Span::raw("| "));
+
+            name.push_span(format!("[{}] ", transmission_file.priority_str()));
 
             if progress != 1.0 {
                 name.push_span(Span::styled(
