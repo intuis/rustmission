@@ -1,4 +1,4 @@
-use chrono::{Datelike, NaiveDateTime};
+use chrono::{DateTime, Datelike, Utc};
 use ratatui::{
     style::{Style, Stylize},
     text::{Line, Span},
@@ -9,7 +9,7 @@ use rm_shared::{
     header::Header,
     utils::{bytes_to_human_format, seconds_to_human_format},
 };
-use transmission_rpc::types::{ErrorType, Id, Torrent, TorrentStatus};
+use transmission_rpc::types::{ErrorType, FileStat, Id, Torrent, TorrentStatus};
 
 #[derive(Clone)]
 pub struct RustmissionTorrent {
@@ -25,8 +25,9 @@ pub struct RustmissionTorrent {
     style: Style,
     pub id: Id,
     pub download_dir: String,
-    pub activity_date: NaiveDateTime,
-    pub added_date: NaiveDateTime,
+    pub file_stats: Vec<FileStat>,
+    pub activity_date: DateTime<Utc>,
+    pub added_date: DateTime<Utc>,
     pub peers_connected: i64,
     pub category: Option<CategoryType>,
     pub error: Option<String>,
@@ -328,6 +329,8 @@ impl From<Torrent> for RustmissionTorrent {
 
         let download_dir = t.download_dir.clone().expect("field requested");
 
+        let file_stats = t.file_stats.expect("field requested");
+
         let uploaded_ever = bytes_to_human_format(t.uploaded_ever.expect("field requested"));
 
         let upload_ratio = {
@@ -335,19 +338,9 @@ impl From<Torrent> for RustmissionTorrent {
             format!("{:.1}", raw)
         };
 
-        let activity_date = {
-            let raw = t.activity_date.expect("field requested");
-            chrono::DateTime::from_timestamp(raw, 0)
-                .unwrap()
-                .naive_local()
-        };
+        let activity_date = t.activity_date.expect("field requested");
 
-        let added_date = {
-            let raw = t.added_date.expect("field requested");
-            chrono::DateTime::from_timestamp(raw, 0)
-                .unwrap()
-                .naive_local()
-        };
+        let added_date = t.added_date.expect("field requested");
 
         let peers_connected = t.peers_connected.expect("field requested");
 
@@ -390,6 +383,7 @@ impl From<Torrent> for RustmissionTorrent {
             style,
             id,
             download_dir,
+            file_stats,
             uploaded_ever,
             upload_ratio,
             activity_date,
@@ -402,7 +396,7 @@ impl From<Torrent> for RustmissionTorrent {
     }
 }
 
-fn time_to_line<'a>(time: NaiveDateTime) -> Line<'a> {
+fn time_to_line<'a>(time: DateTime<Utc>) -> Line<'a> {
     let today = chrono::Local::now();
     if time.year() == today.year() && time.month() == today.month() && time.day() == today.day() {
         Line::from(time.format("Today %H:%M").to_string())

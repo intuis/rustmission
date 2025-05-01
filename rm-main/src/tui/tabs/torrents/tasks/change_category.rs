@@ -9,8 +9,8 @@ use rm_shared::{
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app::CTX,
         components::{Component, ComponentAction, InputManager},
+        ctx::CTX,
     },
 };
 

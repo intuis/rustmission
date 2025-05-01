@@ -3,24 +3,21 @@ use std::{collections::BTreeMap, time::Duration};
 use ratatui::{
     prelude::*,
     style::Styled,
-    widgets::{
-        block::{Position, Title},
-        Clear, Paragraph,
-    },
+    widgets::{Clear, Paragraph},
 };
 use rm_config::{keymap::GeneralAction, CONFIG};
 use tokio::{sync::oneshot, task::JoinHandle};
-use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
+use transmission_rpc::types::{Id, Priority, Torrent, TorrentSetArgs};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app::CTX,
         components::{
             keybinding_style, popup_block, popup_close_button, popup_close_button_highlight,
             popup_rects, Component, ComponentAction,
         },
+        ctx::CTX,
     },
 };
 use rm_shared::{
@@ -94,11 +91,11 @@ impl FilesPopup {
         }
     }
 
-    fn selected_ids(&self) -> Vec<i32> {
+    fn selected_ids(&self) -> Vec<usize> {
         self.tree_state
             .selected()
             .iter()
-            .filter_map(|str_id| str_id.parse::<i32>().ok())
+            .filter_map(|str_id| str_id.parse::<usize>().ok())
             .collect()
     }
 }
@@ -111,6 +108,9 @@ impl Component for FilesPopup {
             (action, _) if action.is_soft_quit() => {
                 self.torrent_info_task_handle.abort();
                 return ComponentAction::Quit;
+            }
+            (A::ChangeFilePriority, CurrentFocus::Files) => {
+                todo!();
             }
             (A::ChangeFocus, _) => {
                 self.switch_focus();
@@ -141,7 +141,7 @@ impl Component for FilesPopup {
 
                     let mut wanted_in_selection_no = 0;
                     for selected_id in &selected_ids {
-                        if wanted_ids[*selected_id as usize] == 1 {
+                        if wanted_ids[*selected_id as usize] {
                             wanted_in_selection_no += 1;
                         } else {
                             wanted_in_selection_no -= 1;
@@ -150,11 +150,11 @@ impl Component for FilesPopup {
 
                     if wanted_in_selection_no > 0 {
                         for selected_id in &selected_ids {
-                            wanted_ids[*selected_id as usize] = 0;
+                            wanted_ids[*selected_id as usize] = false;
                         }
                     } else {
                         for selected_id in &selected_ids {
-                            wanted_ids[*selected_id as usize] = 1;
+                            wanted_ids[*selected_id as usize] = true;
                         }
                     }
 
@@ -163,18 +163,12 @@ impl Component for FilesPopup {
                             for transmission_file in self.tree.get_by_ids(&selected_ids) {
                                 transmission_file.set_wanted(false);
                             }
-                            TorrentSetArgs {
-                                files_unwanted: Some(selected_ids),
-                                ..Default::default()
-                            }
+                            TorrentSetArgs::default().files_unwanted(selected_ids)
                         } else {
                             for transmission_file in self.tree.get_by_ids(&selected_ids) {
                                 transmission_file.set_wanted(true);
                             }
-                            TorrentSetArgs {
-                                files_wanted: Some(selected_ids),
-                                ..Default::default()
-                            }
+                            TorrentSetArgs::default().files_wanted(selected_ids)
                         }
                     };
 
@@ -203,7 +197,7 @@ impl Component for FilesPopup {
                         return ComponentAction::Nothing;
                     }
 
-                    if let Ok(file_id) = identifier.last().unwrap().parse::<i32>() {
+                    if let Ok(file_id) = identifier.last().unwrap().parse::<usize>() {
                         identifier.pop();
                         identifier
                             .push(self.tree.get_by_ids(&[file_id]).pop().unwrap().name.clone())
@@ -311,12 +305,8 @@ impl Component for FilesPopup {
                         .set_style(highlight_style)
                         .into_right_aligned_line(),
                 )
-                .title(close_button)
-                .title(
-                    Title::from(keybinding_tip)
-                        .alignment(Alignment::Left)
-                        .position(Position::Bottom),
-                );
+                .title_bottom(close_button)
+                .title_bottom(Line::from(keybinding_tip).left_aligned());
 
             let tree_items = self.tree.make_tree();
 
@@ -341,6 +331,7 @@ struct TransmissionFile {
     name: String,
     id: usize,
     wanted: bool,
+    priority: Priority,
     length: i64,
     bytes_completed: i64,
 }
@@ -348,6 +339,14 @@ struct TransmissionFile {
 impl TransmissionFile {
     fn set_wanted(&mut self, new_wanted: bool) {
         self.wanted = new_wanted;
+    }
+
+    fn priority_str(&self) -> &'static str {
+        match self.priority {
+            Priority::Low => "Low",
+            Priority::Normal => "Normal",
+            Priority::High => "High",
+        }
     }
 }
 
@@ -371,7 +370,9 @@ impl Node {
         for (id, file) in files.iter().enumerate() {
             let path: Vec<String> = file.name.split('/').map(str::to_string).collect();
 
-            let wanted = torrent.wanted.as_ref().unwrap()[id] != 0;
+            let wanted = torrent.wanted.as_ref().unwrap()[id] != false;
+
+            let priority = torrent.priorities.as_ref().unwrap()[id].clone();
 
             let file = TransmissionFile {
                 id,
@@ -379,6 +380,7 @@ impl Node {
                 wanted,
                 length: file.length,
                 bytes_completed: file.bytes_completed,
+                priority,
             };
 
             root.add_transmission_file(file, &path);
@@ -402,10 +404,10 @@ impl Node {
         }
     }
 
-    fn get_by_ids(&mut self, ids: &[i32]) -> Vec<&mut TransmissionFile> {
+    fn get_by_ids(&mut self, ids: &[usize]) -> Vec<&mut TransmissionFile> {
         let mut transmission_files = vec![];
         for file in &mut self.items {
-            if ids.contains(&(file.id as i32)) {
+            if ids.contains(&(file.id as usize)) {
                 transmission_files.push(file);
             }
         }
@@ -437,6 +439,8 @@ impl Node {
             }
 
             name.push_span(Span::raw("| "));
+
+            name.push_span(format!("[{}] ", transmission_file.priority_str()));
 
             if progress != 1.0 {
                 name.push_span(Span::styled(

@@ -1,4 +1,7 @@
-use std::sync::{LazyLock, Mutex};
+use std::{
+    io::stdout,
+    panic::{set_hook, take_hook},
+};
 
 use crate::{
     transmission::{self, TorrentAction},
@@ -7,76 +10,78 @@ use crate::{
 
 use intuitils::Terminal;
 use rm_config::CONFIG;
-use rm_shared::action::{Action, UpdateAction};
-
-use anyhow::Result;
-use crossterm::event::{Event, KeyCode, KeyModifiers};
-use tokio::sync::{
-    mpsc::{self, unbounded_channel, UnboundedReceiver, UnboundedSender},
-    oneshot,
+use rm_shared::{
+    action::{Action, UpdateAction},
+    current_window::{TorrentWindow, Window},
 };
 
+use color_eyre::{
+    eyre::{self},
+    Result, Section,
+};
+use crossterm::{
+    cursor::Show,
+    event::{DisableMouseCapture, KeyCode, KeyModifiers},
+    execute,
+    terminal::{disable_raw_mode, LeaveAlternateScreen},
+};
+use tokio::sync::{mpsc::UnboundedReceiver, oneshot};
+
 use super::{
-    main_window::{CurrentTab, MainWindow},
+    ctx::{CTX, CTX_RAW},
+    main_window::MainWindow,
     tabs::torrents::SESSION_GET,
 };
 
-pub static CTX: LazyLock<Ctx> = LazyLock::new(|| CTX_RAW.0.clone());
+pub struct AppKeyEvent(crossterm::event::KeyEvent);
 
-static CTX_RAW: LazyLock<(
-    Ctx,
-    Mutex<
-        Option<(
-            UnboundedReceiver<Action>,
-            UnboundedReceiver<UpdateAction>,
-            UnboundedReceiver<TorrentAction>,
-        )>,
-    >,
-)> = LazyLock::new(|| {
-    let (ctx, act_rx, upd_rx, tor_rx) = Ctx::new();
-    (ctx, Mutex::new(Some((act_rx, upd_rx, tor_rx))))
-});
-
-#[derive(Clone)]
-pub struct Ctx {
-    action_tx: UnboundedSender<Action>,
-    update_tx: UnboundedSender<UpdateAction>,
-    trans_tx: UnboundedSender<TorrentAction>,
+impl From<crossterm::event::KeyEvent> for AppKeyEvent {
+    fn from(value: crossterm::event::KeyEvent) -> Self {
+        Self(value)
+    }
 }
 
-impl Ctx {
-    fn new() -> (
-        Self,
-        UnboundedReceiver<Action>,
-        UnboundedReceiver<UpdateAction>,
-        UnboundedReceiver<TorrentAction>,
-    ) {
-        let (action_tx, action_rx) = unbounded_channel();
-        let (update_tx, update_rx) = unbounded_channel();
-        let (trans_tx, trans_rx) = unbounded_channel();
+impl AppKeyEvent {
+    pub fn is_ctrl_c(&self) -> bool {
+        if self.0.modifiers == KeyModifiers::CONTROL
+            && (self.0.code == KeyCode::Char('c') || self.0.code == KeyCode::Char('C'))
+        {
+            return true;
+        }
+        false
+    }
 
-        (
-            Self {
-                action_tx,
-                update_tx,
-                trans_tx,
+    fn keybinding(&self) -> (KeyCode, KeyModifiers) {
+        match self.0.code {
+            KeyCode::Char(e) => {
+                let modifier = if e.is_uppercase() {
+                    KeyModifiers::NONE
+                } else {
+                    self.0.modifiers
+                };
+                (self.0.code, modifier)
+            }
+            _ => (self.0.code, self.0.modifiers),
+        }
+    }
+
+    fn to_action(&self, current_window: Window) -> Option<Action> {
+        let keymap = match current_window {
+            Window::Torrents(current_window) => match current_window {
+                TorrentWindow::General => &CONFIG.keybindings.torrents_tab.map,
+                TorrentWindow::FileViewer => &CONFIG.keybindings.torrents_tab_file_viewer.map,
             },
-            action_rx,
-            update_rx,
-            trans_rx,
-        )
-    }
+            Window::Search(_) => &CONFIG.keybindings.search_tab.map,
+        };
 
-    pub(crate) fn send_action(&self, action: Action) {
-        self.action_tx.send(action).unwrap();
-    }
+        let keybinding = self.keybinding();
 
-    pub(crate) fn send_torrent_action(&self, action: TorrentAction) {
-        self.trans_tx.send(action).unwrap();
-    }
-
-    pub(crate) fn send_update_action(&self, action: UpdateAction) {
-        self.update_tx.send(action).unwrap();
+        for keymap in [&CONFIG.keybindings.general.map, keymap] {
+            if let Some(action) = keymap.get(&keybinding).cloned() {
+                return Some(action);
+            }
+        }
+        None
     }
 }
 
@@ -109,7 +114,13 @@ impl App {
             let (sess_tx, sess_rx) = oneshot::channel();
 
             CTX.send_torrent_action(TorrentAction::GetSessionGet(sess_tx));
-            SESSION_GET.set(sess_rx.await.unwrap().unwrap()).unwrap();
+            match sess_rx.await.unwrap() {
+                Ok(sess_get) => SESSION_GET.set(sess_get).unwrap(),
+                Err(e) => CTX.send_update_action(UpdateAction::UnrecoverableError(Box::new(
+                    eyre::eyre!(e.source).wrap_err("error connecting to transmission daemon")
+                        .suggestion("Check if the transmission daemon IP address is correct and ensure you have an internet connection."),
+                ))),
+            }
         });
 
         Ok(Self {
@@ -123,6 +134,14 @@ impl App {
 
     pub async fn run(mut self) -> Result<()> {
         let mut terminal = Terminal::new()?;
+
+        let original_hook = take_hook();
+
+        set_hook(Box::new(move |panic_info| {
+            let _ = disable_raw_mode();
+            let _ = execute!(stdout(), LeaveAlternateScreen, Show, DisableMouseCapture);
+            original_hook(panic_info);
+        }));
 
         terminal.init()?;
 
@@ -142,23 +161,44 @@ impl App {
             let update_action = self.update_rx.recv();
             let tick_action = interval.tick();
 
-            let current_tab = self.main_window.tabs.current();
+            let current_window = self.main_window.current_window();
 
             tokio::select! {
                 _ = tick_action => self.tick(),
 
                 event = tui_event => {
-                    event_to_action(self.mode, current_tab, event.unwrap());
+                    let event = event.unwrap();
+
+                    use crossterm::event::{Event, MouseEventKind};
+                    match event {
+                        Event::Key(key_event) => {
+                            let app_key_event = AppKeyEvent::from(key_event);
+                            if app_key_event.is_ctrl_c() {
+                                self.should_quit = true;
+                            } else if self.mode == Mode::Input {
+                                self.handle_user_action(Action::Input(key_event));
+                            } else if let Some(action) = app_key_event.to_action(current_window) {
+                                self.handle_user_action(action);
+                            }
+                        },
+                        Event::Mouse(mouse_event) => match mouse_event.kind {
+                            MouseEventKind::ScrollDown => self.handle_user_action(Action::ScrollDownBy(3)),
+                            MouseEventKind::ScrollUp => self.handle_user_action(Action::ScrollUpBy(3)),
+                            _ => (),
+                        },
+                        Event::Resize(_, _) => self.render(terminal).unwrap(),
+                        _ => (),
+                    }
                 },
 
-                update_action = update_action => self.handle_update_action(update_action.unwrap()).await,
+                update_action = update_action => self.handle_update_action(update_action.unwrap()).await?,
 
                 action = action => {
                     if let Some(action) = action {
                         if action.is_render() {
-                            tokio::task::block_in_place(|| self.render(terminal).unwrap() );
+                            self.render(terminal)?;
                         } else {
-                            self.handle_user_action(action).await
+                            self.handle_user_action(action);
                         }
                     }
                 }
@@ -171,14 +211,17 @@ impl App {
     }
 
     fn render(&mut self, terminal: &mut Terminal) -> Result<()> {
-        terminal.draw(|f| {
-            self.main_window.render(f, f.area());
-        })?;
+        tokio::task::block_in_place(|| {
+            terminal
+                .draw(|f| {
+                    self.main_window.render(f, f.area());
+                })
+                .unwrap();
+        });
         Ok(())
     }
 
-    #[must_use]
-    async fn handle_user_action(&mut self, action: Action) {
+    fn handle_user_action(&mut self, action: Action) {
         use Action as A;
         match &action {
             A::HardQuit => {
@@ -191,8 +234,9 @@ impl App {
         }
     }
 
-    async fn handle_update_action(&mut self, action: UpdateAction) {
+    async fn handle_update_action(&mut self, action: UpdateAction) -> Result<()> {
         match action {
+            UpdateAction::UnrecoverableError(report) => return Err(*report),
             UpdateAction::SwitchToInputMode => {
                 self.mode = Mode::Input;
             }
@@ -203,6 +247,7 @@ impl App {
             _ => self.main_window.handle_update_action(action),
         };
         CTX.send_action(Action::Render);
+        Ok(())
     }
 
     fn tick(&mut self) {
@@ -214,59 +259,4 @@ impl App {
 pub enum Mode {
     Input,
     Normal,
-}
-
-pub fn event_to_action(mode: Mode, current_tab: CurrentTab, event: Event) {
-    // Handle CTRL+C first
-    if let Event::Key(key_event) = event {
-        if key_event.modifiers == KeyModifiers::CONTROL
-            && (key_event.code == KeyCode::Char('c') || key_event.code == KeyCode::Char('C'))
-        {
-            CTX.send_action(Action::HardQuit);
-        }
-    }
-
-    match event {
-        Event::Key(key) if mode == Mode::Input => CTX.send_action(Action::Input(key)),
-        Event::Mouse(mouse_event) => match mouse_event.kind {
-            crossterm::event::MouseEventKind::ScrollDown => {
-                CTX.send_action(Action::ScrollDownBy(3))
-            }
-            crossterm::event::MouseEventKind::ScrollUp => CTX.send_action(Action::ScrollUpBy(3)),
-            _ => (),
-        },
-        Event::Key(key) => {
-            let keymaps = match current_tab {
-                CurrentTab::Torrents => [
-                    &CONFIG.keybindings.general.map,
-                    &CONFIG.keybindings.torrents_tab.map,
-                ],
-                CurrentTab::Search => [
-                    &CONFIG.keybindings.general.map,
-                    &CONFIG.keybindings.search_tab.map,
-                ],
-            };
-
-            let keybinding = match key.code {
-                KeyCode::Char(e) => {
-                    let modifier = if e.is_uppercase() {
-                        KeyModifiers::NONE
-                    } else {
-                        key.modifiers
-                    };
-                    (key.code, modifier)
-                }
-                _ => (key.code, key.modifiers),
-            };
-
-            for keymap in keymaps {
-                if let Some(action) = keymap.get(&keybinding).cloned() {
-                    CTX.send_action(action);
-                    return;
-                }
-            }
-        }
-        Event::Resize(_, _) => CTX.send_action(Action::Render),
-        _ => (),
-    }
 }

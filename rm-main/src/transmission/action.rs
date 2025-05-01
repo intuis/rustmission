@@ -158,9 +158,7 @@ pub async fn action_handler(
                 Err(err) => {
                     let msg = "Failed to get session data";
                     let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
-                    update_tx
-                        .send(UpdateAction::Error(Box::new(err_message)))
-                        .unwrap();
+                    sender.send(Err(Box::new(err_message))).unwrap();
                 }
             },
             TorrentAction::Move(ids, new_directory) => {
@@ -203,7 +201,10 @@ pub async fn action_handler(
             }
             TorrentAction::GetTorrentsById(ids, sender) => {
                 match client.torrent_get(None, Some(ids.clone())).await {
-                    Ok(torrents) => sender.send(Ok(torrents.arguments.torrents)).unwrap(),
+                    Ok(torrents) => {
+                        // TODO: log using tracing in case of an error.
+                        let _ = sender.send(Ok(torrents.arguments.torrents));
+                    }
                     Err(err) => {
                         let msg = format!("Failed to fetch torrents with these IDs: {:?}", ids);
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
@@ -217,10 +218,7 @@ pub async fn action_handler(
                 } else {
                     vec![category]
                 };
-                let args = TorrentSetArgs {
-                    labels: Some(labels),
-                    ..Default::default()
-                };
+                let args = TorrentSetArgs::default().labels(labels);
                 match client.torrent_set(args, Some(ids)).await {
                     Ok(_) => update_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {

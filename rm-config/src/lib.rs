@@ -4,8 +4,8 @@ pub mod main_config;
 
 use std::{path::PathBuf, sync::LazyLock};
 
-use anyhow::Result;
 use categories::CategoriesConfig;
+use color_eyre::Result;
 use intuitils::config::IntuiConfig;
 use keymap::KeymapConfig;
 use main_config::MainConfig;

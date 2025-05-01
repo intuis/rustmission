@@ -4,8 +4,8 @@ use ratatui::prelude::*;
 use rm_shared::action::{Action, UpdateAction};
 
 use crate::tui::{
-    app::CTX,
     components::{Component, ComponentAction, InputManager},
+    ctx::CTX,
 };
 
 pub struct Filter {
