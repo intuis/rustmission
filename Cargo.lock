@@ -1257,9 +1257,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.22"
+version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
+checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 
 [[package]]
 name = "lru"
@@ -2638,15 +2638,17 @@ dependencies = [
 
 [[package]]
 name = "transmission-rpc"
-version = "0.4.3"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "975758b6dd51b367e4454e9d4ae9b61a5419c6454822ffe1ab92c29bd6196a58"
+checksum = "05204060bd751037cbbfe488e22d4a47991aa583052e85adbf4e96ab834a41bf"
 dependencies = [
+ "base64",
  "chrono",
  "enum-iterator",
  "log",
  "reqwest",
  "serde",
+ "serde_json",
  "serde_repr",
 ]
 

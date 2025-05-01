@@ -91,11 +91,11 @@ impl FilesPopup {
         }
     }
 
-    fn selected_ids(&self) -> Vec<i32> {
+    fn selected_ids(&self) -> Vec<usize> {
         self.tree_state
             .selected()
             .iter()
-            .filter_map(|str_id| str_id.parse::<i32>().ok())
+            .filter_map(|str_id| str_id.parse::<usize>().ok())
             .collect()
     }
 }
@@ -141,7 +141,7 @@ impl Component for FilesPopup {
 
                     let mut wanted_in_selection_no = 0;
                     for selected_id in &selected_ids {
-                        if wanted_ids[*selected_id as usize] == 1 {
+                        if wanted_ids[*selected_id as usize] {
                             wanted_in_selection_no += 1;
                         } else {
                             wanted_in_selection_no -= 1;
@@ -150,11 +150,11 @@ impl Component for FilesPopup {
 
                     if wanted_in_selection_no > 0 {
                         for selected_id in &selected_ids {
-                            wanted_ids[*selected_id as usize] = 0;
+                            wanted_ids[*selected_id as usize] = false;
                         }
                     } else {
                         for selected_id in &selected_ids {
-                            wanted_ids[*selected_id as usize] = 1;
+                            wanted_ids[*selected_id as usize] = true;
                         }
                     }
 
@@ -163,18 +163,12 @@ impl Component for FilesPopup {
                             for transmission_file in self.tree.get_by_ids(&selected_ids) {
                                 transmission_file.set_wanted(false);
                             }
-                            TorrentSetArgs {
-                                files_unwanted: Some(selected_ids),
-                                ..Default::default()
-                            }
+                            TorrentSetArgs::default().files_unwanted(selected_ids)
                         } else {
                             for transmission_file in self.tree.get_by_ids(&selected_ids) {
                                 transmission_file.set_wanted(true);
                             }
-                            TorrentSetArgs {
-                                files_wanted: Some(selected_ids),
-                                ..Default::default()
-                            }
+                            TorrentSetArgs::default().files_wanted(selected_ids)
                         }
                     };
 
@@ -203,7 +197,7 @@ impl Component for FilesPopup {
                         return ComponentAction::Nothing;
                     }
 
-                    if let Ok(file_id) = identifier.last().unwrap().parse::<i32>() {
+                    if let Ok(file_id) = identifier.last().unwrap().parse::<usize>() {
                         identifier.pop();
                         identifier
                             .push(self.tree.get_by_ids(&[file_id]).pop().unwrap().name.clone())
@@ -376,7 +370,7 @@ impl Node {
         for (id, file) in files.iter().enumerate() {
             let path: Vec<String> = file.name.split('/').map(str::to_string).collect();
 
-            let wanted = torrent.wanted.as_ref().unwrap()[id] != 0;
+            let wanted = torrent.wanted.as_ref().unwrap()[id] != false;
 
             let priority = torrent.priorities.as_ref().unwrap()[id].clone();
 
@@ -410,10 +404,10 @@ impl Node {
         }
     }
 
-    fn get_by_ids(&mut self, ids: &[i32]) -> Vec<&mut TransmissionFile> {
+    fn get_by_ids(&mut self, ids: &[usize]) -> Vec<&mut TransmissionFile> {
         let mut transmission_files = vec![];
         for file in &mut self.items {
-            if ids.contains(&(file.id as i32)) {
+            if ids.contains(&(file.id as usize)) {
                 transmission_files.push(file);
             }
         }

@@ -16,7 +16,7 @@ use rm_shared::{
 };
 
 use color_eyre::{
-    eyre::{self, Error, WrapErr},
+    eyre::{self},
     Result, Section,
 };
 use crossterm::{

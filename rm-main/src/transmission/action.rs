@@ -218,10 +218,7 @@ pub async fn action_handler(
                 } else {
                     vec![category]
                 };
-                let args = TorrentSetArgs {
-                    labels: Some(labels),
-                    ..Default::default()
-                };
+                let args = TorrentSetArgs::default().labels(labels);
                 match client.torrent_set(args, Some(ids)).await {
                     Ok(_) => update_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
