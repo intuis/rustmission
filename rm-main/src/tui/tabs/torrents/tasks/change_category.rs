@@ -11,6 +11,7 @@ use crate::{
     tui::{
         app::CTX,
         components::{Component, ComponentAction, InputManager},
+        tabs::torrents::SESSION_GET,
     },
 };
 
@@ -109,7 +110,15 @@ impl ChangeCategory {
             let category = self.category_input_mgr.text();
 
             if let Some(config_category) = CONFIG.categories.map.get(&category) {
-                self.set_stage_directory(config_category.default_dir.clone());
+                self.set_stage_directory(config_category.default_dir.clone().unwrap_or_else(
+                    || {
+                        SESSION_GET
+                            .get()
+                            .expect("session_get was not initialized yet")
+                            .download_dir
+                            .clone()
+                    },
+                ));
                 CTX.send_action(Action::Render);
                 return ComponentAction::Nothing;
             } else {

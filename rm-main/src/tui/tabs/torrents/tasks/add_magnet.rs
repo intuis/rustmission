@@ -98,7 +98,14 @@ impl AddMagnet {
             {
                 self.input_location_mgr = InputManager::new_with_value(
                     LOCATION_PROMPT.to_string(),
-                    category.default_dir.to_string(),
+                    category.default_dir.clone().unwrap_or_else(|| {
+                        SESSION_GET
+                            .get()
+                            .as_ref()
+                            .expect("session_get was already initialized")
+                            .download_dir
+                            .clone()
+                    }),
                 );
                 self.stage = Stage::Location;
                 CTX.send_action(Action::Render);
