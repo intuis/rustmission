@@ -29,12 +29,14 @@ pub async fn fetch_rss(url: &str, filter: Option<&str>) -> Result<()> {
         None
     });
     for (title, url) in items {
+        tracing::info!("RSS: downloading {title} from {url}");
         println!("downloading {title}");
         let args = TorrentAddArgs {
             filename: Some(url.to_string()),
             ..Default::default()
         };
         if let Err(e) = transclient.torrent_add(args).await {
+            tracing::error!("RSS: cannot download {title} from {url} {e}");
             bail!("error while adding a torrent: {e}")
         }
     }

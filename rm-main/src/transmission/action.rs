@@ -78,6 +78,7 @@ pub async fn action_handler(
                     }
                     Err(err) => {
                         let msg = format!("Failed to add torrent with URL/Path: \"{url}\"");
+                        tracing::error!("{msg}");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
@@ -88,9 +89,10 @@ pub async fn action_handler(
             }
             TorrentAction::Stop(ids) => {
                 match client.torrent_action(RPCAction::Stop, ids.clone()).await {
-                    Ok(_) => (),
+                    Ok(_) => tracing::info!("Stopping torrent, IDs={:?}", ids),
                     Err(err) => {
                         let msg = format!("Failed to stop torrents with these IDs: {:?}", ids);
+                        tracing::error!("{msg}");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
@@ -100,9 +102,10 @@ pub async fn action_handler(
             }
             TorrentAction::Start(ids) => {
                 match client.torrent_action(RPCAction::Start, ids.clone()).await {
-                    Ok(_) => (),
+                    Ok(_) => tracing::info!("Starting torrent, IDs={:?}", ids),
                     Err(err) => {
                         let msg = format!("Failed to start torrents with these IDs: {:?}", ids);
+                        tracing::error!("{msg}");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
@@ -115,6 +118,7 @@ pub async fn action_handler(
                     Ok(_) => update_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = format!("Failed to remove torrents with these IDs: {:?}", ids);
+                        tracing::error!("{msg}");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
@@ -128,6 +132,7 @@ pub async fn action_handler(
                     Ok(_) => update_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = format!("Failed to remove torrents with these IDs: {:?}", ids);
+                        tracing::error!("{msg}");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
@@ -144,6 +149,7 @@ pub async fn action_handler(
                             "Failed to set some properties to torrents with these IDs: {:?}",
                             ids
                         );
+                        tracing::error!("{msg}");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
@@ -157,6 +163,7 @@ pub async fn action_handler(
                 }
                 Err(err) => {
                     let msg = "Failed to get session data";
+                    tracing::error!("{msg}");
                     let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                     update_tx
                         .send(UpdateAction::Error(Box::new(err_message)))
@@ -169,6 +176,7 @@ pub async fn action_handler(
                     .await
                 {
                     let msg = format!("Failed to move torrent to new directory:\n{new_directory}");
+                    tracing::error!("{msg}");
                     let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                     update_tx
                         .send(UpdateAction::Error(Box::new(err_message)))
@@ -179,6 +187,7 @@ pub async fn action_handler(
                 Ok(stats) => sender.send(Ok(Arc::new(stats.arguments))).unwrap(),
                 Err(err) => {
                     let msg = "Failed to get session stats";
+                    tracing::error!("{msg}");
                     let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                     sender.send(Err(Box::new(err_message))).unwrap();
                 }
@@ -187,6 +196,7 @@ pub async fn action_handler(
                 Ok(free_space) => sender.send(Ok(free_space.arguments)).unwrap(),
                 Err(err) => {
                     let msg = "Failed to get free space info";
+                    tracing::error!("{msg}");
                     let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                     sender.send(Err(Box::new(err_message))).unwrap();
                 }
@@ -196,6 +206,7 @@ pub async fn action_handler(
                     Ok(torrents) => sender.send(Ok(torrents.arguments.torrents)).unwrap(),
                     Err(err) => {
                         let msg = "Failed to fetch torrent data";
+                        tracing::error!("{msg}");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         sender.send(Err(Box::new(err_message))).unwrap();
                     }
@@ -206,6 +217,7 @@ pub async fn action_handler(
                     Ok(torrents) => sender.send(Ok(torrents.arguments.torrents)).unwrap(),
                     Err(err) => {
                         let msg = format!("Failed to fetch torrents with these IDs: {:?}", ids);
+                        tracing::error!("{msg}");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         sender.send(Err(Box::new(err_message))).unwrap();
                     }
@@ -225,6 +237,7 @@ pub async fn action_handler(
                     Ok(_) => update_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = "Failed to set category";
+                        tracing::error!("{msg}");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
@@ -241,6 +254,7 @@ pub async fn action_handler(
                     Ok(_) => update_tx.send(UpdateAction::StatusTaskSuccess).unwrap(),
                     Err(err) => {
                         let msg = "Failed to rename a torrent";
+                        tracing::error!("{msg}");
                         let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
                         update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))

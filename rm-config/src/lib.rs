@@ -1,5 +1,6 @@
 pub mod categories;
 pub mod keymap;
+pub mod logging;
 pub mod main_config;
 
 use std::{path::PathBuf, sync::LazyLock};

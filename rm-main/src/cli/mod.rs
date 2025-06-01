@@ -26,15 +26,26 @@ pub enum Commands {
 
 pub async fn handle_command(command: Commands) -> Result<()> {
     match command {
-        Commands::AddTorrent { torrent } => add_torrent(torrent).await?,
+        Commands::AddTorrent { torrent } => {
+            match add_torrent(torrent.clone()).await {
+                Ok(_) => tracing::info!("Torrent added: {torrent}"),
+                Err(e) => {
+                    tracing::error!("Cannot add torrent: {torrent}, {e}");
+                    return Err(e);
+                }
+            }
+        },
         Commands::FetchRss { url, filter } => fetch_rss(&url, filter.as_deref()).await?,
         Commands::PrintDefaultConfig {} => {
+            tracing::info!("Printing config");
             println!("{}", rm_config::main_config::MainConfig::default_config())
         }
         Commands::PrintDefaultKeymap {} => {
+            tracing::info!("Printing key mapping");
             println!("{}", rm_config::keymap::KeymapConfig::default_config())
         }
         Commands::PrintDefaultCategories {} => {
+            tracing::info!("Printing categories");
             println!(
                 "{}",
                 rm_config::categories::CategoriesConfig::default_config()
