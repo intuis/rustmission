@@ -67,7 +67,7 @@ impl AppKeyEvent {
 
     fn to_action(&self, current_window: Window) -> Option<Action> {
         let keymap = match current_window {
-            Window::Torrents(current_window) => match current_window {
+            Window::Torrents(torrents_tab_current_window) => match torrents_tab_current_window {
                 TorrentWindow::General => &CONFIG.keybindings.torrents_tab.map,
                 TorrentWindow::FileViewer => &CONFIG.keybindings.torrents_tab_file_viewer.map,
             },
