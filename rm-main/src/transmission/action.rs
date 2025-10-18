@@ -202,7 +202,16 @@ pub async fn action_handler(
                 }
             }
             TorrentAction::GetTorrentsById(ids, sender) => {
-                match client.torrent_get(None, Some(ids.clone())).await {
+                // Explicitly request only the fields needed for file listing
+                let fields = vec![
+                    TorrentGetField::Id,
+                    TorrentGetField::Files,
+                    TorrentGetField::FileStats,
+                    TorrentGetField::Priorities,
+                    TorrentGetField::Wanted,
+                    TorrentGetField::DownloadDir,
+                ];
+                match client.torrent_get(Some(fields), Some(ids.clone())).await {
                     Ok(torrents) => sender.send(Ok(torrents.arguments.torrents)).unwrap(),
                     Err(err) => {
                         let msg = format!("Failed to fetch torrents with these IDs: {:?}", ids);
