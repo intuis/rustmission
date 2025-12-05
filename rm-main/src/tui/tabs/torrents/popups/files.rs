@@ -407,7 +407,7 @@ impl Component for FilesPopup {
                         .get_keys_for_action_joined(TorrentsFileViewerAction::ChangeFilePriority)
                     {
                         keys.push(Span::styled(key, keybinding_style()));
-                        keys.push(Span::raw(" - change file priority"));
+                        keys.push(Span::raw(" - change file priority "));
                     }
 
                     Line::from(keys)
