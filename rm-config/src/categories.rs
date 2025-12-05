@@ -46,9 +46,15 @@ impl IntuiConfig for CategoriesConfig {
 #[derive(Deserialize, Clone)]
 pub struct Category {
     pub name: String,
+    #[serde(default)]
     pub icon: String,
+    #[serde(default = "default_color_category")]
     pub color: Color,
-    pub default_dir: String,
+    pub default_dir: Option<String>,
+}
+
+fn default_color_category() -> Color {
+    Color::White
 }
 
 impl CategoriesConfig {
