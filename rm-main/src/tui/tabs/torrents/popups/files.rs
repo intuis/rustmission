@@ -69,7 +69,21 @@ impl Component for PriorityPopup {
                 };
 
                 let args = match self.list_state.selected().unwrap() {
+                    0 => {
+                        let args = TorrentSetArgs::new().priority_low(self.files.clone());
+                        CTX.send_torrent_action(TorrentAction::SetArgs(
+                            Box::new(args),
+                            Some(vec![self.torrent_id.clone()]),
+                        ));
+                    }
                     1 => {
+                        let args = TorrentSetArgs::new().priority_normal(self.files.clone());
+                        CTX.send_torrent_action(TorrentAction::SetArgs(
+                            Box::new(args),
+                            Some(vec![self.torrent_id.clone()]),
+                        ));
+                    }
+                    2 => {
                         let args = TorrentSetArgs::new().priority_high(self.files.clone());
                         CTX.send_torrent_action(TorrentAction::SetArgs(
                             Box::new(args),
