@@ -48,8 +48,12 @@ keybindings = [
   { on = "p", action = "Pause" },
   { on = "f", action = "ShowFiles" },
   { on = "s", action = "ShowStats" },
-
   { on = "d", action = "Delete" },
+]
+
+[torrents_tab_file_viewer]
+keybindings = [
+  { on = "p", action = "ChangeFilePriority" },
 ]
 
 [search_tab]

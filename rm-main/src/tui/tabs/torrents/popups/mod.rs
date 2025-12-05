@@ -1,11 +1,14 @@
 use crate::tui::{
-    app::CTX,
     components::{Component, ComponentAction},
+    ctx::CTX,
 };
 
 use self::{files::FilesPopup, stats::StatisticsPopup};
 use details::DetailsPopup;
-use rm_shared::action::{Action, UpdateAction};
+use rm_shared::{
+    action::{Action, UpdateAction},
+    current_window::TorrentWindow,
+};
 
 use ratatui::prelude::*;
 
@@ -54,7 +57,7 @@ impl Component for PopupManager {
 
             if should_close {
                 self.close_popup();
-                CTX.send_action(Action::Render);
+                CTX.send_update_action(UpdateAction::ChangeTorrentWindow(TorrentWindow::General));
             }
         }
         ComponentAction::Nothing

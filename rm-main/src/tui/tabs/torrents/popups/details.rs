@@ -7,8 +7,8 @@ use rm_shared::{action::Action, utils::bytes_to_human_format};
 use style::Styled;
 
 use crate::tui::{
-    app::CTX,
     components::{keybinding_style, popup_close_button_highlight, Component, ComponentAction},
+    ctx::CTX,
     main_window::centered_rect,
     tabs::torrents::rustmission_torrent::{CategoryType, RustmissionTorrent},
 };
@@ -61,7 +61,7 @@ impl Component for DetailsPopup {
         let block = Block::bordered()
             .border_type(BorderType::Rounded)
             .title(Title::from(" Details ".set_style(title_style)))
-            .title(popup_close_button_highlight());
+            .title_bottom(popup_close_button_highlight());
 
         let mut lines = vec![];
 

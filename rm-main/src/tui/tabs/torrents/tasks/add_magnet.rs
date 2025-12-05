@@ -5,8 +5,8 @@ use rm_config::CONFIG;
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app::CTX,
         components::{Component, ComponentAction, InputManager},
+        ctx::CTX,
         tabs::torrents::SESSION_GET,
     },
 };

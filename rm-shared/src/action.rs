@@ -4,7 +4,7 @@ use crossterm::event::KeyEvent;
 use magnetease::{MagneteaseError, MagneteaseResult};
 use transmission_rpc::types::{FreeSpace, SessionGet, SessionStats, Torrent};
 
-use crate::status_task::StatusTask;
+use crate::{current_window::TorrentWindow, status_task::StatusTask};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
@@ -41,6 +41,7 @@ pub enum Action {
     AddMagnet,
     MoveTorrent,
     ChangeCategory,
+    ChangeFilePriority,
     Rename,
     // Search Tab
     ShowProvidersInfo,
@@ -51,7 +52,9 @@ pub enum UpdateAction {
     SwitchToInputMode,
     SwitchToNormalMode,
     Error(Box<ErrorMessage>),
+    UnrecoverableError(Box<color_eyre::eyre::Report>),
     // Torrents Tab
+    ChangeTorrentWindow(TorrentWindow),
     SessionStats(Arc<SessionStats>),
     SessionGet(Arc<SessionGet>),
     FreeSpace(Arc<FreeSpace>),
@@ -73,23 +76,23 @@ pub enum UpdateAction {
     StatusTaskSetSuccess(StatusTask),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct ErrorMessage {
     pub title: String,
     pub description: String,
-    pub source: String,
+    pub source: Box<dyn Error + Send + Sync + 'static>,
 }
 
 impl ErrorMessage {
     pub fn new(
         title: impl Into<String>,
         message: impl Into<String>,
-        error: Box<dyn Error>,
+        error: Box<dyn Error + Send + Sync>,
     ) -> Self {
         Self {
             title: title.into(),
             description: message.into(),
-            source: error.to_string(),
+            source: error,
         }
     }
 }

@@ -9,8 +9,8 @@ pub use help::HelpPopup;
 use rm_shared::action::Action;
 
 use super::{
-    app::CTX,
     components::{Component, ComponentAction},
+    ctx::CTX,
 };
 
 pub(super) struct GlobalPopupManager {
@@ -30,7 +30,7 @@ impl GlobalPopupManager {
         self.error_popup.is_some() || self.help_popup.is_some()
     }
 
-    fn toggle_help(&mut self) {
+    pub fn toggle_help(&mut self) {
         if self.help_popup.is_some() {
             self.help_popup = None;
         } else {

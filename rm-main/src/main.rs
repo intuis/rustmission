@@ -2,8 +2,16 @@ mod cli;
 pub mod transmission;
 mod tui;
 
-use anyhow::Result;
+use std::io::stdout;
+
 use clap::Parser;
+use color_eyre::Result;
+use crossterm::{
+    cursor::Show,
+    event::DisableMouseCapture,
+    execute,
+    terminal::{disable_raw_mode, LeaveAlternateScreen},
+};
 use tui::app::App;
 
 #[tokio::main()]
@@ -17,6 +25,15 @@ async fn main() -> Result<()> {
             .with_ansi(false)
             .init();
     }
+  
+    color_eyre::config::HookBuilder::default()
+        .issue_url(concat!(env!("CARGO_PKG_REPOSITORY"), "/issues/new"))
+        .add_issue_metadata("version", env!("CARGO_PKG_VERSION"))
+        .issue_filter(|kind| match kind {
+            color_eyre::ErrorKind::NonRecoverable(_) => true,
+            color_eyre::ErrorKind::Recoverable(_) => false,
+        })
+        .install()?;
 
     let args = cli::Args::parse();
 
@@ -32,6 +49,10 @@ async fn main() -> Result<()> {
 
 async fn run_tui() -> Result<()> {
     let app = App::new().await?;
-    app.run().await?;
+    if let Err(e) = app.run().await {
+        let _ = disable_raw_mode();
+        let _ = execute!(stdout(), LeaveAlternateScreen, Show, DisableMouseCapture);
+        return Err(e);
+    };
     Ok(())
 }

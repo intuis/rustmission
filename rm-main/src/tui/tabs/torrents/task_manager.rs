@@ -9,8 +9,8 @@ use rm_shared::{
 use transmission_rpc::types::Id;
 
 use crate::tui::{
-    app::CTX,
     components::{Component, ComponentAction},
+    ctx::CTX,
 };
 
 use super::tasks::{self, CurrentTaskState, TorrentSelection};

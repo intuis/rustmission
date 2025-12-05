@@ -4,12 +4,14 @@ use intui_tabs::{Tabs, TabsState};
 use ratatui::prelude::*;
 
 use rm_config::CONFIG;
-use rm_shared::action::{Action, UpdateAction};
+use rm_shared::{
+    action::{Action, UpdateAction},
+    current_window::Window,
+};
 
-use crate::tui::app::CTX;
+use crate::tui::ctx::CTX;
 
 use super::{
-    app,
     components::{Component, ComponentAction},
     global_popups::{ErrorPopup, GlobalPopupManager},
     tabs::{search::SearchTab, torrents::TorrentsTab},
@@ -17,7 +19,7 @@ use super::{
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CurrentTab {
-    Torrents = 0,
+    Torrents,
     Search,
 }
 
@@ -38,8 +40,8 @@ impl Display for CurrentTab {
 
 pub struct MainWindow {
     pub tabs: intui_tabs::TabsState<CurrentTab>,
-    torrents_tab: TorrentsTab,
-    search_tab: SearchTab,
+    pub torrents_tab: TorrentsTab,
+    pub search_tab: SearchTab,
     global_popup_manager: GlobalPopupManager,
 }
 
@@ -50,6 +52,13 @@ impl MainWindow {
             torrents_tab: TorrentsTab::new(),
             search_tab: SearchTab::new(),
             global_popup_manager: GlobalPopupManager::new(),
+        }
+    }
+
+    pub fn current_window(&self) -> Window {
+        match self.tabs.current() {
+            CurrentTab::Torrents => Window::Torrents(self.torrents_tab.current_window),
+            CurrentTab::Search => Window::Search(self.search_tab.current_window),
         }
     }
 }
@@ -92,7 +101,8 @@ impl Component for MainWindow {
     fn handle_update_action(&mut self, action: UpdateAction) {
         match action {
             UpdateAction::Error(err) => {
-                let error_popup = ErrorPopup::new(err.title, err.description, err.source);
+                let error_popup =
+                    ErrorPopup::new(err.title, err.description, err.source.to_string());
                 self.global_popup_manager.error_popup = Some(error_popup);
             }
             action if self.tabs.current() == CurrentTab::Torrents => {

@@ -6,7 +6,7 @@ use transmission_rpc::types::TorrentGetField;
 
 use rm_shared::action::UpdateAction;
 
-use crate::tui::app::CTX;
+use crate::tui::ctx::CTX;
 
 use super::TorrentAction;
 
@@ -85,6 +85,7 @@ pub async fn torrents() {
             TorrentGetField::Error,
             TorrentGetField::ErrorString,
             TorrentGetField::Labels,
+            TorrentGetField::FileStats,
         ];
         let (torrents_tx, torrents_rx) = oneshot::channel();
         CTX.send_torrent_action(TorrentAction::GetTorrents(fields, torrents_tx));

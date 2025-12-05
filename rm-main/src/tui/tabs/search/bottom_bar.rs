@@ -10,8 +10,8 @@ use rm_shared::action::{Action, UpdateAction};
 use throbber_widgets_tui::ThrobberState;
 
 use crate::tui::{
-    app::CTX,
     components::{keybinding_style, Component, ComponentAction},
+    ctx::CTX,
     tabs::torrents::tasks,
 };
 

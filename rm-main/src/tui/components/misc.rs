@@ -1,25 +1,19 @@
 use ratatui::{
-    layout::{Alignment, Margin, Rect},
+    layout::{Margin, Rect},
     style::{Style, Styled, Stylize},
-    widgets::{
-        block::{Position, Title},
-        Block, BorderType,
-    },
+    text::Line,
+    widgets::{block::Title, Block, BorderType},
 };
 use rm_config::CONFIG;
 
 use crate::tui::main_window::centered_rect;
 
-pub fn popup_close_button_highlight() -> Title<'static> {
-    Title::from(" [ CLOSE ] ".fg(CONFIG.general.accent_color).bold())
-        .alignment(Alignment::Right)
-        .position(Position::Bottom)
+pub fn popup_close_button_highlight() -> Line<'static> {
+    Line::from(" [ CLOSE ] ".fg(CONFIG.general.accent_color).bold()).right_aligned()
 }
 
-pub fn popup_close_button() -> Title<'static> {
-    Title::from(" [CLOSE] ".bold())
-        .alignment(Alignment::Right)
-        .position(Position::Bottom)
+pub fn popup_close_button() -> Line<'static> {
+    Line::from(" [CLOSE] ".bold()).right_aligned()
 }
 
 pub fn popup_block(title: &str) -> Block {

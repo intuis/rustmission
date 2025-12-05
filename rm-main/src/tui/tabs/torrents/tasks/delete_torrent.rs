@@ -2,8 +2,8 @@ use crossterm::event::KeyCode;
 use ratatui::prelude::*;
 
 use crate::transmission::TorrentAction;
-use crate::tui::app::CTX;
 use crate::tui::components::{Component, ComponentAction, InputManager};
+use crate::tui::ctx::CTX;
 use rm_shared::action::{Action, UpdateAction};
 use rm_shared::status_task::StatusTask;
 

@@ -3,24 +3,24 @@ use std::{collections::BTreeMap, time::Duration};
 use ratatui::{
     prelude::*,
     style::Styled,
-    widgets::{
-        block::{Position, Title},
-        Clear, Paragraph,
-    },
+    widgets::{Clear, List, ListState, Paragraph},
 };
-use rm_config::{keymap::GeneralAction, CONFIG};
+use rm_config::{
+    keymap::{actions::torrents_tab_file_viewer::TorrentsFileViewerAction, GeneralAction},
+    CONFIG,
+};
 use tokio::{sync::oneshot, task::JoinHandle};
-use transmission_rpc::types::{Id, Torrent, TorrentSetArgs};
+use transmission_rpc::types::{Id, Priority, Torrent, TorrentSetArgs};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 use crate::{
     transmission::TorrentAction,
     tui::{
-        app::CTX,
         components::{
             keybinding_style, popup_block, popup_close_button, popup_close_button_highlight,
             popup_rects, Component, ComponentAction,
         },
+        ctx::CTX,
     },
 };
 use rm_shared::{
@@ -29,9 +29,115 @@ use rm_shared::{
     utils::{bytes_to_human_format, bytes_to_short_human_format},
 };
 
+struct PriorityPopup {
+    torrent_id: Id,
+    files: Vec<usize>,
+    list_state: ListState,
+}
+
+impl PriorityPopup {
+    fn new(torrent_id: Id, files: Vec<usize>) -> Self {
+        Self {
+            torrent_id,
+            files,
+            list_state: ListState::default().with_selected(Some(1)),
+        }
+    }
+}
+
+impl Component for PriorityPopup {
+    fn handle_actions(&mut self, action: Action) -> ComponentAction {
+        if action.is_soft_quit() {
+            return ComponentAction::Quit;
+        }
+
+        match action {
+            Action::Up => {
+                self.list_state.select_previous();
+                CTX.send_action(Action::Render);
+                return ComponentAction::Nothing;
+            }
+            Action::Down => {
+                self.list_state.select_next();
+                CTX.send_action(Action::Render);
+                return ComponentAction::Nothing;
+            }
+            Action::Confirm => {
+                let torrent_id = match self.torrent_id {
+                    Id::Id(id) => id,
+                    Id::Hash(_) => unreachable!(),
+                };
+
+                let args = match self.list_state.selected().unwrap() {
+                    0 => {
+                        let args = TorrentSetArgs::new().priority_low(self.files.clone());
+                        CTX.send_torrent_action(TorrentAction::SetArgs(
+                            Box::new(args),
+                            Some(vec![self.torrent_id.clone()]),
+                        ));
+                    }
+                    1 => {
+                        let args = TorrentSetArgs::new().priority_normal(self.files.clone());
+                        CTX.send_torrent_action(TorrentAction::SetArgs(
+                            Box::new(args),
+                            Some(vec![self.torrent_id.clone()]),
+                        ));
+                    }
+                    2 => {
+                        let args = TorrentSetArgs::new().priority_high(self.files.clone());
+                        CTX.send_torrent_action(TorrentAction::SetArgs(
+                            Box::new(args),
+                            Some(vec![self.torrent_id.clone()]),
+                        ));
+                    }
+                    _ => unreachable!(),
+                };
+                CTX.send_action(Action::Render);
+                return ComponentAction::Quit;
+            }
+            _ => return ComponentAction::Nothing,
+        }
+    }
+
+    fn handle_update_action(&mut self, action: UpdateAction) {
+        let _action = action;
+    }
+
+    fn render(&mut self, f: &mut Frame, rect: Rect) {
+        let [block_rect] = Layout::horizontal([Constraint::Length(20)])
+            .flex(layout::Flex::Center)
+            .areas(rect);
+        let [block_rect] = Layout::vertical([Constraint::Length(5)])
+            .flex(layout::Flex::Center)
+            .areas(block_rect);
+
+        let block = popup_block(" Priority ");
+
+        let list_rect = block_rect.inner(Margin {
+            horizontal: 1,
+            vertical: 1,
+        });
+        let list = List::new([
+            Text::raw("Low").centered(),
+            Text::raw("Normal").centered(),
+            Text::raw("High").centered(),
+        ])
+        .highlight_style(
+            Style::default()
+                .fg(CONFIG.general.accent_color)
+                .bg(Color::Black)
+                .bold(),
+        );
+
+        f.render_widget(block, block_rect);
+        f.render_stateful_widget(list, list_rect, &mut self.list_state);
+    }
+}
+
 pub struct FilesPopup {
     torrent: Option<Torrent>,
     torrent_id: Id,
+    priority_popup: Option<PriorityPopup>,
     tree_state: TreeState<String>,
     tree: Node,
     current_focus: CurrentFocus,
@@ -84,6 +190,7 @@ impl FilesPopup {
             switched_after_fetched_data: false,
             torrent_id,
             torrent_info_task_handle,
+            priority_popup: None,
         }
     }
 
@@ -94,11 +201,11 @@ impl FilesPopup {
         }
     }
 
-    fn selected_ids(&self) -> Vec<i32> {
+    fn selected_ids(&self) -> Vec<usize> {
         self.tree_state
             .selected()
             .iter()
-            .filter_map(|str_id| str_id.parse::<i32>().ok())
+            .filter_map(|str_id| str_id.parse::<usize>().ok())
             .collect()
     }
 }
@@ -107,20 +214,35 @@ impl Component for FilesPopup {
     #[must_use]
     fn handle_actions(&mut self, action: Action) -> ComponentAction {
         use Action as A;
-        match (action, self.current_focus) {
-            (action, _) if action.is_soft_quit() => {
+
+        match (&mut self.priority_popup, action, self.current_focus) {
+            (Some(priority_popup), action, _) => {
+                if priority_popup.handle_actions(action).is_quit() {
+                    self.priority_popup = None;
+                    CTX.send_action(A::Render);
+                    return ComponentAction::Nothing;
+                }
+            }
+            (_, action, _) if action.is_soft_quit() => {
                 self.torrent_info_task_handle.abort();
                 return ComponentAction::Quit;
             }
-            (A::ChangeFocus, _) => {
+            (None, A::ChangeFilePriority, CurrentFocus::Files) => {
+                self.priority_popup = Some(PriorityPopup::new(
+                    self.torrent_id.clone(),
+                    self.selected_ids(),
+                ));
+                CTX.send_action(A::Render);
+            }
+            (None, A::ChangeFocus, _) => {
                 self.switch_focus();
                 CTX.send_action(A::Render);
             }
-            (A::Confirm, CurrentFocus::CloseButton) => {
+            (None, A::Confirm, CurrentFocus::CloseButton) => {
                 self.torrent_info_task_handle.abort();
                 return ComponentAction::Quit;
             }
-            (A::Select | A::Confirm, CurrentFocus::Files) => {
+            (None, A::Select | A::Confirm, CurrentFocus::Files) => {
                 if self.torrent.is_some() {
                     let mut wanted_ids = self
                         .torrent
@@ -141,7 +263,7 @@ impl Component for FilesPopup {
 
                     let mut wanted_in_selection_no = 0;
                     for selected_id in &selected_ids {
-                        if wanted_ids[*selected_id as usize] == 1 {
+                        if wanted_ids[*selected_id as usize] {
                             wanted_in_selection_no += 1;
                         } else {
                             wanted_in_selection_no -= 1;
@@ -150,11 +272,11 @@ impl Component for FilesPopup {
 
                     if wanted_in_selection_no > 0 {
                         for selected_id in &selected_ids {
-                            wanted_ids[*selected_id as usize] = 0;
+                            wanted_ids[*selected_id as usize] = false;
                         }
                     } else {
                         for selected_id in &selected_ids {
-                            wanted_ids[*selected_id as usize] = 1;
+                            wanted_ids[*selected_id as usize] = true;
                         }
                     }
 
@@ -163,18 +285,12 @@ impl Component for FilesPopup {
                             for transmission_file in self.tree.get_by_ids(&selected_ids) {
                                 transmission_file.set_wanted(false);
                             }
-                            TorrentSetArgs {
-                                files_unwanted: Some(selected_ids),
-                                ..Default::default()
-                            }
+                            TorrentSetArgs::default().files_unwanted(selected_ids)
                         } else {
                             for transmission_file in self.tree.get_by_ids(&selected_ids) {
                                 transmission_file.set_wanted(true);
                             }
-                            TorrentSetArgs {
-                                files_wanted: Some(selected_ids),
-                                ..Default::default()
-                            }
+                            TorrentSetArgs::default().files_wanted(selected_ids)
                         }
                     };
 
@@ -187,15 +303,15 @@ impl Component for FilesPopup {
                 }
             }
 
-            (A::Up | A::ScrollUpBy(_), CurrentFocus::Files) => {
+            (None, A::Up | A::ScrollUpBy(_), CurrentFocus::Files) => {
                 self.tree_state.key_up();
                 CTX.send_action(Action::Render);
             }
-            (A::Down | A::ScrollDownBy(_), CurrentFocus::Files) => {
+            (None, A::Down | A::ScrollDownBy(_), CurrentFocus::Files) => {
                 self.tree_state.key_down();
                 CTX.send_action(Action::Render);
             }
-            (A::XdgOpen, CurrentFocus::Files) => {
+            (None, A::XdgOpen, CurrentFocus::Files) => {
                 if let Some(torrent) = &self.torrent {
                     let mut identifier = self.tree_state.selected().to_vec();
 
@@ -203,7 +319,7 @@ impl Component for FilesPopup {
                         return ComponentAction::Nothing;
                     }
 
-                    if let Ok(file_id) = identifier.last().unwrap().parse::<i32>() {
+                    if let Ok(file_id) = identifier.last().unwrap().parse::<usize>() {
                         identifier.pop();
                         identifier
                             .push(self.tree.get_by_ids(&[file_id]).pop().unwrap().name.clone())
@@ -296,7 +412,16 @@ impl Component for FilesPopup {
                         .get_keys_for_action_joined(GeneralAction::XdgOpen)
                     {
                         keys.push(Span::styled(key, keybinding_style()));
-                        keys.push(Span::raw(" - xdg_open "));
+                        keys.push(Span::raw(" - xdg_open | "));
+                    }
+
+                    if let Some(key) = CONFIG
+                        .keybindings
+                        .torrents_tab_file_viewer
+                        .get_keys_for_action_joined(TorrentsFileViewerAction::ChangeFilePriority)
+                    {
+                        keys.push(Span::styled(key, keybinding_style()));
+                        keys.push(Span::raw(" - change file priority "));
                     }
 
                     Line::from(keys)
@@ -311,12 +436,8 @@ impl Component for FilesPopup {
                         .set_style(highlight_style)
                         .into_right_aligned_line(),
                 )
-                .title(close_button)
-                .title(
-                    Title::from(keybinding_tip)
-                        .alignment(Alignment::Left)
-                        .position(Position::Bottom),
-                );
+                .title_bottom(close_button)
+                .title_bottom(Line::from(keybinding_tip).left_aligned());
 
             let tree_items = self.tree.make_tree();
 
@@ -327,6 +448,10 @@ impl Component for FilesPopup {
 
             f.render_widget(Clear, popup_rect);
             f.render_stateful_widget(tree_widget, block_rect, &mut self.tree_state);
+
+            if let Some(popup) = &mut self.priority_popup {
+                popup.render(f, rect);
+            }
         } else {
             let paragraph = Paragraph::new("Loading...");
             let block = block.title(popup_close_button_highlight());
@@ -341,6 +466,7 @@ struct TransmissionFile {
     name: String,
     id: usize,
     wanted: bool,
+    priority: Priority,
     length: i64,
     bytes_completed: i64,
 }
@@ -348,6 +474,14 @@ struct TransmissionFile {
 impl TransmissionFile {
     fn set_wanted(&mut self, new_wanted: bool) {
         self.wanted = new_wanted;
+    }
+
+    fn priority_str(&self) -> &'static str {
+        match self.priority {
+            Priority::Low => "Low",
+            Priority::Normal => "Normal",
+            Priority::High => "High",
+        }
     }
 }
 
@@ -371,7 +505,9 @@ impl Node {
         for (id, file) in files.iter().enumerate() {
             let path: Vec<String> = file.name.split('/').map(str::to_string).collect();
 
-            let wanted = torrent.wanted.as_ref().unwrap()[id] != 0;
+            let wanted = torrent.wanted.as_ref().unwrap()[id] != false;
+
+            let priority = torrent.priorities.as_ref().unwrap()[id].clone();
 
             let file = TransmissionFile {
                 id,
@@ -379,6 +515,7 @@ impl Node {
                 wanted,
                 length: file.length,
                 bytes_completed: file.bytes_completed,
+                priority,
             };
 
             root.add_transmission_file(file, &path);
@@ -402,10 +539,10 @@ impl Node {
         }
     }
 
-    fn get_by_ids(&mut self, ids: &[i32]) -> Vec<&mut TransmissionFile> {
+    fn get_by_ids(&mut self, ids: &[usize]) -> Vec<&mut TransmissionFile> {
         let mut transmission_files = vec![];
         for file in &mut self.items {
-            if ids.contains(&(file.id as i32)) {
+            if ids.contains(&(file.id as usize)) {
                 transmission_files.push(file);
             }
         }
@@ -437,6 +574,8 @@ impl Node {
             }
 
             name.push_span(Span::raw("| "));
+
+            name.push_span(format!("[{}] ", transmission_file.priority_str()));
 
             if progress != 1.0 {
                 name.push_span(Span::styled(

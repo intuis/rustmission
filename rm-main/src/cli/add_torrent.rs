@@ -1,7 +1,7 @@
 use std::{fs::File, io::Read};
 
-use anyhow::Result;
 use base64::Engine;
+use color_eyre::Result;
 use transmission_rpc::types::TorrentAddArgs;
 
 use crate::transmission;
