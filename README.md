@@ -85,9 +85,12 @@ torrents_refresh = 5
 stats_refresh = 5
 free_space_refresh = 10
 
-# If you need username and password to authenticate:
+# You can either specify `username`/`password` here or point to a
+# separate TOML file containing those keys. Example credentials file contents:
 # username = "CHANGE_ME"
 # password = "CHANGE_ME"
+# To point to such file, set `credentials_file` to its path:
+# credentials_file = "/path/to/credentials.toml"
 
 [torrents_tab]
 # Available fields:
