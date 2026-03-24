@@ -98,12 +98,12 @@ impl App {
     }
 
     async fn main_loop(mut self, terminal: &mut Terminal) -> Result<()> {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(250));
+        let mut tick_interval = tokio::time::interval(tokio::time::Duration::from_millis(250));
         loop {
             let tui_event = terminal.next();
             let action = self.action_rx.recv();
             let update_action = self.update_rx.recv();
-            let tick_action = interval.tick();
+            let tick_action = tick_interval.tick();
 
             let current_window = self.main_window.current_window();
 
