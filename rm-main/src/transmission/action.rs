@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use intuitils::error_message::ErrorMessage;
 use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::oneshot::Sender;
@@ -9,7 +10,6 @@ use transmission_rpc::types::{
 };
 use transmission_rpc::TransClient;
 
-use rm_shared::action::ErrorMessage;
 use rm_shared::action::UpdateAction;
 
 const FAILED_TO_COMMUNICATE: &str = "Failed to communicate with Transmission";

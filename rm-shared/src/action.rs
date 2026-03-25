@@ -1,6 +1,7 @@
 use std::{error::Error, sync::Arc};
 
 use crossterm::event::KeyEvent;
+use intuitils::error_message::ErrorMessage;
 use magnetease::{MagneteaseError, MagneteaseResult};
 use transmission_rpc::types::{FreeSpace, SessionGet, SessionStats, Torrent};
 
@@ -74,27 +75,6 @@ pub enum UpdateAction {
     StatusTaskFailure,
     StatusTaskSet(StatusTask),
     StatusTaskSetSuccess(StatusTask),
-}
-
-#[derive(Debug)]
-pub struct ErrorMessage {
-    pub title: String,
-    pub description: String,
-    pub source: Box<dyn Error + Send + Sync + 'static>,
-}
-
-impl ErrorMessage {
-    pub fn new(
-        title: impl Into<String>,
-        message: impl Into<String>,
-        error: Box<dyn Error + Send + Sync>,
-    ) -> Self {
-        Self {
-            title: title.into(),
-            description: message.into(),
-            source: error,
-        }
-    }
 }
 
 impl Action {

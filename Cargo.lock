@@ -1161,9 +1161,9 @@ dependencies = [
 
 [[package]]
 name = "intuitils"
-version = "0.0.6"
+version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed6c1f2b56aed8f4031285cb3f3dad6d8a532522e84d35780a5c74491ad25dd2"
+checksum = "5dabca0cdcd425bc5b154ce0c6adf1c501971e6e9bc0ad511225d7dd711bd5c5"
 dependencies = [
  "color-eyre",
  "crossterm",
@@ -1979,6 +1979,7 @@ dependencies = [
  "chrono",
  "color-eyre",
  "crossterm",
+ "intuitils",
  "magnetease",
  "ratatui",
  "serde",

@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, time::Duration};
 
+use intuitils::error_message::ErrorMessage;
 use ratatui::{
     prelude::*,
     style::Styled,
@@ -24,7 +25,7 @@ use crate::{
     },
 };
 use rm_shared::{
-    action::{Action, ErrorMessage, UpdateAction},
+    action::{Action, UpdateAction},
     status_task::StatusTask,
     utils::{bytes_to_human_format, bytes_to_short_human_format},
 };

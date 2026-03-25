@@ -11,6 +11,7 @@ use crate::transmission::TorrentAction;
 use crate::tui::components::{Component, ComponentAction};
 use crate::tui::ctx::CTX;
 
+use intuitils::error_message::ErrorMessage;
 use popups::details::DetailsPopup;
 use popups::stats::StatisticsPopup;
 use ratatui::{
@@ -20,7 +21,7 @@ use ratatui::{
 
 use rm_config::CONFIG;
 use rm_shared::{
-    action::{Action, ErrorMessage, UpdateAction},
+    action::{Action, UpdateAction},
     current_window::TorrentWindow,
     status_task::StatusTask,
 };

@@ -11,6 +11,7 @@ license.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+intuitils.workspace = true
 crossterm.workspace = true
 transmission-rpc.workspace = true
 magnetease.workspace = true
