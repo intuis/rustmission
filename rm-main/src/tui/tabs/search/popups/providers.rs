@@ -1,3 +1,4 @@
+use intuitils::popup::popup_rects;
 use magnetease::ProviderCategory;
 use ratatui::{
     layout::Constraint,
@@ -11,7 +12,7 @@ use rm_config::CONFIG;
 use rm_shared::action::Action;
 
 use crate::tui::{
-    components::{popup_close_button_highlight, popup_rects, Component, ComponentAction},
+    components::{popup_close_button_highlight, Component, ComponentAction},
     tabs::search::{ConfiguredProvider, ProviderState},
 };
 

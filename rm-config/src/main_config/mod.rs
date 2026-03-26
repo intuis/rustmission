@@ -45,8 +45,9 @@ impl IntuiConfig for MainConfig {
 
     fn message_if_not_found() -> Option<String> {
         Some(format!(
-            "Update {:?} (especially connection url) and start rustmission again",
-            Self::path()
+            "Update {:?} (especially connection url) and start {} again",
+            Self::path(),
+            Self::app_name()
         ))
     }
 }

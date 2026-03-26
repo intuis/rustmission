@@ -166,9 +166,8 @@ impl App {
     }
 
     fn handle_user_action(&mut self, action: Action) {
-        use Action as A;
         match &action {
-            A::HardQuit => {
+            Action::HardQuit => {
                 self.should_quit = true;
             }
 

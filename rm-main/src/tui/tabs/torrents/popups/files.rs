@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, time::Duration};
 
-use intuitils::error_message::ErrorMessage;
+use intuitils::{error_message::ErrorMessage, popup::popup_rects};
 use ratatui::{
     prelude::*,
     style::Styled,
@@ -19,7 +19,7 @@ use crate::{
     tui::{
         components::{
             keybinding_style, popup_block, popup_close_button, popup_close_button_highlight,
-            popup_rects, Component, ComponentAction,
+            Component, ComponentAction,
         },
         ctx::CTX,
     },

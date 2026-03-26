@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use intuitils::popup::popup_rects;
 use ratatui::{
     prelude::*,
     widgets::{BarChart, Block, Clear, Paragraph},
@@ -9,9 +10,7 @@ use transmission_rpc::types::SessionStats;
 
 use rm_shared::{action::Action, utils::bytes_to_human_format};
 
-use crate::tui::components::{
-    popup_block_with_close_highlight, popup_rects, Component, ComponentAction,
-};
+use crate::tui::components::{popup_block_with_close_highlight, Component, ComponentAction};
 
 pub struct StatisticsPopup {
     stats: Arc<SessionStats>,

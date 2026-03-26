@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use crossterm::event::KeyCode;
+use intuitils::popup::popup_rects;
 use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Clear, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
@@ -10,7 +11,7 @@ use rm_config::CONFIG;
 use rm_shared::action::Action;
 
 use crate::tui::{
-    components::{popup_block_with_close_highlight, popup_rects, Component, ComponentAction},
+    components::{popup_block_with_close_highlight, Component, ComponentAction},
     ctx::CTX,
 };
 

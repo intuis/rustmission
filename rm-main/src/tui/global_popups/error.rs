@@ -1,3 +1,4 @@
+use intuitils::popup::popup_rects;
 use ratatui::{
     prelude::*,
     widgets::{Block, BorderType, Clear, Paragraph, Wrap},
@@ -5,7 +6,7 @@ use ratatui::{
 
 use rm_shared::action::Action;
 
-use crate::tui::components::{popup_rects, Component, ComponentAction};
+use crate::tui::components::{Component, ComponentAction};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ErrorPopup {

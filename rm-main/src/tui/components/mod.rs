@@ -5,7 +5,7 @@ mod table;
 pub use input_manager::InputManager;
 pub use misc::{
     keybinding_style, popup_block, popup_block_with_close_highlight, popup_close_button,
-    popup_close_button_highlight, popup_rects,
+    popup_close_button_highlight,
 };
 pub use table::GenericTable;
 

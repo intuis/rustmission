@@ -1,3 +1,4 @@
+use intuitils::popup::centered_rect;
 use ratatui::{
     prelude::*,
     widgets::{block::Title, Block, BorderType, Clear, Paragraph, Wrap},
@@ -9,7 +10,6 @@ use style::Styled;
 use crate::tui::{
     components::{keybinding_style, popup_close_button_highlight, Component, ComponentAction},
     ctx::CTX,
-    main_window::centered_rect,
     tabs::torrents::rustmission_torrent::{CategoryType, RustmissionTorrent},
 };
 
