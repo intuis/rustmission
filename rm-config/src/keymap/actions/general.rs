@@ -26,14 +26,6 @@ pub enum GeneralAction {
     MoveToColumnRight,
 }
 
-pub enum GeneralActionMergable {
-    MoveUpDown,
-    MoveLeftRight,
-    ScrollPageUpDown,
-    MoveColumnLeftRight,
-    SwitchToTorrentsSearch,
-}
-
 impl UserAction for GeneralAction {
     fn desc(&self) -> &'static str {
         match self {
