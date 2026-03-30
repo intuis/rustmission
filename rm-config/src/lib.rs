@@ -37,7 +37,7 @@ pub struct Directories {
 
 impl Config {
     fn init() -> Result<Self> {
-        let main_config = MainConfig::init()?;
+        let mut main_config = MainConfig::init()?;
         let keybindings = KeymapConfig::init()?;
         let categories = CategoriesConfig::init()?;
 
@@ -46,6 +46,10 @@ impl Config {
             keymap_path: KeymapConfig::path(),
             categories_path: CategoriesConfig::path(),
         };
+
+        // If a credentials file is provided in connection, load values from it.
+        // This may populate username/password when they are missing.
+        main_config.connection.load_credentials_from_file()?;
 
         Ok(Self {
             general: main_config.general,
