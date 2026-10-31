@@ -39,12 +39,17 @@ use self::task_manager::TaskManager;
 
 pub static SESSION_GET: OnceLock<SessionGet> = OnceLock::new();
 
+/// Minimum time between two reannounce dispatches, guards against
+/// accidental tracker hammering (and private-tracker bans).
+const REANNOUNCE_COOLDOWN_SECS: u64 = 10;
+
 pub struct TorrentsTab {
     pub current_window: TorrentWindow,
     table_manager: TableManager,
     popup_manager: PopupManager,
     task_manager: TaskManager,
     bottom_stats: BottomStats,
+    last_reannounce: Option<std::time::Instant>,
 }
 
 impl TorrentsTab {
@@ -62,6 +67,7 @@ impl TorrentsTab {
             table_manager,
             popup_manager: PopupManager::new(),
             current_window: TorrentWindow::General,
+            last_reannounce: None,
         }
     }
 }
@@ -154,6 +160,7 @@ impl Component for TorrentsTab {
                 CTX.send_action(Action::Render);
             }
             A::Pause => self.pause_current_torrent(),
+            A::Reannounce => self.reannounce_torrents(),
             A::Delete => {
                 if let Some(torrent_selection) = self.get_currently_selected() {
                     self.task_manager.delete_torrents(torrent_selection);
@@ -462,6 +469,30 @@ impl TorrentsTab {
                     CTX.send_action(Action::Render);
                 }
             }
+        }
+    }
+
+    fn reannounce_torrents(&mut self) {
+        if let Some(selection) = self.get_currently_selected() {
+            let now = std::time::Instant::now();
+            if let Some(last) = self.last_reannounce {
+                let elapsed = now.duration_since(last);
+                if elapsed < std::time::Duration::from_secs(REANNOUNCE_COOLDOWN_SECS) {
+                    let remaining = REANNOUNCE_COOLDOWN_SECS.saturating_sub(elapsed.as_secs());
+                    let err = std::io::Error::other(format!(
+                        "Reannounce on cooldown, retry in {remaining}s"
+                    ));
+                    let err_msg = ErrorMessage::new(
+                        "Reannounce on cooldown",
+                        format!("Retry in {remaining}s"),
+                        Box::new(err),
+                    );
+                    CTX.send_update_action(UpdateAction::Error(Box::new(err_msg)));
+                    return;
+                }
+            }
+            self.last_reannounce = Some(now);
+            self.task_manager.reannounce_torrents(selection);
         }
     }
 

@@ -165,6 +165,10 @@ impl TableManager {
                     .unwrap_or(Ordering::Less)
             }),
             Header::CategoryIcon => (),
+            Header::TrackerStatus => self
+                .table
+                .items
+                .sort_by(|x, y| x.trackers_ok().cmp(&y.trackers_ok())),
         }
         if self.sort_reverse
             || (self.sort_header.is_none() && CONFIG.torrents_tab.default_sort_reverse)

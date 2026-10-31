@@ -20,6 +20,7 @@ pub enum Header {
     SmallStatus,
     Category,
     CategoryIcon,
+    TrackerStatus,
 }
 
 impl Header {
@@ -42,6 +43,7 @@ impl Header {
             Self::SmallStatus => Constraint::Length(1),
             Self::Category => Constraint::Max(15),
             Self::CategoryIcon => Constraint::Length(5),
+            Self::TrackerStatus => Constraint::Length(14),
         }
     }
 
@@ -64,6 +66,7 @@ impl Header {
             Self::SmallStatus => "",
             Self::Category => "Category",
             Self::CategoryIcon => "",
+            Self::TrackerStatus => "Tracker",
         }
     }
 }

@@ -12,6 +12,7 @@ pub enum TorrentsAction {
     ShowFiles,
     ShowStats,
     ChangeCategory,
+    Reannounce,
 }
 
 impl UserAction for TorrentsAction {
@@ -25,6 +26,7 @@ impl UserAction for TorrentsAction {
             TorrentsAction::ShowStats => "show statistics",
             TorrentsAction::ChangeCategory => "change category",
             TorrentsAction::Rename => "rename torrent path",
+            TorrentsAction::Reannounce => "reannounce to trackers",
         }
     }
 }
@@ -40,6 +42,7 @@ impl From<TorrentsAction> for Action {
             TorrentsAction::ShowStats => Action::ShowStats,
             TorrentsAction::ChangeCategory => Action::ChangeCategory,
             TorrentsAction::Rename => Action::Rename,
+            TorrentsAction::Reannounce => Action::Reannounce,
         }
     }
 }

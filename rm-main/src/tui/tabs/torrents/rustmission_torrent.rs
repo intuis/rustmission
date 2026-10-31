@@ -9,7 +9,7 @@ use rm_shared::{
     header::Header,
     utils::{bytes_to_human_format, seconds_to_human_format},
 };
-use transmission_rpc::types::{ErrorType, FileStat, Id, Torrent, TorrentStatus};
+use transmission_rpc::types::{ErrorType, FileStat, Id, Torrent, TorrentStatus, TrackerStat};
 
 #[derive(Clone)]
 pub struct RustmissionTorrent {
@@ -31,6 +31,7 @@ pub struct RustmissionTorrent {
     pub peers_connected: i64,
     pub category: Option<CategoryType>,
     pub error: Option<String>,
+    pub tracker_stats: Vec<TrackerStat>,
     pub is_selected: bool,
 }
 
@@ -187,6 +188,32 @@ impl RustmissionTorrent {
         format!("{}/{}", self.download_dir, self.torrent_name)
     }
 
+    /// Whether every announced tracker last announced successfully.
+    /// Torrents without trackers count as ok (nothing to report).
+    pub fn trackers_ok(&self) -> bool {
+        self.tracker_stats
+            .iter()
+            .filter(|stat| stat.has_announced)
+            .all(|stat| stat.last_announce_succeeded)
+    }
+
+    /// Short tracker state for the table: empty without trackers,
+    /// "OK" when all announced trackers succeeded, otherwise the
+    /// first failing tracker's last announce result.
+    pub fn tracker_status_text(&self) -> String {
+        if self.tracker_stats.is_empty() {
+            return String::default();
+        }
+        if self.trackers_ok() {
+            return "OK".to_string();
+        }
+        self.tracker_stats
+            .iter()
+            .find(|stat| stat.has_announced && !stat.last_announce_succeeded)
+            .map(|stat| stat.last_announce_result.clone())
+            .unwrap_or_default()
+    }
+
     fn category_icon_span(&self) -> Span {
         if let Some(CategoryType::Config(category)) = &self.category {
             Span::styled(
@@ -286,6 +313,14 @@ impl RustmissionTorrent {
                     Cell::default()
                 }
             }
+            Header::TrackerStatus => {
+                let text = self.tracker_status_text();
+                if text.is_empty() || self.trackers_ok() {
+                    Cell::from(text)
+                } else {
+                    Cell::from(text).red()
+                }
+            }
         }
     }
 
@@ -372,6 +407,8 @@ impl From<Torrent> for RustmissionTorrent {
             None
         };
 
+        let tracker_stats = t.tracker_stats.clone().unwrap_or_default();
+
         Self {
             torrent_name,
             size_when_done,
@@ -391,6 +428,7 @@ impl From<Torrent> for RustmissionTorrent {
             peers_connected,
             category,
             error,
+            tracker_stats,
             is_selected: false,
         }
     }

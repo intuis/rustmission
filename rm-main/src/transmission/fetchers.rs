@@ -86,6 +86,7 @@ pub async fn torrents() {
             TorrentGetField::ErrorString,
             TorrentGetField::Labels,
             TorrentGetField::FileStats,
+            TorrentGetField::TrackerStats,
         ];
         let (torrents_tx, torrents_rx) = oneshot::channel();
         CTX.send_torrent_action(TorrentAction::GetTorrents(fields, torrents_tx));

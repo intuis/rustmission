@@ -48,6 +48,10 @@ impl Component for DetailsPopup {
                 CTX.send_action(Action::MoveTorrent);
                 ComponentAction::Quit
             }
+            Action::Reannounce => {
+                CTX.send_action(Action::Reannounce);
+                ComponentAction::Quit
+            }
             _ => ComponentAction::Nothing,
         }
     }
@@ -139,6 +143,17 @@ impl Component for DetailsPopup {
             keybinding_style(),
         ));
 
+        let mut reannounce_line = Line::default();
+        reannounce_line.push_span(Span::raw("Reannounce: "));
+        reannounce_line.push_span(Span::styled(
+            CONFIG
+                .keybindings
+                .torrents_tab
+                .get_keys_for_action_joined(TorrentsAction::Reannounce)
+                .unwrap_or_default(),
+            keybinding_style(),
+        ));
+
         let padding_line = Line::default();
 
         lines.push(name_line);
@@ -167,6 +182,22 @@ impl Component for DetailsPopup {
         lines.push(uploaded_line);
         lines.push(ratio);
         lines.push(padding_line.clone());
+        for stat in &self.torrent.tracker_stats {
+            let state = if stat.last_announce_succeeded {
+                "ok"
+            } else {
+                "FAILED"
+            };
+            lines.push(Line::from(format!(
+                "Tracker {}: {} ({state})",
+                stat.host, stat.last_announce_result
+            )));
+            lines.push(Line::from(format!(
+                "  Next announce: {}",
+                stat.next_announce_time.format("%y|%m|%d %H:%M")
+            )));
+        }
+        lines.push(padding_line.clone());
         lines.push(added_line);
         lines.push(activity_line);
         lines.push(padding_line);
@@ -175,6 +206,7 @@ impl Component for DetailsPopup {
         lines.push(rename_line);
         lines.push(move_location_line);
         lines.push(change_category_line);
+        lines.push(reannounce_line);
 
         let paragraph = Paragraph::new(lines).wrap(Wrap { trim: false });
 

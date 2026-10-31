@@ -93,7 +93,7 @@ free_space_refresh = 10
 # Available fields:
 # Id, Name, SizeWhenDone, Progress, DownloadRate, UploadRate, DownloadDir,
 # Padding, UploadRatio, UploadedEver, AddedDate, ActivityDate, PeersConnected
-# SmallStatus, Category, CategoryIcon
+# SmallStatus, Category, CategoryIcon, TrackerStatus
 headers = ["Name", "SizeWhenDone", "Progress", "Eta", "DownloadRate", "UploadRate"]
 
 [search_tab]
