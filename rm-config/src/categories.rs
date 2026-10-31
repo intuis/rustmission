@@ -54,7 +54,7 @@ pub struct Category {
 }
 
 fn default_color_category() -> Color {
-    Color::White
+    Color::Reset
 }
 
 impl CategoriesConfig {

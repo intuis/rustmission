@@ -109,7 +109,7 @@ impl Component for InputManager {
                 self.prompt.as_str(),
                 Style::default().fg(CONFIG.general.accent_color),
             ),
-            Span::styled(self.text(), Style::default().fg(Color::White)),
+            Span::styled(self.text(), Style::default()),
         ];
 
         let paragraph = Paragraph::new(Line::from(spans));
