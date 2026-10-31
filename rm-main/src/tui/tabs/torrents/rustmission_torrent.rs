@@ -197,11 +197,15 @@ impl RustmissionTorrent {
             .all(|stat| stat.last_announce_succeeded)
     }
 
-    /// Short tracker state for the table: empty without trackers,
-    /// "OK" when all announced trackers succeeded, otherwise the
-    /// first failing tracker's last announce result.
+    /// Short tracker state for the table: empty without trackers (or before
+    /// the first announce), "OK" when all announced trackers succeeded,
+    /// otherwise the first failing tracker's last announce result
+    /// (truncated to fit the column).
     pub fn tracker_status_text(&self) -> String {
         if self.tracker_stats.is_empty() {
+            return String::default();
+        }
+        if !self.tracker_stats.iter().any(|stat| stat.has_announced) {
             return String::default();
         }
         if self.trackers_ok() {
@@ -210,7 +214,14 @@ impl RustmissionTorrent {
         self.tracker_stats
             .iter()
             .find(|stat| stat.has_announced && !stat.last_announce_succeeded)
-            .map(|stat| stat.last_announce_result.clone())
+            .map(|stat| {
+                let text = truncate_for_cell(&stat.last_announce_result, 14);
+                if text.is_empty() {
+                    "FAILED".to_string()
+                } else {
+                    text
+                }
+            })
             .unwrap_or_default()
     }
 
@@ -315,7 +326,7 @@ impl RustmissionTorrent {
             }
             Header::TrackerStatus => {
                 let text = self.tracker_status_text();
-                if text.is_empty() || self.trackers_ok() {
+                if text.is_empty() || text == "OK" {
                     Cell::from(text)
                 } else {
                     Cell::from(text).red()
@@ -431,6 +442,19 @@ impl From<Torrent> for RustmissionTorrent {
             tracker_stats,
             is_selected: false,
         }
+    }
+}
+
+fn truncate_for_cell(text: &str, max_width: usize) -> String {
+    if text.chars().count() <= max_width {
+        text.to_string()
+    } else {
+        format!(
+            "{}…",
+            text.chars()
+                .take(max_width.saturating_sub(1))
+                .collect::<String>()
+        )
     }
 }
 

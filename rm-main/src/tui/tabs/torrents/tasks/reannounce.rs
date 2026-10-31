@@ -29,10 +29,19 @@ impl Reannounce {
 
         let task = match &self.torrents_to_reannounce {
             TorrentSelection::Single(_, name) => StatusTask::new_reannounce(name.clone()),
-            TorrentSelection::Many(ids) => StatusTask::new_reannounce(ids.len().to_string()),
+            TorrentSelection::Many(ids) => {
+                let count = ids.len();
+                let what = if count == 1 {
+                    "1 torrent".to_string()
+                } else {
+                    format!("{count} torrents")
+                };
+                StatusTask::new_reannounce(what)
+            }
         };
 
         CTX.send_update_action(UpdateAction::StatusTaskSet(task));
+        CTX.send_update_action(UpdateAction::ReannounceDispatched);
     }
 }
 

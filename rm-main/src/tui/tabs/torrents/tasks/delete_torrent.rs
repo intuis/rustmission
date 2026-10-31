@@ -37,7 +37,15 @@ impl Delete {
 
         let task = match &self.torrents_to_delete {
             TorrentSelection::Single(_, name) => StatusTask::new_del(name.clone()),
-            TorrentSelection::Many(ids) => StatusTask::new_del(ids.len().to_string()),
+            TorrentSelection::Many(ids) => {
+                let count = ids.len();
+                let what = if count == 1 {
+                    "1 torrent".to_string()
+                } else {
+                    format!("{count} torrents")
+                };
+                StatusTask::new_del(what)
+            }
         };
 
         CTX.send_update_action(UpdateAction::StatusTaskSet(task));

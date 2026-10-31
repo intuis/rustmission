@@ -65,6 +65,7 @@ pub enum UpdateAction {
     SearchFilterApply(String),
     SearchFilterClear,
     CancelTorrentTask,
+    ReannounceDispatched,
     // Search Tab
     SearchStarted,
     ProviderResult(MagneteaseResult),

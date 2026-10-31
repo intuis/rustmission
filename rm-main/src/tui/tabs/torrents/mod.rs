@@ -251,6 +251,9 @@ impl Component for TorrentsTab {
             UpdateAction::UpdateCurrentTorrent(_) => {
                 self.popup_manager.handle_update_action(action)
             }
+            UpdateAction::ReannounceDispatched => {
+                self.mark_reannounce_dispatched();
+            }
             UpdateAction::CancelTorrentTask => {
                 if self.task_manager.is_status_task_in_progress() {
                     return;
@@ -474,11 +477,12 @@ impl TorrentsTab {
 
     fn reannounce_torrents(&mut self) {
         if let Some(selection) = self.get_currently_selected() {
-            let now = std::time::Instant::now();
             if let Some(last) = self.last_reannounce {
-                let elapsed = now.duration_since(last);
+                let elapsed = last.elapsed();
                 if elapsed < std::time::Duration::from_secs(REANNOUNCE_COOLDOWN_SECS) {
-                    let remaining = REANNOUNCE_COOLDOWN_SECS.saturating_sub(elapsed.as_secs());
+                    let remaining = (REANNOUNCE_COOLDOWN_SECS as f64 - elapsed.as_secs_f64())
+                        .ceil()
+                        .max(1.0) as u64;
                     let err = std::io::Error::other(format!(
                         "Reannounce on cooldown, retry in {remaining}s"
                     ));
@@ -491,9 +495,15 @@ impl TorrentsTab {
                     return;
                 }
             }
-            self.last_reannounce = Some(now);
+            // NOTE: `last_reannounce` is stamped on confirmed dispatch
+            // (`UpdateAction::ReannounceDispatched`), not here, so that
+            // cancelled prompts don't burn the cooldown.
             self.task_manager.reannounce_torrents(selection);
         }
+    }
+
+    fn mark_reannounce_dispatched(&mut self) {
+        self.last_reannounce = Some(std::time::Instant::now());
     }
 
     fn xdg_open_current_torrent(&mut self) {

@@ -17,6 +17,10 @@ pub struct DetailsPopup {
     torrent: RustmissionTorrent,
 }
 
+/// Max trackers listed in the popup; the full per-tracker state is
+/// visible via the TrackerStatus column + Transmission itself.
+const MAX_TRACKERS_SHOWN: usize = 5;
+
 impl DetailsPopup {
     pub fn new(torrent: RustmissionTorrent) -> Self {
         Self { torrent }
@@ -182,19 +186,31 @@ impl Component for DetailsPopup {
         lines.push(uploaded_line);
         lines.push(ratio);
         lines.push(padding_line.clone());
-        for stat in &self.torrent.tracker_stats {
-            let state = if stat.last_announce_succeeded {
+        for stat in self.torrent.tracker_stats.iter().take(MAX_TRACKERS_SHOWN) {
+            let state = if !stat.has_announced {
+                "pending"
+            } else if stat.last_announce_succeeded {
                 "ok"
             } else {
                 "FAILED"
             };
-            lines.push(Line::from(format!(
-                "Tracker {}: {} ({state})",
-                stat.host, stat.last_announce_result
-            )));
+            if stat.last_announce_result.is_empty() {
+                lines.push(Line::from(format!("Tracker {} ({state})", stat.host)));
+            } else {
+                lines.push(Line::from(format!(
+                    "Tracker {}: {} ({state})",
+                    stat.host, stat.last_announce_result
+                )));
+            }
             lines.push(Line::from(format!(
                 "  Next announce: {}",
                 stat.next_announce_time.format("%y|%m|%d %H:%M")
+            )));
+        }
+        if self.torrent.tracker_stats.len() > MAX_TRACKERS_SHOWN {
+            lines.push(Line::from(format!(
+                "... and {} more tracker(s)",
+                self.torrent.tracker_stats.len() - MAX_TRACKERS_SHOWN
             )));
         }
         lines.push(padding_line.clone());
