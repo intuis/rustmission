@@ -35,4 +35,20 @@ impl TorrentSelection {
             TorrentSelection::Many(ids) => ids.clone(),
         }
     }
+
+    /// Short human description for status tasks: torrent name for a
+    /// single torrent, otherwise "1 torrent" / "N torrents".
+    pub fn describe(&self) -> String {
+        match self {
+            TorrentSelection::Single(_, name) => name.clone(),
+            TorrentSelection::Many(ids) => {
+                let count = ids.len();
+                if count == 1 {
+                    "1 torrent".to_string()
+                } else {
+                    format!("{count} torrents")
+                }
+            }
+        }
+    }
 }

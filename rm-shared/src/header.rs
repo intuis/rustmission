@@ -24,6 +24,8 @@ pub enum Header {
 }
 
 impl Header {
+    pub const TRACKER_STATUS_WIDTH: u16 = 14;
+
     pub fn default_constraint(&self) -> Constraint {
         match self {
             Self::Name => Constraint::Max(70),
@@ -43,7 +45,7 @@ impl Header {
             Self::SmallStatus => Constraint::Length(1),
             Self::Category => Constraint::Max(15),
             Self::CategoryIcon => Constraint::Length(5),
-            Self::TrackerStatus => Constraint::Length(14),
+            Self::TrackerStatus => Constraint::Length(Self::TRACKER_STATUS_WIDTH),
         }
     }
 

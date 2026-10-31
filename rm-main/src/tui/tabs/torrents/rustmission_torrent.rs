@@ -215,7 +215,10 @@ impl RustmissionTorrent {
             .iter()
             .find(|stat| stat.has_announced && !stat.last_announce_succeeded)
             .map(|stat| {
-                let text = truncate_for_cell(&stat.last_announce_result, 14);
+                let text = truncate_for_cell(
+                    &stat.last_announce_result,
+                    Header::TRACKER_STATUS_WIDTH as usize,
+                );
                 if text.is_empty() {
                     "FAILED".to_string()
                 } else {
@@ -326,7 +329,7 @@ impl RustmissionTorrent {
             }
             Header::TrackerStatus => {
                 let text = self.tracker_status_text();
-                if text.is_empty() || text == "OK" {
+                if text.is_empty() || self.trackers_ok() {
                     Cell::from(text)
                 } else {
                     Cell::from(text).red()
@@ -418,7 +421,7 @@ impl From<Torrent> for RustmissionTorrent {
             None
         };
 
-        let tracker_stats = t.tracker_stats.clone().unwrap_or_default();
+        let tracker_stats = t.tracker_stats.unwrap_or_default();
 
         Self {
             torrent_name,
@@ -445,7 +448,7 @@ impl From<Torrent> for RustmissionTorrent {
     }
 }
 
-fn truncate_for_cell(text: &str, max_width: usize) -> String {
+pub(crate) fn truncate_for_cell(text: &str, max_width: usize) -> String {
     if text.chars().count() <= max_width {
         text.to_string()
     } else {

@@ -27,18 +27,7 @@ impl Reannounce {
     fn reannounce(&self) {
         CTX.send_torrent_action(TorrentAction::Reannounce(self.torrents_to_reannounce.ids()));
 
-        let task = match &self.torrents_to_reannounce {
-            TorrentSelection::Single(_, name) => StatusTask::new_reannounce(name.clone()),
-            TorrentSelection::Many(ids) => {
-                let count = ids.len();
-                let what = if count == 1 {
-                    "1 torrent".to_string()
-                } else {
-                    format!("{count} torrents")
-                };
-                StatusTask::new_reannounce(what)
-            }
-        };
+        let task = StatusTask::new_reannounce(self.torrents_to_reannounce.describe());
 
         CTX.send_update_action(UpdateAction::StatusTaskSet(task));
         CTX.send_update_action(UpdateAction::ReannounceDispatched);
@@ -52,7 +41,7 @@ impl Component for Reannounce {
                 if input.code == KeyCode::Esc {
                     return ComponentAction::Quit;
                 } else if input.code == KeyCode::Enter {
-                    let text = self.input_mgr.text().to_lowercase();
+                    let text = self.input_mgr.text().trim().to_lowercase();
                     if text == "y" || text == "yes" {
                         self.reannounce();
                     }

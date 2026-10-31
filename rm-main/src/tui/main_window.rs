@@ -105,6 +105,10 @@ impl Component for MainWindow {
                     ErrorPopup::new(err.title, err.description, err.source.to_string());
                 self.global_popup_manager.error_popup = Some(error_popup);
             }
+            // Cooldown state lives in the torrents tab; a confirm can be
+            // followed by a tab switch before the async roundtrip lands,
+            // so always forward instead of dropping it in the search tab.
+            UpdateAction::ReannounceDispatched => self.torrents_tab.handle_update_action(action),
             action if self.tabs.current() == CurrentTab::Torrents => {
                 self.torrents_tab.handle_update_action(action)
             }

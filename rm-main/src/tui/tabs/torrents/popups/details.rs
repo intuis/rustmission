@@ -7,10 +7,12 @@ use rm_config::{keymap::TorrentsAction, CONFIG};
 use rm_shared::{action::Action, utils::bytes_to_human_format};
 use style::Styled;
 
+use chrono::Local;
+
 use crate::tui::{
     components::{keybinding_style, popup_close_button_highlight, Component, ComponentAction},
     ctx::CTX,
-    tabs::torrents::rustmission_torrent::{CategoryType, RustmissionTorrent},
+    tabs::torrents::rustmission_torrent::{truncate_for_cell, CategoryType, RustmissionTorrent},
 };
 
 pub struct DetailsPopup {
@@ -19,7 +21,14 @@ pub struct DetailsPopup {
 
 /// Max trackers listed in the popup; the full per-tracker state is
 /// visible via the TrackerStatus column + Transmission itself.
-const MAX_TRACKERS_SHOWN: usize = 5;
+/// Kept small: the popup is 50% height with no scroll, each tracker
+/// takes two lines.
+const MAX_TRACKERS_SHOWN: usize = 3;
+
+/// Max chars of a tracker error shown in the popup; the full error
+/// is visible in Transmission. Prevents long errors pushing the
+/// keybinding help below the fold.
+const MAX_TRACKER_ERROR_CHARS: usize = 60;
 
 impl DetailsPopup {
     pub fn new(torrent: RustmissionTorrent) -> Self {
@@ -190,22 +199,30 @@ impl Component for DetailsPopup {
             let state = if !stat.has_announced {
                 "pending"
             } else if stat.last_announce_succeeded {
-                "ok"
+                "OK"
             } else {
                 "FAILED"
             };
             if stat.last_announce_result.is_empty() {
                 lines.push(Line::from(format!("Tracker {} ({state})", stat.host)));
             } else {
+                let result = truncate_for_cell(&stat.last_announce_result, MAX_TRACKER_ERROR_CHARS);
                 lines.push(Line::from(format!(
                     "Tracker {}: {} ({state})",
-                    stat.host, stat.last_announce_result
+                    stat.host, result
                 )));
             }
-            lines.push(Line::from(format!(
-                "  Next announce: {}",
-                stat.next_announce_time.format("%y|%m|%d %H:%M")
-            )));
+            // `next_announce_time` is epoch (0) when Transmission has never
+            // scheduled an announce (paused / never announced). Showing
+            // `70|01|01` is garbage, so only show when announced.
+            if stat.has_announced && stat.next_announce_time.timestamp() > 0 {
+                lines.push(Line::from(format!(
+                    "  Next announce: {}",
+                    stat.next_announce_time
+                        .with_timezone(&Local)
+                        .format("%y|%m|%d %H:%M")
+                )));
+            }
         }
         if self.torrent.tracker_stats.len() > MAX_TRACKERS_SHOWN {
             lines.push(Line::from(format!(

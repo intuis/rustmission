@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use crossterm::event::KeyEvent;
 use intuitils::error_message::ErrorMessage;

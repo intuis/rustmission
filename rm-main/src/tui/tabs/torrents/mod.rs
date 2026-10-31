@@ -50,6 +50,10 @@ pub struct TorrentsTab {
     task_manager: TaskManager,
     bottom_stats: BottomStats,
     last_reannounce: Option<std::time::Instant>,
+    /// True while the reannounce confirm prompt is open but not yet
+    /// confirmed. Lets a cancelled prompt release the optimistic
+    /// cooldown stamp without allowing a double-dispatch race.
+    reannounce_pending: bool,
 }
 
 impl TorrentsTab {
@@ -68,6 +72,7 @@ impl TorrentsTab {
             popup_manager: PopupManager::new(),
             current_window: TorrentWindow::General,
             last_reannounce: None,
+            reannounce_pending: false,
         }
     }
 }
@@ -255,6 +260,13 @@ impl Component for TorrentsTab {
                 self.mark_reannounce_dispatched();
             }
             UpdateAction::CancelTorrentTask => {
+                // A cancelled confirm prompt releases the optimistic
+                // cooldown stamp; a confirmed one keeps it (pending is
+                // already false after `mark_reannounce_dispatched`).
+                if self.reannounce_pending {
+                    self.reannounce_pending = false;
+                    self.last_reannounce = None;
+                }
                 if self.task_manager.is_status_task_in_progress() {
                     return;
                 }
@@ -477,33 +489,38 @@ impl TorrentsTab {
 
     fn reannounce_torrents(&mut self) {
         if let Some(selection) = self.get_currently_selected() {
+            if self.reannounce_pending {
+                return;
+            }
             if let Some(last) = self.last_reannounce {
                 let elapsed = last.elapsed();
                 if elapsed < std::time::Duration::from_secs(REANNOUNCE_COOLDOWN_SECS) {
                     let remaining = (REANNOUNCE_COOLDOWN_SECS as f64 - elapsed.as_secs_f64())
                         .ceil()
                         .max(1.0) as u64;
-                    let err = std::io::Error::other(format!(
-                        "Reannounce on cooldown, retry in {remaining}s"
-                    ));
-                    let err_msg = ErrorMessage::new(
-                        "Reannounce on cooldown",
-                        format!("Retry in {remaining}s"),
-                        Box::new(err),
-                    );
-                    CTX.send_update_action(UpdateAction::Error(Box::new(err_msg)));
+                    // Rate-limit notice belongs in the status bar, not a
+                    // modal popup: it must not block navigation.
+                    let task =
+                        StatusTask::new_reannounce(format!("cooldown, retry in {remaining}s"));
+                    CTX.send_update_action(UpdateAction::StatusTaskSet(task));
+                    CTX.send_update_action(UpdateAction::StatusTaskFailure);
                     return;
                 }
             }
-            // NOTE: `last_reannounce` is stamped on confirmed dispatch
-            // (`UpdateAction::ReannounceDispatched`), not here, so that
-            // cancelled prompts don't burn the cooldown.
+            // Optimistic stamp closes the race where two rapid confirms
+            // both pass the check before the async `ReannounceDispatched`
+            // roundtrip lands. Cancelled prompts release it in
+            // `CancelTorrentTask`; confirmed ones refresh it in
+            // `mark_reannounce_dispatched`.
+            self.last_reannounce = Some(std::time::Instant::now());
+            self.reannounce_pending = true;
             self.task_manager.reannounce_torrents(selection);
         }
     }
 
     fn mark_reannounce_dispatched(&mut self) {
         self.last_reannounce = Some(std::time::Instant::now());
+        self.reannounce_pending = false;
     }
 
     fn xdg_open_current_torrent(&mut self) {
