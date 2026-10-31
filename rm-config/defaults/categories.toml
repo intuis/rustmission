@@ -3,4 +3,4 @@
 # name = "Classical Music"             # required
 # icon = "[M]"                         # optional, default: ""
 # default_dir = "/mnt/Music/Classical" # optional, default: transmission's default
-# color = "Green"                      # optional, default: "White"
+# color = "Green"                      # optional, default: "Reset" (terminal default)
