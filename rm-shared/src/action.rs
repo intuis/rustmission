@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc};
+use std::sync::Arc;
 
 use crossterm::event::KeyEvent;
 use intuitils::error_message::ErrorMessage;
@@ -44,6 +44,7 @@ pub enum Action {
     ChangeCategory,
     ChangeFilePriority,
     Rename,
+    Reannounce,
     // Search Tab
     ShowProvidersInfo,
 }
@@ -64,6 +65,7 @@ pub enum UpdateAction {
     SearchFilterApply(String),
     SearchFilterClear,
     CancelTorrentTask,
+    ReannounceDispatched,
     // Search Tab
     SearchStarted,
     ProviderResult(MagneteaseResult),

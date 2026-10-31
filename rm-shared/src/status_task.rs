@@ -13,6 +13,7 @@ enum TaskType {
     Move,
     Open,
     ChangeCategory,
+    Reannounce,
 }
 
 impl StatusTask {
@@ -58,6 +59,13 @@ impl StatusTask {
         }
     }
 
+    pub fn new_reannounce(what: impl Into<String>) -> Self {
+        StatusTask {
+            task_type: TaskType::Reannounce,
+            what: what.into(),
+        }
+    }
+
     pub fn success_str(&self) -> String {
         let truncated = truncated_str(&self.what, 60);
 
@@ -74,6 +82,7 @@ impl StatusTask {
                 }
             }
             TaskType::Rename => format!("Renamed {truncated}"),
+            TaskType::Reannounce => format!(" Reannounced {truncated}"),
         }
     }
 
@@ -87,6 +96,7 @@ impl StatusTask {
             TaskType::Open => format!(" Error opening {truncated}"),
             TaskType::ChangeCategory => format!(" Error changing category to {truncated}"),
             TaskType::Rename => format!(" Error renaming {truncated}"),
+            TaskType::Reannounce => format!(" Error reannouncing {truncated}"),
         }
     }
 
@@ -100,6 +110,7 @@ impl StatusTask {
             TaskType::Open => format!(" Opening {truncated}"),
             TaskType::ChangeCategory => format!(" Changing category to {truncated}"),
             TaskType::Rename => format!(" Renaming {truncated}"),
+            TaskType::Reannounce => format!(" Reannouncing {truncated}"),
         }
     }
 }

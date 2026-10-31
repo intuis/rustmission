@@ -4,6 +4,7 @@ mod default;
 mod delete_torrent;
 mod filter;
 mod move_torrent;
+mod reannounce;
 mod rename;
 mod selection;
 mod sort;
@@ -15,6 +16,7 @@ pub use default::Default;
 pub use delete_torrent::Delete;
 pub use filter::Filter;
 pub use move_torrent::Move;
+pub use reannounce::Reannounce;
 pub use rename::Rename;
 pub use selection::Selection;
 pub use sort::Sort;
@@ -31,6 +33,22 @@ impl TorrentSelection {
         match self {
             TorrentSelection::Single(id, _) => vec![id.clone()],
             TorrentSelection::Many(ids) => ids.clone(),
+        }
+    }
+
+    /// Short human description for status tasks: torrent name for a
+    /// single torrent, otherwise "1 torrent" / "N torrents".
+    pub fn describe(&self) -> String {
+        match self {
+            TorrentSelection::Single(_, name) => name.clone(),
+            TorrentSelection::Many(ids) => {
+                let count = ids.len();
+                if count == 1 {
+                    "1 torrent".to_string()
+                } else {
+                    format!("{count} torrents")
+                }
+            }
         }
     }
 }

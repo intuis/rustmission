@@ -35,10 +35,7 @@ impl Delete {
             ))
         }
 
-        let task = match &self.torrents_to_delete {
-            TorrentSelection::Single(_, name) => StatusTask::new_del(name.clone()),
-            TorrentSelection::Many(ids) => StatusTask::new_del(ids.len().to_string()),
-        };
+        let task = StatusTask::new_del(self.torrents_to_delete.describe());
 
         CTX.send_update_action(UpdateAction::StatusTaskSet(task));
     }
@@ -51,7 +48,7 @@ impl Component for Delete {
                 if input.code == KeyCode::Esc {
                     return ComponentAction::Quit;
                 } else if input.code == KeyCode::Enter {
-                    let text = self.input_mgr.text().to_lowercase();
+                    let text = self.input_mgr.text().trim().to_lowercase();
                     if text == "y" || text == "yes" || text.is_empty() {
                         self.delete_with_files = true;
                         self.delete();

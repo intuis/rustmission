@@ -39,12 +39,21 @@ use self::task_manager::TaskManager;
 
 pub static SESSION_GET: OnceLock<SessionGet> = OnceLock::new();
 
+/// Minimum time between two reannounce dispatches, guards against
+/// accidental tracker hammering (and private-tracker bans).
+const REANNOUNCE_COOLDOWN_SECS: u64 = 10;
+
 pub struct TorrentsTab {
     pub current_window: TorrentWindow,
     table_manager: TableManager,
     popup_manager: PopupManager,
     task_manager: TaskManager,
     bottom_stats: BottomStats,
+    last_reannounce: Option<std::time::Instant>,
+    /// True while the reannounce confirm prompt is open but not yet
+    /// confirmed. Lets a cancelled prompt release the optimistic
+    /// cooldown stamp without allowing a double-dispatch race.
+    reannounce_pending: bool,
 }
 
 impl TorrentsTab {
@@ -62,6 +71,8 @@ impl TorrentsTab {
             table_manager,
             popup_manager: PopupManager::new(),
             current_window: TorrentWindow::General,
+            last_reannounce: None,
+            reannounce_pending: false,
         }
     }
 }
@@ -154,6 +165,7 @@ impl Component for TorrentsTab {
                 CTX.send_action(Action::Render);
             }
             A::Pause => self.pause_current_torrent(),
+            A::Reannounce => self.reannounce_torrents(),
             A::Delete => {
                 if let Some(torrent_selection) = self.get_currently_selected() {
                     self.task_manager.delete_torrents(torrent_selection);
@@ -244,7 +256,17 @@ impl Component for TorrentsTab {
             UpdateAction::UpdateCurrentTorrent(_) => {
                 self.popup_manager.handle_update_action(action)
             }
+            UpdateAction::ReannounceDispatched => {
+                self.mark_reannounce_dispatched();
+            }
             UpdateAction::CancelTorrentTask => {
+                // A cancelled confirm prompt releases the optimistic
+                // cooldown stamp; a confirmed one keeps it (pending is
+                // already false after `mark_reannounce_dispatched`).
+                if self.reannounce_pending {
+                    self.reannounce_pending = false;
+                    self.last_reannounce = None;
+                }
                 if self.task_manager.is_status_task_in_progress() {
                     return;
                 }
@@ -463,6 +485,42 @@ impl TorrentsTab {
                 }
             }
         }
+    }
+
+    fn reannounce_torrents(&mut self) {
+        if let Some(selection) = self.get_currently_selected() {
+            if self.reannounce_pending {
+                return;
+            }
+            if let Some(last) = self.last_reannounce {
+                let elapsed = last.elapsed();
+                if elapsed < std::time::Duration::from_secs(REANNOUNCE_COOLDOWN_SECS) {
+                    let remaining = (REANNOUNCE_COOLDOWN_SECS as f64 - elapsed.as_secs_f64())
+                        .ceil()
+                        .max(1.0) as u64;
+                    // Rate-limit notice belongs in the status bar, not a
+                    // modal popup: it must not block navigation.
+                    let task =
+                        StatusTask::new_reannounce(format!("cooldown, retry in {remaining}s"));
+                    CTX.send_update_action(UpdateAction::StatusTaskSet(task));
+                    CTX.send_update_action(UpdateAction::StatusTaskFailure);
+                    return;
+                }
+            }
+            // Optimistic stamp closes the race where two rapid confirms
+            // both pass the check before the async `ReannounceDispatched`
+            // roundtrip lands. Cancelled prompts release it in
+            // `CancelTorrentTask`; confirmed ones refresh it in
+            // `mark_reannounce_dispatched`.
+            self.last_reannounce = Some(std::time::Instant::now());
+            self.reannounce_pending = true;
+            self.task_manager.reannounce_torrents(selection);
+        }
+    }
+
+    fn mark_reannounce_dispatched(&mut self) {
+        self.last_reannounce = Some(std::time::Instant::now());
+        self.reannounce_pending = false;
     }
 
     fn xdg_open_current_torrent(&mut self) {

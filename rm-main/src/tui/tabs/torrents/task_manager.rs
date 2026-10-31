@@ -45,6 +45,7 @@ pub enum CurrentTask {
     Sort(tasks::Sort),
     Selection(tasks::Selection),
     Rename(tasks::Rename),
+    Reannounce(tasks::Reannounce),
 }
 
 impl CurrentTask {
@@ -94,6 +95,11 @@ impl Component for TaskManager {
                     self.cancel_task()
                 }
             }
+            CurrentTask::Reannounce(reannounce_bar) => {
+                if reannounce_bar.handle_actions(action).is_quit() {
+                    self.cancel_task()
+                }
+            }
             CurrentTask::Default(_) => (),
             CurrentTask::Sort(_) => (),
             CurrentTask::Selection(_) => (),
@@ -132,6 +138,7 @@ impl Component for TaskManager {
             CurrentTask::Sort(sort_bar) => sort_bar.render(f, rect),
             CurrentTask::Selection(selection_bar) => selection_bar.render(f, rect),
             CurrentTask::Rename(rename_bar) => rename_bar.render(f, rect),
+            CurrentTask::Reannounce(reannounce_bar) => reannounce_bar.render(f, rect),
         }
     }
 
@@ -158,6 +165,11 @@ impl TaskManager {
 
     pub fn delete_torrents(&mut self, selection: TorrentSelection) {
         self.current_task = CurrentTask::Delete(tasks::Delete::new(selection));
+        CTX.send_update_action(UpdateAction::SwitchToInputMode);
+    }
+
+    pub fn reannounce_torrents(&mut self, selection: TorrentSelection) {
+        self.current_task = CurrentTask::Reannounce(tasks::Reannounce::new(selection));
         CTX.send_update_action(UpdateAction::SwitchToInputMode);
     }
 

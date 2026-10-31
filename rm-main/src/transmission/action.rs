@@ -21,6 +21,8 @@ pub enum TorrentAction {
     Stop(Vec<Id>),
     // Start Torrents with these given IDs
     Start(Vec<Id>),
+    // Reannounce Torrents with these given IDs to their trackers
+    Reannounce(Vec<Id>),
     // Torrent ID, Directory to move to
     Move(Vec<Id>, String),
     // Torrent ID, Current name, Name to change to
@@ -110,6 +112,27 @@ pub async fn action_handler(
                         update_tx
                             .send(UpdateAction::Error(Box::new(err_message)))
                             .unwrap();
+                    }
+                }
+            }
+            TorrentAction::Reannounce(ids) => {
+                match client
+                    .torrent_action(RPCAction::Reannounce, ids.clone())
+                    .await
+                {
+                    Ok(_) => {
+                        tracing::info!("Reannounced torrents, IDs={:?}", ids);
+                        update_tx.send(UpdateAction::StatusTaskSuccess).unwrap();
+                    }
+                    Err(err) => {
+                        let msg =
+                            format!("Failed to reannounce torrents with these IDs: {:?}", ids);
+                        tracing::error!("{msg}");
+                        let err_message = ErrorMessage::new(FAILED_TO_COMMUNICATE, msg, err);
+                        update_tx
+                            .send(UpdateAction::Error(Box::new(err_message)))
+                            .unwrap();
+                        update_tx.send(UpdateAction::StatusTaskFailure).unwrap();
                     }
                 }
             }
