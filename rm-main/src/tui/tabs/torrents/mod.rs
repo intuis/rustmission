@@ -14,6 +14,7 @@ use crate::tui::ctx::CTX;
 use intuitils::error_message::ErrorMessage;
 use popups::details::DetailsPopup;
 use popups::stats::StatisticsPopup;
+use popups::trackers::TrackersPopup;
 use ratatui::{
     prelude::*,
     widgets::{Cell, Row, Table},
@@ -142,6 +143,7 @@ impl Component for TorrentsTab {
             A::End => self.select_last(),
             A::ShowStats => self.show_statistics_popup(),
             A::ShowFiles => self.show_files_popup(),
+            A::ShowTrackers => self.show_trackers_popup(),
             A::Confirm => self.show_details_popup(),
             A::Select => {
                 self.table_manager.select_current_torrent();
@@ -370,6 +372,14 @@ impl TorrentsTab {
 
             let update_action = UpdateAction::ChangeTorrentWindow(TorrentWindow::FileViewer);
             CTX.send_update_action(update_action);
+        }
+    }
+
+    fn show_trackers_popup(&mut self) {
+        if let Some(highlighted_torrent) = self.table_manager.current_torrent() {
+            let popup = TrackersPopup::new(highlighted_torrent.id.clone());
+            self.popup_manager.show_popup(CurrentPopup::Trackers(popup));
+            CTX.send_action(Action::Render);
         }
     }
 

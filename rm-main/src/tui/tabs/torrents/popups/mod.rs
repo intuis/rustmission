@@ -1,9 +1,14 @@
-use crate::tui::{
-    components::{Component, ComponentAction},
-    ctx::CTX,
+use std::time::Duration;
+
+use crate::{
+    transmission::TorrentAction,
+    tui::{
+        components::{Component, ComponentAction},
+        ctx::CTX,
+    },
 };
 
-use self::{files::FilesPopup, stats::StatisticsPopup};
+use self::{files::FilesPopup, stats::StatisticsPopup, trackers::TrackersPopup};
 use details::DetailsPopup;
 use rm_shared::{
     action::{Action, UpdateAction},
@@ -11,10 +16,37 @@ use rm_shared::{
 };
 
 use ratatui::prelude::*;
+use tokio::sync::oneshot;
+use transmission_rpc::types::Id;
 
 pub mod details;
 pub mod files;
 pub mod stats;
+pub mod trackers;
+
+/// Periodically re-fetches the given torrent and sends it as `UpdateCurrentTorrent`.
+pub async fn fetch_current_torrent(torrent_id: Id) {
+    loop {
+        let (torrent_tx, torrent_rx) = oneshot::channel();
+        CTX.send_torrent_action(TorrentAction::GetTorrentsById(
+            vec![torrent_id.clone()],
+            torrent_tx,
+        ));
+
+        match torrent_rx.await.unwrap() {
+            Ok(mut torrents) => {
+                if let Some(torrent) = torrents.pop() {
+                    CTX.send_update_action(UpdateAction::UpdateCurrentTorrent(Box::new(torrent)));
+                }
+            }
+            Err(err_message) => {
+                CTX.send_update_action(UpdateAction::Error(err_message));
+            }
+        };
+
+        tokio::time::sleep(Duration::from_secs(6)).await;
+    }
+}
 
 pub struct PopupManager {
     pub current_popup: Option<CurrentPopup>,
@@ -24,6 +56,7 @@ pub enum CurrentPopup {
     Stats(StatisticsPopup),
     Files(FilesPopup),
     Details(DetailsPopup),
+    Trackers(TrackersPopup),
 }
 
 impl PopupManager {
@@ -53,6 +86,7 @@ impl Component for PopupManager {
                 CurrentPopup::Stats(popup) => popup.handle_actions(action).is_quit(),
                 CurrentPopup::Files(popup) => popup.handle_actions(action).is_quit(),
                 CurrentPopup::Details(popup) => popup.handle_actions(action).is_quit(),
+                CurrentPopup::Trackers(popup) => popup.handle_actions(action).is_quit(),
             };
 
             if should_close {
@@ -64,8 +98,10 @@ impl Component for PopupManager {
     }
 
     fn handle_update_action(&mut self, action: UpdateAction) {
-        if let Some(CurrentPopup::Files(popup)) = &mut self.current_popup {
-            popup.handle_update_action(action);
+        match &mut self.current_popup {
+            Some(CurrentPopup::Files(popup)) => popup.handle_update_action(action),
+            Some(CurrentPopup::Trackers(popup)) => popup.handle_update_action(action),
+            _ => (),
         }
     }
 
@@ -79,6 +115,7 @@ impl Component for PopupManager {
                     popup.render(f, rect);
                 }
                 CurrentPopup::Details(popup) => popup.render(f, rect),
+                CurrentPopup::Trackers(popup) => popup.render(f, rect),
             }
         }
     }

@@ -47,6 +47,7 @@ keybindings = [
   { on = "c", action = "ChangeCategory" },
   { on = "p", action = "Pause" },
   { on = "f", action = "ShowFiles" },
+  { on = "t", action = "ShowTrackers" },
   { on = "s", action = "ShowStats" },
   { on = "d", action = "Delete" },
 ]

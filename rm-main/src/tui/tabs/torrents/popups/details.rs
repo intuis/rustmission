@@ -36,6 +36,10 @@ impl Component for DetailsPopup {
                 CTX.send_action(Action::ShowFiles);
                 ComponentAction::Quit
             }
+            Action::ShowTrackers => {
+                CTX.send_action(Action::ShowTrackers);
+                ComponentAction::Quit
+            }
             Action::Rename => {
                 CTX.send_action(Action::Rename);
                 ComponentAction::Quit
@@ -91,6 +95,17 @@ impl Component for DetailsPopup {
                 .keybindings
                 .torrents_tab
                 .get_keys_for_action_joined(TorrentsAction::ShowFiles)
+                .unwrap_or_default(),
+            keybinding_style(),
+        ));
+
+        let mut show_trackers_line = Line::default();
+        show_trackers_line.push_span(Span::raw("Show trackers: "));
+        show_trackers_line.push_span(Span::styled(
+            CONFIG
+                .keybindings
+                .torrents_tab
+                .get_keys_for_action_joined(TorrentsAction::ShowTrackers)
                 .unwrap_or_default(),
             keybinding_style(),
         ));
@@ -172,6 +187,7 @@ impl Component for DetailsPopup {
         lines.push(padding_line);
         lines.push(delete_line);
         lines.push(show_files_line);
+        lines.push(show_trackers_line);
         lines.push(rename_line);
         lines.push(move_location_line);
         lines.push(change_category_line);
