@@ -17,7 +17,7 @@ pub enum TorrentsAction {
 impl UserAction for TorrentsAction {
     fn desc(&self) -> &'static str {
         match self {
-            TorrentsAction::AddMagnet => "add a magnet",
+            TorrentsAction::AddMagnet => "add a torrent",
             TorrentsAction::MoveTorrent => "move torrent download directory",
             TorrentsAction::Pause => "pause/unpause",
             TorrentsAction::Delete => "delete",

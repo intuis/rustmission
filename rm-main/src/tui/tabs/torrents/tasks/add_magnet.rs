@@ -28,7 +28,7 @@ enum Stage {
     Location,
 }
 
-const MAGNET_PROMPT: &str = "Add magnet URI: ";
+const MAGNET_PROMPT: &str = "Add magnet, URL or .torrent file: ";
 const CATEGORY_PROMPT: &str = "Category (empty for default): ";
 const LOCATION_PROMPT: &str = "Directory: ";
 

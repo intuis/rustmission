@@ -13,9 +13,10 @@ use transmission_rpc::TransClient;
 use rm_shared::action::UpdateAction;
 
 const FAILED_TO_COMMUNICATE: &str = "Failed to communicate with Transmission";
+const FAILED_TO_ADD: &str = "Failed to add torrent";
 
 pub enum TorrentAction {
-    // Add a torrent with this Magnet/URL, Directory, Label (Category)
+    // Add a torrent with this Magnet/URL/File path, Directory, Label (Category)
     Add(String, Option<String>, Option<String>),
     // Stop Torrents with these given IDs
     Stop(Vec<Id>),
@@ -56,21 +57,24 @@ pub async fn action_handler(
     while let Some(action) = trans_rx.recv().await {
         match action {
             TorrentAction::Add(ref url, directory, label) => {
-                let formatted = {
-                    if url.starts_with("www") {
-                        format!("https://{url}")
-                    } else {
-                        url.to_string()
-                    }
-                };
-
                 let label = label.map(|label| vec![label]);
 
-                let args = TorrentAddArgs {
-                    filename: Some(formatted),
-                    download_dir: directory,
-                    labels: label,
-                    ..Default::default()
+                let args = match super::utils::torrent_add_args(url) {
+                    Ok(args) => TorrentAddArgs {
+                        download_dir: directory,
+                        labels: label,
+                        ..args
+                    },
+                    Err(err) => {
+                        let msg = format!("Failed to add torrent with URL/Path: \"{url}\"");
+                        tracing::error!("{msg}: {err}");
+                        let err_message = ErrorMessage::new(FAILED_TO_ADD, msg, err.into());
+                        update_tx
+                            .send(UpdateAction::Error(Box::new(err_message)))
+                            .unwrap();
+                        update_tx.send(UpdateAction::StatusTaskFailure).unwrap();
+                        continue;
+                    }
                 };
                 match client.torrent_add(args).await {
                     Ok(_) => {
