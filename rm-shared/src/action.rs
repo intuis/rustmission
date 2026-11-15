@@ -37,6 +37,7 @@ pub enum Action {
     // Torrents Tab
     ShowStats,
     ShowFiles,
+    ShowTrackers,
     Pause,
     Delete,
     AddMagnet,

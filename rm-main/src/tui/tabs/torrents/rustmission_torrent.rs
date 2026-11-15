@@ -396,13 +396,17 @@ impl From<Torrent> for RustmissionTorrent {
     }
 }
 
-fn time_to_line<'a>(time: DateTime<Utc>) -> Line<'a> {
+pub fn time_to_string(time: DateTime<Utc>) -> String {
     let today = chrono::Local::now();
     if time.year() == today.year() && time.month() == today.month() && time.day() == today.day() {
-        Line::from(time.format("Today %H:%M").to_string())
+        time.format("Today %H:%M").to_string()
     } else {
-        Line::from(time.format("%y|%m|%d %H:%M").to_string())
+        time.format("%y|%m|%d %H:%M").to_string()
     }
+}
+
+fn time_to_line<'a>(time: DateTime<Utc>) -> Line<'a> {
+    Line::from(time_to_string(time))
 }
 
 fn download_speed_format(download_speed: &str) -> String {

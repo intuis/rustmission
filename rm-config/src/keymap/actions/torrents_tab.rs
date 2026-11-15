@@ -10,6 +10,7 @@ pub enum TorrentsAction {
     Pause,
     Delete,
     ShowFiles,
+    ShowTrackers,
     ShowStats,
     ChangeCategory,
 }
@@ -22,6 +23,7 @@ impl UserAction for TorrentsAction {
             TorrentsAction::Pause => "pause/unpause",
             TorrentsAction::Delete => "delete",
             TorrentsAction::ShowFiles => "show files",
+            TorrentsAction::ShowTrackers => "show trackers",
             TorrentsAction::ShowStats => "show statistics",
             TorrentsAction::ChangeCategory => "change category",
             TorrentsAction::Rename => "rename torrent path",
@@ -37,6 +39,7 @@ impl From<TorrentsAction> for Action {
             TorrentsAction::Pause => Action::Pause,
             TorrentsAction::Delete => Action::Delete,
             TorrentsAction::ShowFiles => Action::ShowFiles,
+            TorrentsAction::ShowTrackers => Action::ShowTrackers,
             TorrentsAction::ShowStats => Action::ShowStats,
             TorrentsAction::ChangeCategory => Action::ChangeCategory,
             TorrentsAction::Rename => Action::Rename,

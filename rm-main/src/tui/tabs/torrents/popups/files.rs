@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, time::Duration};
+use std::collections::BTreeMap;
 
 use intuitils::{error_message::ErrorMessage, popup::popup_rects};
 use ratatui::{
@@ -10,7 +10,7 @@ use rm_config::{
     keymap::{actions::torrents_tab_file_viewer::TorrentsFileViewerAction, GeneralAction},
     CONFIG,
 };
-use tokio::{sync::oneshot, task::JoinHandle};
+use tokio::task::JoinHandle;
 use transmission_rpc::types::{Id, Priority, Torrent, TorrentSetArgs};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
@@ -146,29 +146,6 @@ pub struct FilesPopup {
     torrent_info_task_handle: JoinHandle<()>,
 }
 
-async fn fetch_new_files(torrent_id: Id) {
-    loop {
-        let (torrent_tx, torrent_rx) = oneshot::channel();
-        CTX.send_torrent_action(TorrentAction::GetTorrentsById(
-            vec![torrent_id.clone()],
-            torrent_tx,
-        ));
-
-        match torrent_rx.await.unwrap() {
-            Ok(mut torrents) => {
-                CTX.send_update_action(UpdateAction::UpdateCurrentTorrent(Box::new(
-                    torrents.pop().unwrap(),
-                )));
-            }
-            Err(err_message) => {
-                CTX.send_update_action(UpdateAction::Error(err_message));
-            }
-        };
-
-        tokio::time::sleep(Duration::from_secs(6)).await;
-    }
-}
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum CurrentFocus {
     CloseButton,
@@ -181,7 +158,7 @@ impl FilesPopup {
         let tree_state = TreeState::default();
         let tree = Node::new();
 
-        let torrent_info_task_handle = tokio::task::spawn(fetch_new_files(torrent_id.clone()));
+        let torrent_info_task_handle = tokio::task::spawn(super::fetch_current_torrent(torrent_id.clone()));
 
         Self {
             torrent,
