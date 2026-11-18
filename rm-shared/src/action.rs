@@ -44,6 +44,7 @@ pub enum Action {
     ChangeCategory,
     ChangeFilePriority,
     Rename,
+    CycleStatusFilter,
     // Search Tab
     ShowProvidersInfo,
 }

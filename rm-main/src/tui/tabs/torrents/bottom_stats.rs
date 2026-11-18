@@ -11,7 +11,7 @@ use transmission_rpc::types::{FreeSpace, SessionStats};
 
 use crate::tui::components::Component;
 
-use super::table_manager::TableManager;
+use super::table_manager::{StatusFilter, TableManager};
 
 #[derive(Default)]
 pub(super) struct BottomStats {
@@ -21,6 +21,7 @@ pub(super) struct BottomStats {
     pub(super) free_space: Option<Arc<FreeSpace>>,
     torrent_count: u16,
     torrent_currently_selected: u16,
+    status_filter: StatusFilter,
 }
 
 impl BottomStats {
@@ -38,6 +39,7 @@ impl BottomStats {
 
     pub fn update_selected_indicator(&mut self, table_manager: &TableManager) {
         self.torrent_count = u16::try_from(table_manager.table.get_len()).unwrap();
+        self.status_filter = table_manager.status_filter;
         if let Some(currently_selected) = table_manager.table.state.borrow().selected() {
             self.torrent_currently_selected = u16::try_from(currently_selected + 1).unwrap();
         }
@@ -67,6 +69,10 @@ impl Component for BottomStats {
             } else {
                 // dont display index if nothing is selected
                 text = format!("{} {} | {text}", CONFIG.icons.file, self.torrent_count);
+            }
+
+            if self.status_filter != StatusFilter::All {
+                text = format!("{} | {text}", self.status_filter.name());
             }
 
             let paragraph = Paragraph::new(text).alignment(Alignment::Right);
