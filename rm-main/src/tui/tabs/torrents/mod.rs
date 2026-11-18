@@ -166,13 +166,15 @@ impl Component for TorrentsTab {
                 }
             }
             A::AddMagnet => self.task_manager.add_magnet(),
-            A::Search => self.task_manager.search(
-                &self
-                    .table_manager
-                    .filter
-                    .as_ref()
-                    .map(|f| f.pattern.clone()),
-            ),
+            A::Search => self.task_manager.search(&self.table_manager.name_filter),
+            A::CycleStatusFilter => {
+                self.table_manager.cycle_status_filter();
+                self.table_manager.table.state.borrow_mut().select(Some(0));
+                self.table_manager.update_rows_number();
+                self.bottom_stats
+                    .update_selected_indicator(&self.table_manager);
+                CTX.send_action(Action::Render);
+            }
             A::MoveTorrent => {
                 if let Some(selection) = self.get_currently_selected() {
                     if let Some(session_info) = SESSION_GET.get() {
@@ -222,7 +224,7 @@ impl Component for TorrentsTab {
                     .update_selected_indicator(&self.table_manager);
             }
             UpdateAction::SearchFilterClear => {
-                self.table_manager.filter = None;
+                self.table_manager.clear_filter();
                 self.table_manager.table.state.borrow_mut().select(Some(0));
                 self.table_manager.update_rows_number();
                 self.bottom_stats

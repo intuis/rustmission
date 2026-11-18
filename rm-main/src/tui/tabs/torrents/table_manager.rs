@@ -3,7 +3,7 @@ use ratatui::{prelude::*, widgets::Row};
 use rm_config::CONFIG;
 use rm_shared::header::Header;
 use std::{cmp::Ordering, collections::HashMap};
-use transmission_rpc::types::Id;
+use transmission_rpc::types::{Id, TorrentStatus};
 
 use crate::tui::components::GenericTable;
 
@@ -13,6 +13,8 @@ pub struct TableManager {
     pub table: GenericTable<RustmissionTorrent>,
     pub widths: Vec<Constraint>,
     pub filter: Option<Filter>,
+    pub name_filter: Option<String>,
+    pub status_filter: StatusFilter,
     pub torrents_displaying_no: u16,
     pub sort_header: Option<usize>,
     pub sort_reverse: bool,
@@ -21,9 +23,63 @@ pub struct TableManager {
 }
 
 pub struct Filter {
-    pub pattern: String,
     indexes: Vec<u16>,
     highlight_indices: Vec<Vec<usize>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum StatusFilter {
+    #[default]
+    All,
+    Downloading,
+    Seeding,
+    Stopped,
+    Queued,
+    Verifying,
+    Error,
+}
+
+impl StatusFilter {
+    pub fn next(self) -> Self {
+        match self {
+            Self::All => Self::Downloading,
+            Self::Downloading => Self::Seeding,
+            Self::Seeding => Self::Stopped,
+            Self::Stopped => Self::Queued,
+            Self::Queued => Self::Verifying,
+            Self::Verifying => Self::Error,
+            Self::Error => Self::All,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::All => "All",
+            Self::Downloading => "Downloading",
+            Self::Seeding => "Seeding",
+            Self::Stopped => "Stopped",
+            Self::Queued => "Queued",
+            Self::Verifying => "Verifying",
+            Self::Error => "Error",
+        }
+    }
+
+    fn matches(self, torrent: &RustmissionTorrent) -> bool {
+        match self {
+            Self::All => true,
+            Self::Error => torrent.error.is_some(),
+            Self::Downloading => torrent.status() == TorrentStatus::Downloading,
+            Self::Seeding => torrent.status() == TorrentStatus::Seeding,
+            Self::Stopped => torrent.status() == TorrentStatus::Stopped,
+            Self::Verifying => torrent.status() == TorrentStatus::Verifying,
+            Self::Queued => matches!(
+                torrent.status(),
+                TorrentStatus::QueuedToVerify
+                    | TorrentStatus::QueuedToDownload
+                    | TorrentStatus::QueuedToSeed
+            ),
+        }
+    }
 }
 
 impl TableManager {
@@ -35,6 +91,8 @@ impl TableManager {
             table,
             widths,
             filter: None,
+            name_filter: None,
+            status_filter: StatusFilter::default(),
             torrents_displaying_no: 0,
             sort_header: None,
             sort_reverse: false,
@@ -177,7 +235,7 @@ impl TableManager {
         if let Some(filter) = &self.filter {
             self.table.overwrite_len(filter.indexes.len());
         } else {
-            self.table.items.len();
+            *self.table.overwritten_len.borrow_mut() = None;
         }
     }
 
@@ -274,8 +332,9 @@ impl TableManager {
 
         self.table.set_items(rows);
         self.widths = self.header_widths(&self.table.items);
-        self.update_rows_number();
         self.sort();
+        self.apply_filters();
+        self.update_rows_number();
 
         let mut state = self.table.state.borrow_mut();
         if state.selected().is_none() && !self.table.items.is_empty() {
@@ -284,23 +343,50 @@ impl TableManager {
     }
 
     pub fn set_filter(&mut self, filter: String) {
+        self.name_filter = Some(filter);
+        self.apply_filters();
+    }
+
+    pub fn clear_filter(&mut self) {
+        self.name_filter = None;
+        self.apply_filters();
+    }
+
+    pub fn cycle_status_filter(&mut self) {
+        self.status_filter = self.status_filter.next();
+        self.apply_filters();
+    }
+
+    fn apply_filters(&mut self) {
+        if self.name_filter.is_none() && self.status_filter == StatusFilter::All {
+            self.filter = None;
+            return;
+        }
+
         let matcher = SkimMatcherV2::default();
         let mut indexes: Vec<u16> = vec![];
         let mut highlight_indices = vec![];
         for (i, torrent) in self.table.items.iter().enumerate() {
-            if let Some((_, indices)) = matcher.fuzzy_indices(&torrent.torrent_name, &filter) {
-                indexes.push(i as u16);
-                highlight_indices.push(indices);
+            if !self.status_filter.matches(torrent) {
+                continue;
             }
+
+            let indices = match &self.name_filter {
+                Some(pattern) => match matcher.fuzzy_indices(&torrent.torrent_name, pattern) {
+                    Some((_, indices)) => indices,
+                    None => continue,
+                },
+                None => vec![],
+            };
+
+            indexes.push(i as u16);
+            highlight_indices.push(indices);
         }
 
-        let filter = Filter {
-            pattern: filter,
+        self.filter = Some(Filter {
             indexes,
             highlight_indices,
-        };
-
-        self.filter = Some(filter);
+        });
     }
 
     fn default_widths(headers: &Vec<Header>) -> Vec<Constraint> {
